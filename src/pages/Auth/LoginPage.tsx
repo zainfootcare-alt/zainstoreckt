@@ -153,45 +153,8 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* DEMO QUICK FILL BUTTONS (Subtle & Clean) */}
-        <div className="pt-4 border-t border-slate-800/80 space-y-2">
-          <p className="text-[10px] font-extrabold uppercase text-slate-500 text-center tracking-wider">
-            Quick Fill Demo Accounts:
-          </p>
-          <div className="grid grid-cols-4 gap-1.5">
-            <button
-              type="button"
-              onClick={() => quickFill('admin@zainfootwear.com', '1234')}
-              className="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-orange-400 text-[10px] font-extrabold rounded-xl border border-slate-700/60 transition-all text-center"
-            >
-              Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => quickFill('manager@zainfootwear.com', '5678')}
-              className="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-blue-400 text-[10px] font-extrabold rounded-xl border border-slate-700/60 transition-all text-center"
-            >
-              Manager
-            </button>
-            <button
-              type="button"
-              onClick={() => quickFill('cashier@zainfootwear.com', '1111')}
-              className="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 text-[10px] font-extrabold rounded-xl border border-slate-700/60 transition-all text-center"
-            >
-              Cashier
-            </button>
-            <button
-              type="button"
-              onClick={() => quickFill('finance@zainfootwear.com', '2222')}
-              className="px-2 py-1.5 bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-purple-400 text-[10px] font-extrabold rounded-xl border border-slate-700/60 transition-all text-center"
-            >
-              Finance
-            </button>
-          </div>
-        </div>
-
         {/* FOOTER */}
-        <div className="pt-2 text-center text-[10px] text-slate-500 font-medium flex items-center justify-center space-x-1">
+        <div className="pt-2 text-center text-[10px] text-slate-500 font-medium flex items-center justify-center space-x-1 border-t border-slate-800/80">
           <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
           <span>Zain Footwear POS & CRM • Multi-User System</span>
         </div>

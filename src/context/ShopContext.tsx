@@ -84,50 +84,7 @@ const DEFAULT_USERS: UserProfile[] = [
   },
 ];
 
-const DEFAULT_CUSTOMERS: Customer[] = [
-  {
-    id: 'cust-101',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    name: 'Aarav Mehta',
-    phone: '+91 98201 99887',
-    email: 'aarav@gmail.com',
-    total_purchases_count: 3,
-    total_spent: 8850.0,
-    last_purchase_date: '2026-08-09T16:20:00Z',
-    city: 'Mumbai',
-    created_at: '2026-06-10T10:00:00Z',
-    updated_at: '2026-08-09T16:20:00Z',
-  },
-  {
-    id: 'cust-102',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    name: 'Priya Sharma',
-    phone: '+91 98334 11223',
-    email: 'priya.s@yahoo.com',
-    total_purchases_count: 2,
-    total_spent: 4998.0,
-    last_purchase_date: '2026-08-08T14:15:00Z',
-    city: 'Mumbai',
-    created_at: '2026-07-01T11:30:00Z',
-    updated_at: '2026-08-08T14:15:00Z',
-  },
-  {
-    id: 'cust-103',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    name: 'Rohan Kapoor',
-    phone: '+91 98112 55667',
-    email: 'rohan.k@gmail.com',
-    total_purchases_count: 1,
-    total_spent: 1899.0,
-    last_purchase_date: '2026-08-05T18:45:00Z',
-    city: 'Mumbai',
-    created_at: '2026-08-05T18:45:00Z',
-    updated_at: '2026-08-05T18:45:00Z',
-  },
-];
+const DEFAULT_CUSTOMERS: Customer[] = [];
 
 interface ShopContextType {
   organization: Organization | null;
@@ -438,31 +395,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading] = useState<boolean>(false);
 
   // Core Data State
-  const [sales, setSales] = useState<SaleRecord[]>([
-    {
-      id: 'sale-001',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      receipt_number: 'REC-IN-100291',
-      created_by_user_id: 'emp-03',
-      created_by_name: 'Pooja Verma',
-      subtotal: 1850.0,
-      discount: 0,
-      tax: 222.0,
-      total: 1850.0,
-      cash_amount: 1000.0,
-      online_amount: 850.0,
-      created_at: new Date().toISOString(),
-      items: [
-        { item_name: 'Formal Leather Shoes', size: 'UK 8', quantity: 1, unit_price: 1200.0, total_price: 1200.0 },
-        { item_name: 'Shoe Polish & Care Kit', size: 'N/A', quantity: 1, unit_price: 650.0, total_price: 650.0 },
-      ],
-      payments: [
-        { payment_type: 'cash', amount: 1000.0 },
-        { payment_type: 'upi', amount: 850.0 },
-      ],
-    },
-  ]);
+  const [sales, setSales] = useState<SaleRecord[]>([]);
 
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([
     {
@@ -471,7 +404,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       shop_id: 'shop-mumbai-01',
       name: 'Cash Counter Register',
       type: 'cash',
-      current_balance: 15450.0,
+      current_balance: 0.0,
       is_active: true,
       created_at: new Date().toISOString(),
     },
@@ -481,7 +414,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       shop_id: 'shop-mumbai-01',
       name: 'UPI / QR Payment (PhonePe/GPay)',
       type: 'upi',
-      current_balance: 38500.0,
+      current_balance: 0.0,
       is_active: true,
       created_at: new Date().toISOString(),
     },
@@ -491,7 +424,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       shop_id: 'shop-mumbai-01',
       name: 'Card POS Machine',
       type: 'card',
-      current_balance: 62000.0,
+      current_balance: 0.0,
       is_active: true,
       created_at: new Date().toISOString(),
     },
@@ -499,167 +432,19 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: 'acc-bank-04',
       organization_id: 'org-footwear-101',
       shop_id: 'shop-mumbai-01',
-      name: 'Main Bank Account (HDFC)',
+      name: 'Main Bank Account',
       type: 'bank',
-      current_balance: 245000.0,
+      current_balance: 0.0,
       is_active: true,
       created_at: new Date().toISOString(),
     },
   ]);
 
-  const [vendors, setVendors] = useState<Vendor[]>([
-    {
-      id: 'v-kanpur-01',
-      organization_id: 'org-footwear-101',
-      name: 'ABC Wholesale Footwear',
-      business_name: 'ABC Tannery & Footwear Works',
-      category: 'Leather Footwear',
-      contact_person: 'Ramesh Agarwal',
-      phone: '+91 98390 11223',
-      whatsapp_phone: '+91 98390 11223',
-      email: 'orders@abcwholesale.in',
-      city: 'Kanpur',
-      address: 'Jajmau Leather Zone, Kanpur',
-      gstin: '09AAACK1234F1Z2',
-      credit_limit: 500000.0,
-      payment_terms: 30,
-      weekly_payment_day: 'Monday',
-      opening_balance: 10000.0,
-      current_balance: 50000.0,
-      status: 'Active',
-      notes: 'Primary supplier for formal leather shoes.',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'v-agra-02',
-      organization_id: 'org-footwear-101',
-      name: 'XYZ Wholesale Hub',
-      business_name: 'XYZ Shoe Manufacturing Syndicate',
-      category: 'Casual & Sports Shoes',
-      contact_person: 'Suresh Verma',
-      phone: '+91 98370 44556',
-      whatsapp_phone: '+91 98370 44556',
-      email: 'supply@xyzwholesale.in',
-      city: 'Agra',
-      address: 'Shoe Market, Hing Ki Mandi, Agra',
-      gstin: '09AAACA9988G1Z9',
-      credit_limit: 350000.0,
-      payment_terms: 15,
-      weekly_payment_day: 'Friday',
-      opening_balance: 0.0,
-      current_balance: 25000.0,
-      status: 'Active',
-      notes: 'Manufacturer for casual loafers and sneakers.',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ]);
-
-  const [purchases, setPurchases] = useState<Purchase[]>([
-    {
-      id: 'pur-101',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      vendor_id: 'v-kanpur-01',
-      bill_number: 'INV-2026-8801',
-      business_date: '2026-08-01',
-      due_date: '2026-08-31',
-      entry_type: 'amount_only',
-      subtotal: 50000.0,
-      transport_charges: 0,
-      tax: 0,
-      other_charges: 0,
-      total: 50000.0,
-      amount_paid: 10000.0,
-      balance_due: 40000.0,
-      payment_status: 'Partially Paid',
-      status: 'Active',
-      is_immutable: true,
-      is_voided: false,
-      notes: 'Bulk stock purchase of Oxford leather formal shoes',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      vendor_name: 'ABC Wholesale Footwear',
-    },
-  ]);
-
-  const [vendorLedgers, setVendorLedgers] = useState<Record<string, VendorLedgerEntry[]>>({
-    'v-kanpur-01': [
-      {
-        id: 'l_v-kanpur-01_1',
-        organization_id: 'org-footwear-101',
-        vendor_id: 'v-kanpur-01',
-        transaction_type: 'OPENING_BALANCE',
-        business_date: '2026-04-01',
-        debit: 0.0,
-        credit: 10000.0,
-        running_balance: 10000.0,
-        description: 'Opening Due Balance',
-        created_at: '2026-04-01T00:00:00Z',
-      },
-      {
-        id: 'l_v-kanpur-01_2',
-        organization_id: 'org-footwear-101',
-        vendor_id: 'v-kanpur-01',
-        transaction_type: 'PURCHASE',
-        reference_number: 'INV-2026-8801',
-        business_date: '2026-08-01',
-        debit: 0.0,
-        credit: 50000.0,
-        running_balance: 60000.0,
-        description: 'Purchase Bill #INV-2026-8801',
-        created_at: '2026-08-01T10:00:00Z',
-      },
-      {
-        id: 'l_v-kanpur-01_3',
-        organization_id: 'org-footwear-101',
-        vendor_id: 'v-kanpur-01',
-        transaction_type: 'PAYMENT',
-        reference_number: 'PAY-INIT-01',
-        business_date: '2026-08-01',
-        debit: 10000.0,
-        credit: 0.0,
-        running_balance: 50000.0,
-        description: 'Advance Paid Now',
-        created_at: '2026-08-01T10:05:00Z',
-      },
-    ],
-    'v-agra-02': [
-      {
-        id: 'l_v-agra-02_1',
-        organization_id: 'org-footwear-101',
-        vendor_id: 'v-agra-02',
-        transaction_type: 'PURCHASE',
-        reference_number: 'INV-AG-99',
-        business_date: '2026-08-05',
-        debit: 0.0,
-        credit: 25000.0,
-        running_balance: 25000.0,
-        description: 'Sneakers Purchase Bill',
-        created_at: '2026-08-05T11:00:00Z',
-      },
-    ],
-  });
-
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [vendorLedgers, setVendorLedgers] = useState<Record<string, VendorLedgerEntry[]>>({});
   const [vendorPayments, setVendorPayments] = useState<VendorPayment[]>([]);
-
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: 'exp-201',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      category_name: 'Rent',
-      title: 'Shop Storefront Rent',
-      amount: 20000.0,
-      business_date: new Date().toISOString().split('T')[0],
-      expense_date: new Date().toISOString(),
-      status: 'PAID',
-      payment_account_id: 'acc-cash-01',
-      payment_method: 'Cash',
-      created_at: new Date().toISOString(),
-    },
-  ]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const [employees, setEmployees] = useState<Employee[]>([
     {
@@ -667,95 +452,20 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       organization_id: 'org-footwear-101',
       shop_id: 'shop-mumbai-01',
       employee_code: 'EMP-001',
-      full_name: 'Vikram Singh',
-      designation: 'Store Manager',
-      phone: '+91 98200 99887',
-      email: 'vikram@zainfootwear.com',
-      base_salary: 24000.0, // ₹800 per day
-      joining_date: '2024-04-15',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'emp-02',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      employee_code: 'EMP-002',
-      full_name: 'Ahmed',
-      designation: 'Sales Staff / Cashier',
-      phone: '+91 98211 44332',
-      email: 'ahmed@zainfootwear.com',
-      base_salary: 18000.0, // ₹600 per day
-      joining_date: '2024-11-01',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'emp-03',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      employee_code: 'EMP-003',
-      full_name: 'Pooja Verma',
-      designation: 'Cashier & POS Sales',
-      phone: '+91 98334 55667',
-      email: 'pooja@zainfootwear.com',
-      base_salary: 15000.0, // ₹500 per day
-      joining_date: '2025-01-10',
+      full_name: 'Store Manager',
+      designation: 'Manager',
+      phone: '+91 98200 00000',
+      email: 'manager@zainfootwear.com',
+      base_salary: 24000.0,
+      joining_date: new Date().toISOString().split('T')[0],
       is_active: true,
       created_at: new Date().toISOString(),
     },
   ]);
 
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([
-    {
-      id: 'att-1',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      employee_id: 'emp-01',
-      employee_name: 'Vikram Singh',
-      attendance_date: new Date().toISOString().split('T')[0],
-      status: 'present',
-      check_in_time: '09:30:00',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'att-2',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      employee_id: 'emp-02',
-      employee_name: 'Ahmed',
-      attendance_date: new Date().toISOString().split('T')[0],
-      status: 'present',
-      check_in_time: '09:45:00',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'att-3',
-      organization_id: 'org-footwear-101',
-      shop_id: 'shop-mumbai-01',
-      employee_id: 'emp-03',
-      employee_name: 'Pooja Verma',
-      attendance_date: new Date().toISOString().split('T')[0],
-      status: 'present',
-      check_in_time: '10:00:00',
-      created_at: new Date().toISOString(),
-    },
-  ]);
-
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [salaryPayments, setSalaryPayments] = useState<SalaryPayment[]>([]);
-
-  const [activeCashSession, setActiveCashSession] = useState<CashSession | null>({
-    id: `sess-${Date.now()}`,
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    business_date: new Date().toISOString().split('T')[0],
-    opened_at: new Date().toISOString(),
-    opening_cash: 5000.0,
-    expected_cash: 5000.0,
-    requires_approval: false,
-    status: 'OPEN',
-    created_at: new Date().toISOString(),
-  });
+  const [activeCashSession, setActiveCashSession] = useState<CashSession | null>(null);
 
   // Strict RBAC Enforcement
   const hasPermission = (permissionKey: string): boolean => {
