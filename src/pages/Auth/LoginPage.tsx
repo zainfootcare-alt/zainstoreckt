@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../../components/common/ZainLogo';
+import { PwaInstallButton } from '../../components/common/PwaInstallButton';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -56,11 +57,16 @@ export const LoginPage: React.FC = () => {
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-orange-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
+      {/* Top Banner PWA Install Option */}
+      <div className="absolute top-4 right-4 z-20">
+        <PwaInstallButton />
+      </div>
+
       <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 z-10">
         {/* LOGO & BRAND HEADER */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center p-3 bg-slate-800/80 rounded-2xl border border-slate-700 shadow-inner">
-            <ZainLogo size="lg" showText={true} />
+          <div className="inline-flex items-center justify-center p-3 bg-slate-950/80 rounded-2xl border border-slate-800 shadow-inner">
+            <ZainLogo size="lg" showText={true} lightText={true} />
           </div>
           <div className="space-y-1">
             <h1 className="text-lg font-black text-white tracking-tight">Sign In to POS & CRM</h1>

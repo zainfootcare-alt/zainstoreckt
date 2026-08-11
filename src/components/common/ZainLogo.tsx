@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface ZainLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showText?: boolean;
+  lightText?: boolean;
 }
 
-export const ZainLogo: React.FC<ZainLogoProps> = ({ size = 'md', className = '', showText = true }) => {
+export const ZainLogo: React.FC<ZainLogoProps> = ({ size = 'md', className = '', showText = true, lightText = false }) => {
+  const [imgError, setImgError] = useState(false);
+
   const dimensions = {
     sm: 'w-8 h-8',
     md: 'w-10 h-10',
@@ -15,48 +18,36 @@ export const ZainLogo: React.FC<ZainLogoProps> = ({ size = 'md', className = '',
   }[size];
 
   return (
-    <div className={`inline-flex items-center gap-2.5 ${className}`}>
+    <div className={`inline-flex items-center gap-3 ${className}`}>
       {/* Official Circular Logo Badge */}
-      <div className={`${dimensions} rounded-full bg-black flex items-center justify-center p-1 border-2 border-orange-500 shadow-md flex-shrink-0 relative overflow-hidden group`}>
-        <svg viewBox="0 0 100 100" className="w-full h-full">
-          {/* Outer Ring & Crescent */}
-          <circle cx="50" cy="50" r="46" fill="black" stroke="#ff6600" strokeWidth="3" />
-          <path d="M 15 50 A 35 35 0 1 1 85 50 A 32 32 0 1 0 15 50 Z" fill="#ff6600" opacity="0.9" />
-
-          {/* Stylized Orange Shoe 'Z' */}
-          <path
-            d="M 22 28 C 30 25, 45 28, 48 35 C 40 45, 30 52, 22 62 C 32 62, 45 60, 48 68 C 35 70, 20 68, 20 62 C 28 50, 38 42, 42 34 Z"
-            fill="#ff6600"
+      <div className={`${dimensions} rounded-full bg-black flex items-center justify-center p-0.5 border-2 border-orange-500 shadow-lg flex-shrink-0 relative overflow-hidden group`}>
+        {!imgError ? (
+          <img
+            src="/logo.png"
+            alt="Zain Footwear Logo"
+            className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImgError(true)}
           />
-
-          {/* Sharp White 'F' */}
-          <path
-            d="M 50 25 L 82 25 L 82 33 L 60 33 L 60 45 L 78 45 L 78 53 L 60 53 L 56 75 L 48 75 Z"
-            fill="#ffffff"
+        ) : (
+          <img
+            src="/favicon.svg"
+            alt="Zain Footwear Vector Logo"
+            className="w-full h-full object-contain p-0.5"
           />
-
-          {/* ZAIN Text */}
-          <text x="50" y="82" textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="900" fontFamily="sans-serif" letterSpacing="1">
-            ZAIN
-          </text>
-          
-          {/* Footwear Subtext */}
-          <text x="50" y="93" textAnchor="middle" fill="#ff6600" fontSize="9" fontWeight="bold" fontFamily="serif" fontStyle="italic">
-            Footwear
-          </text>
-        </svg>
+        )}
       </div>
 
       {showText && (
         <div className="flex flex-col leading-none">
-          <span className="font-black text-slate-900 tracking-tight text-base uppercase">
-            ZAIN <span className="text-[#ff6600]">FOOTWEAR</span>
+          <span className={`font-black tracking-tight text-base uppercase ${lightText ? 'text-white' : 'text-slate-900'}`}>
+            ZAIN <span className="text-orange-500">FOOTWEAR</span>
           </span>
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-            Premium Footwear POS & CRM
+          <span className={`text-[10px] font-extrabold uppercase tracking-widest ${lightText ? 'text-slate-400' : 'text-slate-500'}`}>
+            POS & CRM System
           </span>
         </div>
       )}
     </div>
   );
 };
+

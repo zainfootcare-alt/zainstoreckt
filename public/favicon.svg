@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1c1917" />
+      <stop offset="100%" stop-color="#09090b" />
+    </radialGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c" />
+      <stop offset="50%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Black Circle Badge with Orange Crescent Ring -->
+  <circle cx="100" cy="100" r="96" fill="url(#bgGlow)" stroke="#f97316" stroke-width="3" />
+  
+  <!-- Outer Swoosh Arc -->
+  <path d="M 45 25 A 80 80 0 1 1 185 110" fill="none" stroke="url(#orangeGrad)" stroke-width="4" stroke-linecap="round" opacity="0.9" />
+
+  <!-- Z & F Footwear Emblem -->
+  <!-- Stylized Orange Z / Shoe Swoosh -->
+  <path d="M 40 68 C 40 60, 60 55, 88 55 L 48 118 C 42 128, 55 135, 90 135 L 94 122 C 70 122, 64 118, 68 110 L 96 68 C 100 62, 85 55, 40 68 Z" fill="url(#orangeGrad)" />
+  
+  <!-- White Sharp F -->
+  <path d="M 105 50 L 160 50 C 160 50, 162 62, 142 65 L 122 65 L 122 88 L 150 88 C 150 88, 148 100, 132 102 L 122 102 L 115 152 L 100 155 L 105 50 Z" fill="#ffffff" />
+  
+  <!-- Orange Sole Accent -->
+  <path d="M 42 112 C 48 108, 62 110, 65 118 C 55 125, 45 120, 42 112 Z" fill="#ffffff" />
+
+  <!-- Brand Typography -->
+  <!-- ZAIN text -->
+  <text x="100" y="156" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="22" letter-spacing="3">ZAIN</text>
+  
+  <!-- Footwear Cursive Subtitle -->
+  <text x="100" y="176" text-anchor="middle" fill="#f97316" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" letter-spacing="1">Footwear</text>
+</svg>

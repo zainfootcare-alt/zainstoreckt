@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useShop, ActiveRole } from '../../context/ShopContext';
 import { ZainLogo } from '../common/ZainLogo';
+import { PwaInstallButton } from '../common/PwaInstallButton';
 
 export const AppLayout: React.FC = () => {
   const { organization, shops, activeShop, setActiveShop, userProfile, activeRole, hasPermission, logoutUser } = useShop();
@@ -88,8 +89,10 @@ export const AppLayout: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Topbar Controls: User Profile */}
+        {/* Right Topbar Controls: PWA Install Button, Notifications & User Profile */}
         <div className="flex items-center space-x-2 sm:space-x-3">
+          <PwaInstallButton className="hidden sm:inline-flex" />
+
           <button
             onClick={() => navigate('/app/notifications')}
             className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl relative min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"

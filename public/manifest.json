@@ -1,0 +1,30 @@
+{
+  "short_name": "Zain POS",
+  "name": "Zain Footwear POS & CRM",
+  "description": "Footwear Point of Sale, Inventory & CRM Management System",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#09090b",
+  "theme_color": "#f97316",
+  "display": "standalone",
+  "orientation": "any",
+  "categories": ["business", "finance", "shopping"]
+}
