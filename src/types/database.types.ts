@@ -537,11 +537,53 @@ export interface Customer {
   name: string;
   phone: string;
   email?: string;
+  opening_balance?: number;
+  current_balance?: number; // Positive = Customer owes us ("You will receive"), Negative = We owe customer ("You will give"), 0 = Settled
   total_purchases_count: number;
   total_spent: number;
   last_purchase_date: string;
   city?: string;
   notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerLedgerEntry {
+  id: string;
+  organization_id: string;
+  customer_id: string;
+  transaction_type: 'SALE' | 'PAYMENT' | 'OPENING_BALANCE' | 'ESTIMATE_CONVERTED' | 'RETURN';
+  reference_number?: string;
+  business_date: string;
+  debit: number; // Sale/Due increases receivable balance
+  credit: number; // Payment received decreases receivable balance
+  running_balance: number;
+  description: string;
+  created_at: string;
+}
+
+export interface Estimate {
+  id: string;
+  organization_id: string;
+  shop_id?: string;
+  estimate_number: string;
+  customer_id?: string;
+  customer_name: string;
+  customer_phone?: string;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  status: 'Draft' | 'Sent' | 'Accepted' | 'Converted' | 'Rejected';
+  notes?: string;
+  items: Array<{
+    item_name: string;
+    size?: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }>;
+  converted_sale_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -561,6 +603,7 @@ export interface SaleRecord {
   receipt_number: string;
   created_by_user_id: string;
   created_by_name: string;
+  customer_id?: string;
   customer_name?: string;
   customer_phone?: string;
   subtotal: number;
@@ -569,6 +612,7 @@ export interface SaleRecord {
   total: number;
   cash_amount: number;
   online_amount: number;
+  due_amount?: number;
   created_at: string;
   items: Array<{
     item_name: string;

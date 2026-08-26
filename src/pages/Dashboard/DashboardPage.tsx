@@ -1,340 +1,380 @@
 import React, { useState } from 'react';
-import { useShop } from '../../context/ShopContext';
+import { useNavigate, Link } from 'react-router-dom';
 import {
-  ShoppingBag,
-  IndianRupee,
-  CreditCard,
-  ShoppingCart,
-  Receipt,
-  Users,
-  AlertCircle,
-  TrendingUp,
-  Wallet,
+  Plus,
   Calculator,
-  ShieldCheck,
-  Target,
-  Truck,
-  BarChart3,
-  Settings,
-  ChevronRight,
+  FileText,
+  CreditCard,
+  Users,
+  ArrowRight,
+  Receipt,
+  CheckCircle2,
+  Phone,
+  User,
+  X,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { ZainLogo } from '../../components/common/ZainLogo';
+import { useShop } from '../../context/ShopContext';
 
 export const DashboardPage: React.FC = () => {
-  const {
-    sales,
-    purchases,
-    vendorPayments,
-    expenses,
-    paymentAccounts,
-    attendance,
-    vendors,
-    activeRole,
-    userProfile,
-  } = useShop();
+  const { sales, customers, recordCustomerPayment } = useShop();
+  const navigate = useNavigate();
 
-  const [chartTab, setChartTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  // Quick Payment Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentMode, setPaymentMode] = useState<'cash' | 'upi' | 'card' | 'bank'>('cash');
+  const [paymentNotes, setPaymentNotes] = useState<string>('');
+  const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
 
+  // Today calculations
   const todayStr = new Date().toISOString().split('T')[0];
+  const todaySales = sales.filter((s) => s.created_at.startsWith(todayStr));
 
-  // Calculate Today's Totals
-  const todaySalesList = sales.filter((s) => s.created_at.startsWith(todayStr));
-  const todaySalesTotal = todaySalesList.reduce((sum, s) => sum + s.total, 0);
-  const todayCashReceived = todaySalesList.reduce((sum, s) => sum + s.cash_amount, 0);
-  const todayOnlineReceived = todaySalesList.reduce((sum, s) => sum + s.online_amount, 0);
+  const totalSalesToday = todaySales.reduce((sum, s) => sum + s.total, 0);
+  const cashSalesToday = todaySales.reduce((sum, s) => sum + s.cash_amount, 0);
+  const onlineSalesToday = todaySales.reduce((sum, s) => sum + s.online_amount, 0);
+  const dueSalesToday = todaySales.reduce((sum, s) => sum + (s.due_amount || 0), 0);
 
-  const partyOutstandingTotal = vendors.reduce((sum, v) => sum + v.current_balance, 0);
+  // Latest 5 Transactions
+  const latestTransactions = [...sales]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
 
-  // Money Position (Accounts)
-  const cashAccountBalance = paymentAccounts.find((a) => a.type === 'cash')?.current_balance || 0;
-  const onlineAccountBalances = paymentAccounts
-    .filter((a) => a.type !== 'cash')
-    .reduce((sum, a) => sum + a.current_balance, 0);
-  const totalMoneyPosition = cashAccountBalance + onlineAccountBalances;
+  const formatTime = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch (e) {
+      return '';
+    }
+  };
 
-  // Monthly Summary
-  const currentMonthPrefix = todayStr.substring(0, 7);
-  const thisMonthSales = sales
-    .filter((s) => s.created_at.startsWith(currentMonthPrefix))
-    .reduce((sum, s) => sum + s.total, 0);
+  const handleSavePayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(paymentAmount);
+    if (!selectedCustomerId || isNaN(amt) || amt <= 0) return;
 
-  // Salesperson Personal Metrics
-  const currentUserSales = sales.filter(
-    (s) => s.created_by_user_id === (userProfile?.id || 'emp-03') && s.created_at.startsWith(todayStr)
-  );
-  const mySalesTotal = currentUserSales.reduce((sum, s) => sum + s.total, 0);
-  const myTxnCount = currentUserSales.length;
-  const dailyTarget = 25000;
-  const targetProgress = Math.min(100, Math.round((mySalesTotal / dailyTarget) * 100));
+    recordCustomerPayment({
+      customer_id: selectedCustomerId,
+      amount: amt,
+      payment_method: paymentMode,
+      notes: paymentNotes || 'Customer payment received from Home',
+    });
 
-  // The 9 Core Grid App Items (Inspired by screenshot grid cards)
-  const adminGridItems = [
-    { label: 'POS Sale', path: '/app/pos', icon: Calculator, badge: 'POS', highlight: true },
-    { label: 'Purchases', path: '/app/purchases', icon: ShoppingCart },
-    { label: 'Parties', path: '/app/vendors', icon: Truck, badge: `${vendors.length}` },
-    { label: 'Finance', path: '/app/finance', icon: CreditCard },
-    { label: 'Expenses', path: '/app/expenses', icon: Receipt },
-    { label: 'Staff Log', path: '/app/staff', icon: Users },
-    { label: 'Reports', path: '/app/reports', icon: BarChart3 },
-    { label: 'Closing', path: '/app/counter', icon: Wallet },
-    { label: 'Settings', path: '/app/settings', icon: Settings },
-  ];
+    setPaymentSuccess(true);
+    setTimeout(() => {
+      setPaymentSuccess(false);
+      setIsPaymentModalOpen(false);
+      setSelectedCustomerId('');
+      setPaymentAmount('');
+      setPaymentNotes('');
+    }, 1000);
+  };
+
+  const todayFormatted = new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date());
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto pb-12">
-      {/* PURE WHITE CLEAN HEADER WITH OFFICIAL LOGO & ROLE SWITCH */}
-      <div className="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xs flex flex-row items-center justify-between gap-2">
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          <ZainLogo size="sm" showText={false} />
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight uppercase">
-                {activeRole} DASHBOARD
-              </h1>
-              <span className="text-[9px] font-extrabold uppercase text-orange-800 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
-                Zain
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium truncate max-w-[150px] sm:max-w-none">
-              {userProfile?.full_name || 'Admin'} • Operations
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-6 sm:space-y-8">
+      {/* 1. CLEAN STORE HEADER */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Zain Footwear</h1>
+          <p className="text-xs font-semibold text-slate-500">Retail POS & Store Operations</p>
+        </div>
+        <div className="text-right">
+          <span className="inline-block px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-700">
+            Today, {todayFormatted}
+          </span>
+        </div>
+      </div>
+
+      {/* 2. SIMPLE SALES SUMMARY (Khatabook Inspired) */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Today's Sales</p>
+          <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mt-1">
+            ₹{totalSalesToday.toLocaleString('en-IN')}
+          </p>
+        </div>
+
+        {/* 3-Way Payment Split Summary */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 border-t border-slate-100">
+          <div className="bg-slate-50 rounded-xl p-3 text-center sm:text-left">
+            <p className="text-[11px] font-bold text-slate-500 uppercase">Cash</p>
+            <p className="text-sm sm:text-base font-extrabold text-emerald-700 mt-0.5">
+              ₹{cashSalesToday.toLocaleString('en-IN')}
+            </p>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center sm:text-left">
+            <p className="text-[11px] font-bold text-slate-500 uppercase">Online</p>
+            <p className="text-sm sm:text-base font-extrabold text-indigo-700 mt-0.5">
+              ₹{onlineSalesToday.toLocaleString('en-IN')}
+            </p>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center sm:text-left">
+            <p className="text-[11px] font-bold text-slate-500 uppercase">Due</p>
+            <p className={`text-sm sm:text-base font-extrabold mt-0.5 ${dueSalesToday > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
+              ₹{dueSalesToday.toLocaleString('en-IN')}
             </p>
           </div>
         </div>
-
-        {/* Quick Action POS Launcher */}
-        <Link
-          to="/app/pos"
-          className="px-3 py-2 bg-[#ff6600] hover:bg-orange-600 text-white font-extrabold rounded-xl text-xs shadow-md transition-all flex items-center gap-1 flex-shrink-0"
-        >
-          <Calculator className="w-4 h-4" />
-          <span className="hidden sm:inline">Open POS</span>
-          <span className="sm:hidden">POS</span>
-        </Link>
       </div>
 
-      {/* 3x3 MAIN GRID ACTION TILES (Responsive for Mobile Screens) */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Quick Action Modules</h2>
-          <span className="text-[10px] font-bold text-slate-400">Touch Grid</span>
+      {/* 3. QUICK ACTIONS (Large, Touch-Friendly Buttons) */}
+      <div>
+        <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          {/* Action 1: New Sale (Prominent Primary Highlight) */}
+          <button
+            onClick={() => navigate('/app/pos')}
+            className="flex flex-col items-center justify-center p-4 sm:p-5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl shadow-sm transition-all text-center group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-2">
+              <Calculator className="w-5 h-5" />
+            </div>
+            <span className="font-extrabold text-sm leading-tight">New Sale</span>
+            <span className="text-[10px] text-white/80 font-medium mt-0.5">Fast Calculator</span>
+          </button>
+
+          {/* Action 2: Estimate */}
+          <button
+            onClick={() => navigate('/app/estimates')}
+            className="flex flex-col items-center justify-center p-4 sm:p-5 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-800 rounded-2xl shadow-2xs transition-all text-center"
+          >
+            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center mb-2">
+              <FileText className="w-5 h-5" />
+            </div>
+            <span className="font-extrabold text-sm leading-tight">Estimate</span>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5">Create & Share</span>
+          </button>
+
+          {/* Action 3: Payment */}
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="flex flex-col items-center justify-center p-4 sm:p-5 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-800 rounded-2xl shadow-2xs transition-all text-center"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <span className="font-extrabold text-sm leading-tight">Payment</span>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5">Receive Money</span>
+          </button>
+
+          {/* Action 4: Parties */}
+          <button
+            onClick={() => navigate('/app/parties')}
+            className="flex flex-col items-center justify-center p-4 sm:p-5 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-800 rounded-2xl shadow-2xs transition-all text-center"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+              <Users className="w-5 h-5" />
+            </div>
+            <span className="font-extrabold text-sm leading-tight">Parties</span>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5">Customer Ledger</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 4. RECENT ACTIVITY (Latest 5 Transactions) */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Recent Activity</h2>
+          <Link
+            to="/app/sales"
+            className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center space-x-1"
+          >
+            <span>View All</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {adminGridItems.map((item) => {
-            const Icon = item.icon;
-            const isPos = item.highlight;
-            return (
-              <Link
-                key={item.label}
-                to={item.path}
-                className={`p-3 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all flex flex-col items-center justify-center text-center space-y-1.5 group shadow-2xs ${
-                  isPos
-                    ? 'bg-black text-white border-orange-500 hover:scale-[1.02] shadow-md'
-                    : 'bg-white text-slate-800 border-slate-200/90 hover:border-orange-400'
-                }`}
-              >
-                <div
-                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 ${
-                    isPos ? 'bg-[#ff6600] text-white' : 'bg-orange-50 text-[#ff6600]'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+        {latestTransactions.length === 0 ? (
+          <div className="text-center py-8 text-slate-400 text-xs">
+            No sales recorded today yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {latestTransactions.map((tx) => (
+              <div key={tx.id} className="py-3 sm:py-3.5 flex items-center justify-between first:pt-0 last:pb-0">
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs flex-shrink-0">
+                    <Receipt className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-xs font-bold text-slate-900">
+                        {tx.customer_name || 'Walk-in Customer'}
+                      </p>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        #{tx.receipt_number}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-[11px] text-slate-500 font-medium mt-0.5">
+                      <span className="inline-block px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded text-[10px] uppercase font-bold">
+                        {tx.cash_amount > 0 && tx.online_amount > 0
+                          ? 'Split'
+                          : tx.cash_amount > 0
+                          ? 'Cash'
+                          : 'Online'}
+                      </span>
+                      <span>•</span>
+                      <span>{formatTime(tx.created_at)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className={`font-black text-[11px] sm:text-xs leading-tight tracking-tight ${isPos ? 'text-white' : 'text-slate-900'}`}>
-                    {item.label}
-                  </h3>
-                  {item.badge && (
-                    <span className={`text-[8px] sm:text-[9px] font-extrabold uppercase mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${
-                      isPos ? 'bg-orange-950 text-orange-400 border border-orange-800' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {item.badge}
+
+                <div className="text-right">
+                  <p className="text-xs sm:text-sm font-black text-slate-900">
+                    ₹{tx.total.toLocaleString('en-IN')}
+                  </p>
+                  {(tx.due_amount || 0) > 0 && (
+                    <span className="text-[10px] text-amber-600 font-bold block">
+                      Due: ₹{tx.due_amount}
                     </span>
                   )}
                 </div>
-              </Link>
-            );
-          })}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* CLEAN STATS BANNER: TODAY'S MONEY POSITION & SUMMARY */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* TODAY'S SALES & CASH INFLOW */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase">Today's Sales</span>
-            <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#ff6600] flex items-center justify-center">
-              <ShoppingBag className="w-3.5 h-3.5" />
+      {/* QUICK RECEIVE PAYMENT MODAL */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-slate-900">Receive Customer Payment</h3>
+                <p className="text-[11px] text-slate-500 font-medium">Record money received from party</p>
+              </div>
+              <button
+                onClick={() => setIsPaymentModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </div>
-          <div>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900">₹{todaySalesTotal.toLocaleString('en-IN')}</p>
-            <p className="text-[11px] text-slate-400 font-medium">{todaySalesList.length} sales today</p>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-slate-100 text-[11px] font-bold">
-            <span className="text-slate-500">Cash: ₹{todayCashReceived.toLocaleString('en-IN')}</span>
-            <span className="text-blue-600">Online: ₹{todayOnlineReceived.toLocaleString('en-IN')}</span>
+
+            {paymentSuccess ? (
+              <div className="py-6 text-center space-y-2">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <p className="text-sm font-bold text-slate-900">Payment Recorded Successfully!</p>
+                <p className="text-xs text-slate-500">Customer ledger updated.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSavePayment} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Select Customer / Party
+                  </label>
+                  <select
+                    value={selectedCustomerId}
+                    onChange={(e) => {
+                      setSelectedCustomerId(e.target.value);
+                      const cust = customers.find((c) => c.id === e.target.value);
+                      if (cust && (cust.current_balance || 0) > 0) {
+                        setPaymentAmount(cust.current_balance!.toString());
+                      }
+                    }}
+                    required
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="">-- Choose Party --</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.current_balance && c.current_balance > 0 ? `(Due: ₹${c.current_balance})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Payment Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder="Enter amount (e.g. 500)"
+                    required
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Payment Mode
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode('cash')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors ${
+                        paymentMode === 'cash'
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      💵 Cash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode('upi')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors ${
+                        paymentMode === 'upi'
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      📱 Online / UPI
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Notes / Remarks (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    placeholder="e.g. Cash received by cashier"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentModalOpen(false)}
+                    className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs"
+                  >
+                    Save Payment
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
-
-        {/* TODAY'S LIQUID TREASURY MONEY POSITION */}
-        <div className="bg-black text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 border-orange-500 shadow-lg flex flex-col justify-between space-y-2">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center space-x-1.5">
-              <Wallet className="w-4 h-4 text-[#ff6600]" />
-              <span className="text-[11px] font-black uppercase text-white">Money Position</span>
-            </div>
-            <span className="text-[9px] uppercase font-bold text-orange-400 bg-orange-950 px-2 py-0.5 rounded-full border border-orange-800">
-              Live Treasury
-            </span>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400">Total Liquid Money:</p>
-            <p className="text-2xl sm:text-3xl font-black text-orange-400 mt-0.5">₹{totalMoneyPosition.toLocaleString('en-IN')}</p>
-          </div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-300 pt-1.5 border-t border-slate-800">
-            <span>Float: ₹{cashAccountBalance.toLocaleString('en-IN')}</span>
-            <span>Online: ₹{onlineAccountBalances.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-
-        {/* PARTY DUES & OUTSTANDING */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase">Party Dues</span>
-            <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <AlertCircle className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div>
-            <p className="text-2xl sm:text-3xl font-black text-rose-600">₹{partyOutstandingTotal.toLocaleString('en-IN')}</p>
-            <p className="text-[11px] text-slate-400 font-medium">{vendors.length} Wholesalers connected</p>
-          </div>
-          <Link
-            to="/app/vendors/weekly-payments"
-            className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] font-extrabold text-[#ff6600] hover:underline"
-          >
-            <span>Weekly Payment Planner</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </div>
-
-      {/* SALES TREND & GROWTH COMPARISON */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-          <div>
-            <h3 className="font-black text-slate-900 text-sm sm:text-base flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#ff6600]" /> Store Sales Growth Trend
-            </h3>
-            <p className="text-[10px] text-slate-400 font-medium">Daily, weekly & monthly comparison</p>
-          </div>
-
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
-            <button
-              onClick={() => setChartTab('daily')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                chartTab === 'daily' ? 'bg-[#ff6600] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Daily
-            </button>
-            <button
-              onClick={() => setChartTab('weekly')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                chartTab === 'weekly' ? 'bg-[#ff6600] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Weekly
-            </button>
-            <button
-              onClick={() => setChartTab('monthly')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                chartTab === 'monthly' ? 'bg-[#ff6600] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Monthly
-            </button>
-          </div>
-        </div>
-
-        {/* VISUAL GROWTH BARS */}
-        <div className="py-1 space-y-2.5">
-          {chartTab === 'daily' && (
-            <div className="space-y-2">
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span className="text-slate-700">Today ({todayStr})</span>
-                  <span className="text-[#ff6600]">₹{todaySalesTotal.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#ff6600] rounded-full" style={{ width: '85%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span className="text-slate-700">Yesterday</span>
-                  <span className="text-slate-800">₹14,500</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-slate-300 rounded-full" style={{ width: '65%' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {chartTab === 'weekly' && (
-            <div className="space-y-2">
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span className="text-slate-700">This Week</span>
-                  <span className="text-[#ff6600]">₹68,500</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#ff6600] rounded-full" style={{ width: '90%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span className="text-slate-700">Last Week</span>
-                  <span className="text-slate-800">₹54,000</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-slate-300 rounded-full" style={{ width: '72%' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {chartTab === 'monthly' && (
-            <div className="space-y-2">
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span className="text-slate-700">August 2026 (Current)</span>
-                  <span className="text-[#ff6600]">₹{thisMonthSales.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#ff6600] rounded-full" style={{ width: '80%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span className="text-slate-700">July 2026</span>
-                  <span className="text-slate-800">₹1,85,000</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-slate-300 rounded-full" style={{ width: '75%' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
+
+export default DashboardPage;

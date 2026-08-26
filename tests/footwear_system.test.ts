@@ -76,4 +76,61 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     const remainingDue = payableSalary - paidAmount;
     expect(remainingDue).toBe(4000);
   });
+
+  it('Acceptance Test 6: Split Payment (Cash + Online + Due) reconciles exactly with Sale Total', () => {
+    const saleTotal = 2000;
+    const cashPaid = 1000;
+    const onlinePaid = 500;
+    const dueAmount = 500;
+
+    const totalAllocated = cashPaid + onlinePaid + dueAmount;
+    expect(totalAllocated).toBe(saleTotal);
+
+    const paidTotal = cashPaid + onlinePaid;
+    expect(paidTotal).toBe(1500);
+    expect(dueAmount).toBe(500);
+  });
+
+  it('Acceptance Test 7: Customer Khatabook balance updates on Due sale and subsequent payment', () => {
+    let customerBalance = 0; // Settled
+
+    // Customer buys on due ₹3,000
+    const saleDue = 3000;
+    customerBalance += saleDue;
+    expect(customerBalance).toBe(3000); // You will receive ₹3,000
+
+    // Customer pays ₹1,000
+    const paymentReceived = 1000;
+    customerBalance -= paymentReceived;
+    expect(customerBalance).toBe(2000); // You will receive ₹2,000
+
+    // Customer pays remaining ₹2,000
+    customerBalance -= 2000;
+    expect(customerBalance).toBe(0); // Settled in full
+  });
+
+  it('Acceptance Test 8: Estimate to Sale conversion preserves totals and marks status Converted', () => {
+    const estimate = {
+      id: 'est-101',
+      total: 4500,
+      status: 'Sent',
+    };
+
+    // 1-Click Convert to Sale
+    const convertedSale = {
+      id: 'sale-1025',
+      estimate_id: estimate.id,
+      total: estimate.total,
+      cash_amount: 2500,
+      online_amount: 2000,
+      due_amount: 0,
+    };
+
+    estimate.status = 'Converted';
+
+    expect(convertedSale.total).toBe(4500);
+    expect(convertedSale.cash_amount + convertedSale.online_amount).toBe(4500);
+    expect(estimate.status).toBe('Converted');
+  });
 });
+

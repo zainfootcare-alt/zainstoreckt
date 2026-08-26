@@ -5,6 +5,10 @@ import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CalculatorPOSPage } from './pages/POS/CalculatorPOSPage';
+import { PartiesListPage } from './pages/Parties/PartiesListPage';
+import { PartyDetailPage } from './pages/Parties/PartyDetailPage';
+import { EstimatesListPage } from './pages/Estimates/EstimatesListPage';
+import { MoreHubPage } from './pages/More/MoreHubPage';
 import { SalesPage } from './pages/Sales/SalesPage';
 import { CounterIndexPage } from './pages/Counter/CounterIndexPage';
 import { OpenCounterPage } from './pages/Counter/OpenCounterPage';
@@ -31,8 +35,16 @@ export const App: React.FC = () => {
 
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
+            
+            {/* PRIMARY 5 CORE MODULES */}
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="parties" element={<PartiesListPage />} />
+            <Route path="parties/:customerId" element={<PartyDetailPage />} />
             <Route path="pos" element={<CalculatorPOSPage />} />
+            <Route path="estimates" element={<EstimatesListPage />} />
+            <Route path="more" element={<MoreHubPage />} />
+
+            {/* SECONDARY WORKING MODULES (ACCESSIBLE VIA MORE & DEEP LINKS) */}
             <Route path="sales" element={<SalesPage />} />
 
             {/* CASH SHIFT COUNTER & EOD FINANCE CHECK */}
@@ -41,7 +53,7 @@ export const App: React.FC = () => {
             <Route path="counter/close" element={<CloseCounterPage />} />
             <Route path="counter/daily-check" element={<DailyFinanceCheckPage />} />
 
-            {/* PARTIES & PURCHASES */}
+            {/* SUPPLIERS & PURCHASES */}
             <Route path="vendors" element={<VendorIndexPage />} />
             <Route path="vendors/weekly-payments" element={<WeeklyPartyPaymentsPage />} />
             <Route path="vendors/:vendorId" element={<VendorDetail360Page />} />
@@ -51,11 +63,11 @@ export const App: React.FC = () => {
             <Route path="expenses" element={<ExpensesListPage />} />
             <Route path="expenses/new" element={<NewExpensePage />} />
 
-            {/* FINANCE */}
+            {/* FINANCE & P&L */}
             <Route path="finance" element={<FinanceOverviewPage />} />
             <Route path="finance/profit-loss" element={<ProfitLossPage />} />
 
-            {/* STAFF & ATTENDANCE & PAYROLL */}
+            {/* STAFF, ATTENDANCE & PAYROLL */}
             <Route path="staff" element={<StaffManagementPage />} />
 
             {/* REPORTS, NOTIFICATIONS & USER MANAGEMENT */}
@@ -65,6 +77,7 @@ export const App: React.FC = () => {
 
             <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
           </Route>
+
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
