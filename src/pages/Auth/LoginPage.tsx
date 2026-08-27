@@ -14,7 +14,7 @@ export const LoginPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -29,17 +29,18 @@ export const LoginPage: React.FC = () => {
     }
 
     setIsSubmitting(true);
-
-    setTimeout(() => {
-      const res = loginUser(identifierInput, passwordInput);
-      setIsSubmitting(false);
-
+    try {
+      const res = await loginUser(identifierInput, passwordInput);
       if (res.success) {
         navigate('/app/dashboard');
       } else {
         setErrorMsg(res.message || 'Invalid email or password.');
       }
-    }, 150);
+    } catch {
+      setErrorMsg('Connection error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

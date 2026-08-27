@@ -1275,17 +1275,17 @@ export const PartiesListPage: React.FC = () => {
             </div>
 
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newCustName.trim()) return;
                 const dueNum = parseFloat(newCustDue) || 0;
-                addCustomer({
-                  organization_id: 'org-footwear-101',
+                await addCustomer({
+                  organization_id: 'a1000000-0000-0000-0000-000000000001',
                   name: newCustName.trim(),
                   phone: newCustPhone.trim() || 'N/A',
                   opening_balance: dueNum,
                   current_balance: dueNum,
-                  total_purchases_count: 1,
+                  total_purchases_count: 0,
                   total_spent: dueNum,
                 });
                 setIsAddCustomerModalOpen(false);

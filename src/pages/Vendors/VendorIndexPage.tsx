@@ -88,12 +88,12 @@ export const VendorIndexPage: React.FC = () => {
   const selectedPayVendor = vendors.find((v) => v.id === payVendorId);
 
   // Handle Add New Party
-  const handleCreateParty = (e: React.FormEvent) => {
+  const handleCreateParty = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPartyName) return;
 
-    addVendor({
-      organization_id: organization?.id || 'org-footwear-101',
+    await addVendor({
+      organization_id: organization?.id || 'a1000000-0000-0000-0000-000000000001',
       name: newPartyName,
       business_name: newBusinessName || newPartyName,
       category: newCategory,
@@ -104,6 +104,7 @@ export const VendorIndexPage: React.FC = () => {
       address: newAddress,
       gstin: newGstin,
       opening_balance: newOpeningBalance,
+      credit_limit: 0,
       weekly_payment_day: newWeeklyPaymentDay,
       payment_terms: newPaymentTerms,
       status: 'Active',
@@ -128,10 +129,10 @@ export const VendorIndexPage: React.FC = () => {
     setDeleteTargetVendor(null);
   };
 
-  const handleCreatePurchase = () => {
+  const handleCreatePurchase = async () => {
     if (!purVendorId || purTotal <= 0 || !purBillNo) return;
 
-    recordPurchase({
+    await recordPurchase({
       vendor_id: purVendorId,
       bill_number: purBillNo,
       business_date: new Date().toISOString().split('T')[0],
@@ -148,10 +149,10 @@ export const VendorIndexPage: React.FC = () => {
     setPurNotes('');
   };
 
-  const handleCreatePartyPayment = () => {
+  const handleCreatePartyPayment = async () => {
     if (!payVendorId || payAmount <= 0) return;
 
-    const receipt = recordVendorPayment({
+    const receipt = await recordVendorPayment({
       vendor_id: payVendorId,
       amount_paid: payAmount,
       payment_account_id: payAccountId,

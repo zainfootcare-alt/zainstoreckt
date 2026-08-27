@@ -74,7 +74,7 @@ export const ExpensesListPage: React.FC = () => {
 
   const totalExpenseAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-  const handleCreateExpense = (e: React.FormEvent) => {
+  const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     const amtNum = parseFloat(expAmount);
     if (isNaN(amtNum) || amtNum <= 0) {
@@ -85,15 +85,13 @@ export const ExpensesListPage: React.FC = () => {
     const resolvedCat = isCustomCat ? customCatInput.trim() || 'General Expense' : expCategory;
     const resolvedTitle = expTitle.trim() || resolvedCat;
 
-    recordExpense({
+    await recordExpense({
       title: resolvedTitle,
       category_name: resolvedCat,
-      category_id: `cat_${resolvedCat.toLowerCase().replace(/\s+/g, '_')}`,
       amount: amtNum,
-      tax_amount: 0,
       payment_method: expPaymentMethod,
       business_date: expDate,
-      status: 'Paid',
+      status: 'PAID',
       notes: expNotes.trim() || undefined,
     });
 

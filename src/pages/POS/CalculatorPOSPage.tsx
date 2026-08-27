@@ -255,14 +255,14 @@ export const CalculatorPOSPage: React.FC = () => {
   const changeToReturn = tenderedVal >= netPayable ? tenderedVal - netPayable : 0;
 
   // Complete Sale & Store Transaction
-  const handleCompleteSale = () => {
+  const handleCompleteSale = async () => {
     if (activeSubtotal <= 0) return;
 
     const cashNum = parseFloat(cashPaid) || 0;
     const onlineNum = parseFloat(onlinePaid) || 0;
     const dueNum = parseFloat(dueAmount) || 0;
 
-    const itemsPayload = lineItems.map((it) => ({
+    const itemsPayload = lineItems.map((it: any) => ({
       item_name: `${it.category} (Size ${it.size})`,
       size: it.size,
       quantity: 1,
@@ -270,41 +270,47 @@ export const CalculatorPOSPage: React.FC = () => {
       total_price: it.unit_price,
     }));
 
-    const finalSale = recordSale({
-      organization_id: 'org-footwear-101',
-      shop_id: activeShop?.id || 'shop-mumbai-01',
-      receipt_number: `ZAIN-${Date.now().toString().slice(-6)}`,
-      created_by_user_id: userProfile?.id,
-      created_by_name: userProfile?.full_name || 'POS Cashier',
-      customer_id: selectedCustomerId || undefined,
-      customer_name: customerName.trim() || undefined,
-      customer_phone: customerPhone.trim() || undefined,
-      subtotal: activeSubtotal,
-      discount: discountAmount,
-      tax: 0,
-      total: netPayable,
-      cash_amount: cashNum,
-      online_amount: onlineNum,
-      due_amount: dueNum,
-      items: itemsPayload,
-    });
+    try {
+      const finalSale = await recordSale({
+        organization_id: activeShop?.organization_id || 'a1000000-0000-0000-0000-000000000001',
+        shop_id: activeShop?.id || 'b2000000-0000-0000-0000-000000000002',
+        receipt_number: `ZAIN-${Date.now().toString().slice(-6)}`,
+        created_by_user_id: userProfile?.id || '',
+        created_by_name: userProfile?.full_name || 'POS Cashier',
+        customer_id: selectedCustomerId || undefined,
+        customer_name: customerName.trim() || undefined,
+        customer_phone: customerPhone.trim() || undefined,
+        subtotal: activeSubtotal,
+        discount: discountAmount,
+        tax: 0,
+        total: netPayable,
+        cash_amount: cashNum,
+        online_amount: onlineNum,
+        due_amount: dueNum,
+        items: itemsPayload,
+        payments: [],
+      });
 
-    setCompletedSale({
-      id: finalSale.id,
-      receipt_number: finalSale.receipt_number,
-      total: finalSale.total,
-      subtotal: finalSale.subtotal,
-      discount: finalSale.discount,
-      cash_amount: finalSale.cash_amount,
-      online_amount: finalSale.online_amount,
-      due_amount: finalSale.due_amount || 0,
-      created_at: finalSale.created_at,
-      customer_name: finalSale.customer_name,
-      customer_phone: finalSale.customer_phone,
-      items: itemsPayload,
-    });
+      setCompletedSale({
+        id: finalSale.id,
+        receipt_number: finalSale.receipt_number,
+        total: finalSale.total,
+        subtotal: finalSale.subtotal,
+        discount: finalSale.discount,
+        cash_amount: finalSale.cash_amount,
+        online_amount: finalSale.online_amount,
+        due_amount: finalSale.due_amount || 0,
+        created_at: finalSale.created_at,
+        customer_name: finalSale.customer_name,
+        customer_phone: finalSale.customer_phone,
+        items: itemsPayload,
+      });
 
-    setStep('COMPLETED');
+      setStep('COMPLETED');
+    } catch (err) {
+      console.error('Sale recording failed:', err);
+      alert('Sale could not be saved. Please check your connection.');
+    }
   };
 
   // Reset entire POS to clean initial state

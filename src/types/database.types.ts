@@ -20,6 +20,8 @@ export type SystemRole =
   | 'marketing_manager'
   | 'viewer';
 
+export type ActiveRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'FINANCE';
+
 export type PermissionKey =
   | 'dashboard:view'
   | 'sales:view'
@@ -558,7 +560,7 @@ export interface Customer {
   current_balance?: number; // Positive = Customer owes us ("You will receive"), Negative = We owe customer ("You will give"), 0 = Settled
   total_purchases_count: number;
   total_spent: number;
-  last_purchase_date: string;
+  last_purchase_date?: string;
   city?: string;
   notes?: string;
   created_at: string;
