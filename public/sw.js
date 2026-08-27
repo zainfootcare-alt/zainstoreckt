@@ -1,12 +1,14 @@
-const CACHE_NAME = 'zain-pos-pwa-v1';
+const CACHE_NAME = 'zain-pos-pwa-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
+  '/favicon.png',
   '/logo.png',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
+  '/pwa-maskable-512x512.png',
   '/apple-touch-icon.png'
 ];
 

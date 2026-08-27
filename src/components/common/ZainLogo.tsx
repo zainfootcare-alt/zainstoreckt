@@ -23,7 +23,7 @@ export const ZainLogo: React.FC<ZainLogoProps> = ({ size = 'md', className = '',
       <div className={`${dimensions} rounded-full bg-black flex items-center justify-center p-0.5 border-2 border-orange-500 shadow-lg flex-shrink-0 relative overflow-hidden group`}>
         {!imgError ? (
           <img
-            src="/logo.png"
+            src="/pwa-512x512.png"
             alt="Zain Footwear Logo"
             className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
             onError={() => setImgError(true)}
