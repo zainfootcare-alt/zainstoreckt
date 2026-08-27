@@ -180,7 +180,7 @@ export const StoreAnalyticsChart: React.FC = () => {
               <ArrowUpRight className="w-3.5 h-3.5" /> +12.8%
             </span>
           </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">129 footwear pairs sold</span>
+          <span className="text-[11px] text-slate-500 mt-1 block">Completed checkout sales</span>
         </button>
 
         {/* Tab 3: Average Order Value */}

@@ -30,7 +30,8 @@ import {
 
 export const SalesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { sales, customers, addCustomer, deleteCustomer, activeShop, userProfile } = useShop();
+  const { sales, customers, addCustomer, deleteCustomer, activeShop, userProfile, activeRole } = useShop();
+  const isAdmin = activeRole === 'ADMIN';
 
   const [activeTab, setActiveTab] = useState<'sales' | 'crm'>('sales');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -78,12 +79,6 @@ export const SalesPage: React.FC = () => {
   });
 
   const totalSalesAmount = filteredSales.reduce((sum, s) => sum + s.total, 0);
-  const totalPairsSold = filteredSales.reduce((sum, s) => {
-    if (s.items && Array.isArray(s.items)) {
-      return sum + s.items.reduce((itemSum: number, it: any) => itemSum + (it.quantity || 1), 0);
-    }
-    return sum + 1;
-  }, 0);
 
   // Filter Customers CRM Directory
   const filteredCustomers = customers.filter((c) => {
@@ -256,39 +251,39 @@ export const SalesPage: React.FC = () => {
 
         {/* SALES SUMMARY STATS BANNER (When on Sales Tab) */}
         {activeTab === 'sales' && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Sales</span>
-              <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
-                ₹{totalSalesAmount.toLocaleString('en-IN')}
-              </p>
-              <p className="text-[10px] text-slate-400 font-semibold">{formatDateLabel(dateFilter)}</p>
-            </div>
+          isAdmin ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Sales Revenue</span>
+                <p className="text-2xl font-black text-slate-900 font-mono">
+                  ₹{totalSalesAmount.toLocaleString('en-IN')}
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {filteredSales.length} order{filteredSales.length === 1 ? '' : 's'} ({formatDateLabel(dateFilter)})
+                </p>
+              </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Orders / Bills</span>
-              <p className="text-xl sm:text-2xl font-black text-orange-600 font-mono">
-                {filteredSales.length}
-              </p>
-              <p className="text-[10px] text-slate-400 font-semibold">Total checkout receipts</p>
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Orders</span>
+                <p className="text-2xl font-black text-orange-600 font-mono">
+                  {filteredSales.length}
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Avg. Ticket ₹{filteredSales.length > 0 ? Math.round(totalSalesAmount / filteredSales.length).toLocaleString('en-IN') : 0} / bill
+                </p>
+              </div>
             </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Footwear Pairs Sold</span>
-              <p className="text-xl sm:text-2xl font-black text-indigo-700 font-mono">
-                {totalPairsSold}
-              </p>
-              <p className="text-[10px] text-slate-400 font-semibold">Shoes / Slippers / Sandals</p>
+          ) : (
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Counter Orders</span>
+                <p className="text-2xl font-black text-orange-600 font-mono">{filteredSales.length} Orders</p>
+              </div>
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl">
+                {formatDateLabel(dateFilter)}
+              </span>
             </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Avg. Bill Value</span>
-              <p className="text-xl sm:text-2xl font-black text-emerald-700 font-mono">
-                ₹{filteredSales.length > 0 ? Math.round(totalSalesAmount / filteredSales.length).toLocaleString('en-IN') : 0}
-              </p>
-              <p className="text-[10px] text-slate-400 font-semibold">Per customer average</p>
-            </div>
-          </div>
+          )
         )}
 
         {/* TAB 1: SALES RECEIPTS LEDGER */}
