@@ -143,9 +143,9 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Wipe legacy mock local storage on new schema initialization
+  // Wipe all customer, party, sales, and non-saif user data on schema initialization
   useEffect(() => {
-    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_v10');
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
     if (!isCleaned) {
       localStorage.removeItem('zain_pos_customers');
       localStorage.removeItem('zain_pos_customer_ledgers');
@@ -159,9 +159,11 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('zain_pos_todos');
       localStorage.removeItem('zain_pos_users');
       localStorage.removeItem('zain_pos_current_user');
+      localStorage.removeItem('zain_pos_products');
+      localStorage.removeItem('zain_pos_cart');
       localStorage.setItem('zain_pos_current_user', JSON.stringify(DEFAULT_USERS[0]));
       localStorage.setItem('zain_pos_users', JSON.stringify(DEFAULT_USERS));
-      localStorage.setItem('zain_pos_db_fresh_saif_v10', 'true');
+      localStorage.setItem('zain_pos_db_fresh_saif_only_v20', 'true');
     }
   }, []);
 
@@ -209,12 +211,18 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [activeShop, setActiveShop] = useState<Shop | null>(shops[0]);
 
+  // Strictly only saif@admin.com user
   const [users, setUsers] = useState<UserProfile[]>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_USERS;
     const saved = localStorage.getItem('zain_pos_users');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const saifOnly = parsed.filter((u: any) => u.email?.toLowerCase() === 'saif@admin.com');
+          if (saifOnly.length > 0) return saifOnly;
+        }
       } catch (e) {
         /* fallback */
       }
@@ -223,10 +231,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_USERS[0];
     const savedUser = localStorage.getItem('zain_pos_current_user');
     if (savedUser) {
       try {
-        return JSON.parse(savedUser);
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.email?.toLowerCase() === 'saif@admin.com') return parsed;
       } catch (e) {
         return DEFAULT_USERS[0];
       }
@@ -253,6 +264,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Clean Zero-data state for Customers
   const [customers, setCustomers] = useState<Customer[]>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_CUSTOMERS;
     const saved = localStorage.getItem('zain_pos_customers');
     if (saved) {
       try {
@@ -270,6 +283,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Clean Customer Ledgers
   const [customerLedgers, setCustomerLedgers] = useState<Record<string, CustomerLedgerEntry[]>>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_CUSTOMER_LEDGERS;
     const saved = localStorage.getItem('zain_pos_customer_ledgers');
     if (saved) {
       try {
@@ -287,6 +302,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Clean Sales Records
   const [sales, setSales] = useState<SaleRecord[]>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_SALES;
     const saved = localStorage.getItem('zain_pos_sales');
     if (saved) {
       try {
@@ -348,6 +365,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Clean Vendors / Parties
   const [vendors, setVendors] = useState<Vendor[]>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_VENDORS;
     const saved = localStorage.getItem('zain_pos_vendors');
     if (saved) {
       try {
@@ -365,6 +384,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [vendorLedgers, setVendorLedgers] = useState<Record<string, VendorLedgerEntry[]>>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_VENDOR_LEDGERS;
     const saved = localStorage.getItem('zain_pos_vendor_ledgers');
     if (saved) {
       try {
@@ -384,6 +405,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Clean Expenses
   const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_EXPENSES;
     const saved = localStorage.getItem('zain_pos_expenses');
     if (saved) {
       try {
@@ -401,6 +424,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Clean Employees & Attendance
   const [employees, setEmployees] = useState<Employee[]>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_EMPLOYEES;
     const saved = localStorage.getItem('zain_pos_employees');
     if (saved) {
       try {
@@ -423,6 +448,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Clean To-Do Tasks
   const [todos, setTodos] = useState<TodoItem[]>(() => {
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
+    if (!isCleaned) return DEFAULT_TODOS;
     const saved = localStorage.getItem('zain_pos_todos');
     if (saved) {
       try {
@@ -446,11 +473,15 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setVendors([]);
     setVendorLedgers({});
     setPurchases([]);
+    setVendorPayments([]);
     setExpenses([]);
     setEmployees([]);
     setAttendance([]);
     setSalaryPayments([]);
     setTodos([]);
+    setUsers(DEFAULT_USERS);
+    setUserProfile(DEFAULT_USERS[0]);
+    setActiveRole('ADMIN');
     localStorage.removeItem('zain_pos_customers');
     localStorage.removeItem('zain_pos_customer_ledgers');
     localStorage.removeItem('zain_pos_sales');
@@ -459,7 +490,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('zain_pos_expenses');
     localStorage.removeItem('zain_pos_employees');
     localStorage.removeItem('zain_pos_attendance');
+    localStorage.removeItem('zain_pos_salary_payments');
     localStorage.removeItem('zain_pos_todos');
+    localStorage.removeItem('zain_pos_products');
+    localStorage.removeItem('zain_pos_cart');
+    localStorage.setItem('zain_pos_users', JSON.stringify(DEFAULT_USERS));
+    localStorage.setItem('zain_pos_current_user', JSON.stringify(DEFAULT_USERS[0]));
+    localStorage.setItem('zain_pos_db_fresh_saif_only_v20', 'true');
   };
 
   // Authentication Handlers
