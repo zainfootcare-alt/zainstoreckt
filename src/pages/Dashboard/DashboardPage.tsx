@@ -18,8 +18,9 @@ import {
 } from '../../components/common/DateFilterModal';
 
 export const DashboardPage: React.FC = () => {
-  const { sales } = useShop();
+  const { sales, activeRole } = useShop();
   const navigate = useNavigate();
+  const isAdmin = activeRole === 'ADMIN';
 
   // Date Filter Modal & State (Default: TODAY)
   const [isDateModalOpen, setIsDateModalOpen] = useState<boolean>(false);
@@ -49,15 +50,7 @@ export const DashboardPage: React.FC = () => {
   const cashSalesAmount = filteredSales.reduce((sum, s) => sum + s.cash_amount, 0);
   const onlineSalesAmount = filteredSales.reduce((sum, s) => sum + s.online_amount, 0);
   const dueSalesAmount = filteredSales.reduce((sum, s) => sum + (s.due_amount || 0), 0);
-
   const totalOrdersCount = filteredSales.length;
-  const totalPairsSold = filteredSales.reduce((sum, s) => {
-    if (s.items && Array.isArray(s.items)) {
-      return sum + s.items.reduce((itemSum: number, it: any) => itemSum + (it.quantity || 1), 0);
-    }
-    return sum + 1;
-  }, 0);
-  const avgOrderValue = totalOrdersCount > 0 ? Math.round(totalSalesAmount / totalOrdersCount) : 0;
 
   // Latest Transactions (from filtered or all)
   const displaySales = filteredSales.length > 0 ? filteredSales : sales;
@@ -78,33 +71,24 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-      {/* 1. SALES OVERVIEW CARD WITH SIDE CALENDAR POPUP FILTER */}
+      {/* 1. SALES / ORDERS OVERVIEW CARD WITH SIDE CALENDAR POPUP FILTER */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3.5">
         {/* Card Header with Side Date Selector Button */}
         <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
           <div className="min-w-0">
             <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
-              Total Sales & Footfall
+              {isAdmin ? 'Total Sales Revenue' : 'Total Orders Made'}
             </span>
             <div className="flex items-baseline space-x-2 mt-0.5">
               <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight font-mono">
-                ₹{totalSalesAmount.toLocaleString('en-IN')}
+                {isAdmin ? `₹${totalSalesAmount.toLocaleString('en-IN')}` : `${totalOrdersCount} Orders`}
               </span>
             </div>
-            {/* Orders & Pairs Count Badges */}
-            <div className="flex items-center gap-2 flex-wrap mt-1">
-              <span className="text-[11px] font-extrabold text-orange-700 bg-orange-50 px-2.5 py-0.5 rounded-lg border border-orange-100">
-                🛍️ {totalOrdersCount} Order{totalOrdersCount === 1 ? '' : 's'}
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-lg">
-                👟 {totalPairsSold} Footwear Pair{totalPairsSold === 1 ? '' : 's'} Sold
-              </span>
-              {totalOrdersCount > 0 && (
-                <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">
-                  • Avg ₹{avgOrderValue.toLocaleString('en-IN')} / bill
-                </span>
-              )}
-            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 truncate">
+              {isAdmin
+                ? `${totalOrdersCount} checkout order${totalOrdersCount === 1 ? '' : 's'} (${currentLabel})`
+                : `Active counter sales for ${currentLabel}`}
+            </p>
           </div>
 
           {/* Clean Compact Side Calendar Filter Button */}
@@ -121,29 +105,36 @@ export const DashboardPage: React.FC = () => {
           </button>
         </div>
 
-        {/* 3-Column Payment Breakdown (Shopify metrics style) */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-0.5">
-          <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cash</p>
-            <p className="text-xs sm:text-base font-black text-emerald-700 font-mono mt-0.5 truncate">
-              ₹{cashSalesAmount.toLocaleString('en-IN')}
-            </p>
-          </div>
+        {/* 3-Column Payment Breakdown (Only for Admin to protect confidential figures) */}
+        {isAdmin ? (
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-0.5">
+            <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cash</p>
+              <p className="text-xs sm:text-base font-black text-emerald-700 font-mono mt-0.5 truncate">
+                ₹{cashSalesAmount.toLocaleString('en-IN')}
+              </p>
+            </div>
 
-          <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Online UPI</p>
-            <p className="text-xs sm:text-base font-black text-indigo-700 font-mono mt-0.5 truncate">
-              ₹{onlineSalesAmount.toLocaleString('en-IN')}
-            </p>
-          </div>
+            <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Online UPI</p>
+              <p className="text-xs sm:text-base font-black text-indigo-700 font-mono mt-0.5 truncate">
+                ₹{onlineSalesAmount.toLocaleString('en-IN')}
+              </p>
+            </div>
 
-          <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Udhaar / Due</p>
-            <p className={`text-xs sm:text-base font-black font-mono mt-0.5 truncate ${dueSalesAmount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
-              ₹{dueSalesAmount.toLocaleString('en-IN')}
-            </p>
+            <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Udhaar / Due</p>
+              <p className={`text-xs sm:text-base font-black font-mono mt-0.5 truncate ${dueSalesAmount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
+                ₹{dueSalesAmount.toLocaleString('en-IN')}
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-slate-50/80 rounded-2xl p-3 text-left border border-slate-100 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-600">Total Counter Receipts</span>
+            <span className="text-xs font-black text-slate-900 font-mono">{totalOrdersCount} Completed</span>
+          </div>
+        )}
       </div>
 
       {/* 2. MAIN QUICK ACTIONS (4 Core Hub Tiles) */}
