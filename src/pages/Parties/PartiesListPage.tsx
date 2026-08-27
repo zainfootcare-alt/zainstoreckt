@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
+  Building2,
   Users,
   Search,
   Plus,
@@ -8,285 +9,944 @@ import {
   Phone,
   CheckCircle2,
   X,
-  UserPlus,
+  MapPin,
+  Calendar,
+  Receipt,
+  FileText,
+  Upload,
+  Clock,
+  Send,
+  Sparkles,
+  DollarSign,
+  Package,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
-import { Customer } from '../../types/database.types';
+import { Vendor, Customer } from '../../types/database.types';
 
 export const PartiesListPage: React.FC = () => {
-  const { customers, addCustomer } = useShop();
+  const {
+    vendors,
+    addVendor,
+    purchases,
+    recordPurchase,
+    recordVendorPayment,
+    customers,
+    addCustomer,
+    recordCustomerPayment,
+    userProfile,
+  } = useShop();
+
   const navigate = useNavigate();
 
+  // Active Sub-tab: 'SUPPLIERS' (Maal Kharid) or 'CUSTOMERS' (Grahak Udhaar)
+  const [activeTab, setActiveTab] = useState<'SUPPLIERS' | 'CUSTOMERS'>('SUPPLIERS');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isAddPartyModalOpen, setIsAddPartyModalOpen] = useState<boolean>(false);
 
-  // New Party Form State
-  const [newPartyName, setNewPartyName] = useState<string>('');
-  const [newPartyPhone, setNewPartyPhone] = useState<string>('');
+  // Modals
+  const [isAddVendorModalOpen, setIsAddVendorModalOpen] = useState<boolean>(false);
+  const [isStockInModalOpen, setIsStockInModalOpen] = useState<boolean>(false);
+  const [isPayVendorModalOpen, setIsPayVendorModalOpen] = useState<boolean>(false);
+  const [selectedVendorForPayment, setSelectedVendorForPayment] = useState<Vendor | null>(null);
+
+  // New Vendor Form State
+  const [vendorName, setVendorName] = useState<string>('');
+  const [contactPerson, setContactPerson] = useState<string>('');
+  const [vendorPhone, setVendorPhone] = useState<string>('');
+  const [vendorCity, setVendorCity] = useState<string>('Agra');
+  const [vendorCategory, setVendorCategory] = useState<string>('Leather Formal Shoes');
+  const [weeklyPayoutDay, setWeeklyPayoutDay] = useState<string>('Friday');
   const [openingBalance, setOpeningBalance] = useState<string>('0');
-  const [balanceType, setBalanceType] = useState<'RECEIVE' | 'GIVE'>('RECEIVE');
+  const [vendorNotes, setVendorNotes] = useState<string>('');
 
-  // Filter customers by search
-  const filteredCustomers = customers.filter((c) => {
+  // Stock In / Purchase Form State
+  const [stockVendorId, setStockVendorId] = useState<string>('');
+  const [billNumber, setBillNumber] = useState<string>(`INV-${Date.now().toString().slice(-4)}`);
+  const [billDate, setBillDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [billTotal, setBillTotal] = useState<string>('');
+  const [billPaidNow, setBillPaidNow] = useState<string>('0');
+  const [stockNotes, setStockNotes] = useState<string>('');
+  const [invoicePreview, setInvoicePreview] = useState<string | null>(null);
+
+  // Pay Vendor Form State
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('Bank Transfer');
+  const [paymentNote, setPaymentNote] = useState<string>('');
+
+  // Customer Udhaar Modal
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState<boolean>(false);
+  const [newCustName, setNewCustName] = useState<string>('');
+  const [newCustPhone, setNewCustPhone] = useState<string>('');
+  const [newCustDue, setNewCustDue] = useState<string>('0');
+
+  // Footwear Supplier Categories
+  const SUPPLIER_CATEGORIES = [
+    'Leather Formal Shoes',
+    'Sports & Running Shoes',
+    'Casual Sneakers & Loafers',
+    'Daily Slippers & Chappal',
+    'Sandals & Heels',
+    'Soles, Raw Materials & Accessories',
+  ];
+
+  // Major Footwear Production Hub Cities in India
+  const SUPPLIER_CITIES = ['Agra', 'Kanpur', 'Delhi NCR', 'Mumbai', 'Jaipur', 'Chennai', 'Kolkata', 'Other'];
+
+  // Filtered Lists
+  const filteredVendors = vendors.filter((v) => {
     const q = searchQuery.toLowerCase().trim();
-    return c.name.toLowerCase().includes(q) || c.phone.includes(q);
+    return (
+      v.name.toLowerCase().includes(q) ||
+      (v.contact_person && v.contact_person.toLowerCase().includes(q)) ||
+      (v.city && v.city.toLowerCase().includes(q)) ||
+      (v.phone && v.phone.includes(q)) ||
+      (v.category && v.category.toLowerCase().includes(q))
+    );
   });
 
-  // Calculate Total Receivable & Total Payable
-  const totalReceivable = customers
-    .filter((c) => (c.current_balance || 0) > 0)
-    .reduce((sum, c) => sum + c.current_balance!, 0);
+  const filteredCustomers = customers.filter((c) => {
+    const q = searchQuery.toLowerCase().trim();
+    return c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
+  });
 
-  const totalPayable = customers
-    .filter((c) => (c.current_balance || 0) < 0)
-    .reduce((sum, c) => sum + Math.abs(c.current_balance!), 0);
+  // Calculate Aggregates
+  const totalSupplierDue = vendors.reduce((sum, v) => sum + (v.current_balance || 0), 0);
+  const totalCustomerDue = customers.reduce((sum, c) => sum + Math.max(0, c.current_balance || 0), 0);
 
-  const handleAddParty = (e: React.FormEvent) => {
+  // Handle Add New Supplier
+  const handleCreateVendor = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPartyName.trim()) return;
+    if (!vendorName.trim()) return;
 
-    const bal = parseFloat(openingBalance) || 0;
-    const finalBal = balanceType === 'RECEIVE' ? bal : -bal;
-
-    const created = addCustomer({
+    const opBal = parseFloat(openingBalance) || 0;
+    addVendor({
       organization_id: 'org-footwear-101',
-      name: newPartyName.trim(),
-      phone: newPartyPhone.trim() || 'N/A',
-      opening_balance: finalBal,
-      current_balance: finalBal,
-      total_purchases_count: 0,
-      total_spent: 0,
-      last_purchase_date: new Date().toISOString(),
+      name: vendorName.trim(),
+      contact_person: contactPerson.trim() || undefined,
+      phone: vendorPhone.trim() || undefined,
+      city: vendorCity,
+      category: vendorCategory,
+      weekly_payment_day: weeklyPayoutDay,
+      opening_balance: opBal,
+      credit_limit: 500000,
+      payment_terms: 7,
+      status: 'Active',
+      notes: vendorNotes.trim() || undefined,
     });
 
-    setIsAddPartyModalOpen(false);
-    setNewPartyName('');
-    setNewPartyPhone('');
+    setIsAddVendorModalOpen(false);
+    setVendorName('');
+    setContactPerson('');
+    setVendorPhone('');
     setOpeningBalance('0');
-    navigate(`/app/parties/${created.id}`);
+    setVendorNotes('');
+  };
+
+  // Handle File / Invoice Upload
+  const handleInvoiceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setInvoicePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle Record Stock In / Purchase
+  const handleRecordStockIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    const totalNum = parseFloat(billTotal);
+    if (!stockVendorId || isNaN(totalNum) || totalNum <= 0) {
+      alert('Please select a supplier party and enter a valid bill amount.');
+      return;
+    }
+
+    const paidNum = parseFloat(billPaidNow) || 0;
+
+    recordPurchase({
+      vendor_id: stockVendorId,
+      bill_number: billNumber || `BILL-${Date.now().toString().slice(-4)}`,
+      business_date: billDate,
+      total: totalNum,
+      amount_paid: paidNum,
+      invoice_attachment_path: invoicePreview || undefined,
+      notes: stockNotes.trim() || undefined,
+    });
+
+    setIsStockInModalOpen(false);
+    setStockVendorId('');
+    setBillTotal('');
+    setBillPaidNow('0');
+    setStockNotes('');
+    setInvoicePreview(null);
+  };
+
+  // Handle Pay Supplier & WhatsApp Receipt
+  const handlePayVendorSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVendorForPayment) return;
+
+    const amt = parseFloat(paymentAmount);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+
+    recordVendorPayment({
+      vendor_id: selectedVendorForPayment.id,
+      amount_paid: amt,
+      payment_account_id: 'acc-bank-04',
+      payment_method: paymentMethod,
+      reference_notes: paymentNote || `Weekly payment on ${new Date().toLocaleDateString('en-IN')}`,
+    });
+
+    // Generate WhatsApp Link
+    const remainingDue = (selectedVendorForPayment.current_balance || 0) - amt;
+    const cleanPhone = (selectedVendorForPayment.phone || '').replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+    const msg = `*Payment Confirmation - Zain Footwear*\n\nDear ${selectedVendorForPayment.name},\nWe have transferred ₹${amt.toLocaleString('en-IN')} via ${paymentMethod}.\n\n*Previous Balance:* ₹${(selectedVendorForPayment.current_balance || 0).toLocaleString('en-IN')}\n*Amount Paid Now:* ₹${amt.toLocaleString('en-IN')}\n*Remaining Balance Due:* ₹${Math.max(0, remainingDue).toLocaleString('en-IN')}\n\nThank you for the partnership!\n- Zain Footwear (Management)`;
+
+    const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(msg)}`;
+
+    setIsPayVendorModalOpen(false);
+    setPaymentAmount('');
+    setPaymentNote('');
+
+    // Open WhatsApp in new tab if phone is available
+    if (cleanPhone.length >= 10) {
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  // Generate Direct WhatsApp URL for a Vendor
+  const getSupplierWhatsAppUrl = (vendor: Vendor) => {
+    const cleanPhone = (vendor.phone || '').replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const msg = `Hello ${vendor.name} (${vendor.city || 'Supplier'}),\nThis is regarding our footwear orders with Zain Footwear.\nCurrent Account Balance: ₹${(vendor.current_balance || 0).toLocaleString('en-IN')}.\nWeekly Settlement Day: ${vendor.weekly_payment_day || 'Friday'}.\n\n- Zain Footwear`;
+    return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(msg)}`;
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-6">
-      {/* 1. TOP HEADER & ADD PARTY BUTTON */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5">
+      {/* 1. TOP HEADER & QUICK ACTIONS */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Parties & Customers</h1>
-          <p className="text-xs font-semibold text-slate-500">Khatabook Ledger & Customer Outstanding</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Building2 className="w-6 h-6 text-[#ff6600]" />
+            <span>Parties & Khatabook</span>
+          </h1>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Footwear Suppliers (Agra, Kanpur, Delhi) & Retail Customer Receivables
+          </p>
         </div>
 
+        <div className="flex items-center space-x-2 self-start sm:self-auto">
+          {activeTab === 'SUPPLIERS' ? (
+            <>
+              <button
+                onClick={() => setIsStockInModalOpen(true)}
+                className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center space-x-1.5 cursor-pointer transition-all"
+              >
+                <Package className="w-4 h-4 text-orange-400" />
+                <span>+ Maal / Stock In</span>
+              </button>
+              <button
+                onClick={() => setIsAddVendorModalOpen(true)}
+                className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center space-x-1.5 cursor-pointer transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Add Party</span>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setIsAddCustomerModalOpen(true)}
+              className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center space-x-1.5 cursor-pointer transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Add Customer</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 2. DUAL SEGMENT TOGGLE TABS */}
+      <div className="flex bg-slate-200/80 p-1 rounded-2xl max-w-md">
         <button
-          onClick={() => setIsAddPartyModalOpen(true)}
-          className="px-4 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-xl font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center space-x-2 transition-all self-start sm:self-auto"
+          onClick={() => setActiveTab('SUPPLIERS')}
+          className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+            activeTab === 'SUPPLIERS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
         >
-          <UserPlus className="w-4 h-4" />
-          <span>+ Add Party</span>
+          <Building2 className="w-4 h-4 text-orange-500" />
+          <span>🏭 Suppliers / Maal Kharid ({vendors.length})</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('CUSTOMERS')}
+          className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+            activeTab === 'CUSTOMERS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Users className="w-4 h-4 text-indigo-500" />
+          <span>👥 Customer Udhaar ({customers.length})</span>
         </button>
       </div>
 
-      {/* 2. SUMMARY RIBBON (You Will Receive vs You Will Give) */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-2xs">
-          <p className="text-xs font-bold text-slate-500 uppercase">You will receive</p>
-          <p className="text-xl sm:text-2xl font-black text-emerald-700 mt-1">
-            ₹{totalReceivable.toLocaleString('en-IN')}
-          </p>
-        </div>
+      {/* 3. SUMMARY STATS BANNER */}
+      {activeTab === 'SUPPLIERS' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Supplier Dues (Payable)</p>
+            <p className="text-2xl font-black text-rose-700 mt-1 font-mono">
+              ₹{totalSupplierDue.toLocaleString('en-IN')}
+            </p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">To pay across weekly cycles</p>
+          </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-2xs">
-          <p className="text-xs font-bold text-slate-500 uppercase">You will give</p>
-          <p className="text-xl sm:text-2xl font-black text-slate-700 mt-1">
-            ₹{totalPayable.toLocaleString('en-IN')}
-          </p>
-        </div>
-      </div>
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Parties / Suppliers</p>
+            <p className="text-2xl font-black text-slate-900 mt-1 font-mono">{vendors.length}</p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Agra, Kanpur, Delhi manufacturers</p>
+          </div>
 
-      {/* 3. PROMINENT SEARCH BAR */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Stock Purchases Recorded</p>
+            <p className="text-2xl font-black text-emerald-700 mt-1 font-mono">{purchases.length}</p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">With attached bills & invoices</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Customer Udhaar (Receivable)</p>
+            <p className="text-2xl font-black text-emerald-700 mt-1 font-mono">
+              ₹{totalCustomerDue.toLocaleString('en-IN')}
+            </p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">From retail POS footwear sales</p>
+          </div>
+
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Due Customers</p>
+            <p className="text-2xl font-black text-slate-900 mt-1 font-mono">{customers.length}</p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">1-click WhatsApp payment reminders</p>
+          </div>
+        </div>
+      )}
+
+      {/* 4. SEARCH BAR */}
       <div className="relative">
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="🔍 Search customer by name or phone..."
+          placeholder={
+            activeTab === 'SUPPLIERS'
+              ? '🔍 Search supplier by party name, city (Agra/Kanpur), category or phone...'
+              : '🔍 Search retail customer by name or phone...'
+          }
           className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 shadow-2xs"
         />
       </div>
 
-      {/* 4. PARTIES LIST */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs divide-y divide-slate-100 overflow-hidden">
-        {filteredCustomers.length === 0 ? (
-          <div className="text-center py-12 px-4 space-y-3">
-            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
-              <Users className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-bold text-slate-800">No parties found</p>
-            <p className="text-xs text-slate-400 max-w-xs mx-auto">
-              Add your first customer to start tracking credit, dues, and payments.
-            </p>
-            <button
-              onClick={() => setIsAddPartyModalOpen(true)}
-              className="px-4 py-2 bg-[#ff6600] text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center space-x-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Party</span>
-            </button>
-          </div>
-        ) : (
-          filteredCustomers.map((customer) => {
-            const bal = customer.current_balance || 0;
-            const isReceivable = bal > 0;
-            const isPayable = bal < 0;
-            const isSettled = bal === 0;
-
-            return (
-              <div
-                key={customer.id}
-                onClick={() => navigate(`/app/parties/${customer.id}`)}
-                className="p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50/80 cursor-pointer transition-colors"
-              >
-                <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-800 font-black text-sm flex items-center justify-center flex-shrink-0">
-                    {customer.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{customer.name}</p>
-                    <p className="text-[11px] text-slate-500 font-medium flex items-center space-x-1 mt-0.5">
-                      <Phone className="w-3 h-3 text-slate-400" />
-                      <span>{customer.phone || 'No phone'}</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right flex items-center space-x-3">
-                  <div>
-                    {isReceivable && (
-                      <div>
-                        <p className="text-xs sm:text-sm font-black text-emerald-700">
-                          ₹{bal.toLocaleString('en-IN')}
-                        </p>
-                        <span className="text-[10px] font-bold text-emerald-600 block">You will receive</span>
-                      </div>
-                    )}
-                    {isPayable && (
-                      <div>
-                        <p className="text-xs sm:text-sm font-black text-rose-700">
-                          ₹{Math.abs(bal).toLocaleString('en-IN')}
-                        </p>
-                        <span className="text-[10px] font-bold text-rose-600 block">You will give</span>
-                      </div>
-                    )}
-                    {isSettled && (
-                      <div>
-                        <p className="text-xs sm:text-sm font-bold text-slate-500">₹0</p>
-                        <span className="text-[10px] font-bold text-slate-400 block">Settled</span>
-                      </div>
-                    )}
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 hidden sm:block" />
-                </div>
+      {/* 5. SUPPLIERS LIST VIEW */}
+      {activeTab === 'SUPPLIERS' && (
+        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs divide-y divide-slate-100 overflow-hidden">
+          {filteredVendors.length === 0 ? (
+            <div className="text-center py-12 px-4 space-y-3">
+              <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+                <Building2 className="w-6 h-6" />
               </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* 5. ADD PARTY MODAL */}
-      {isAddPartyModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-black text-slate-900">Add New Party</h3>
-                <p className="text-xs text-slate-500 font-medium">Create customer profile for ledger tracking</p>
-              </div>
+              <p className="text-sm font-bold text-slate-800">No Footwear Suppliers Found</p>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                Add your Agra, Kanpur, or local wholesale footwear parties to track stock and weekly dues.
+              </p>
               <button
-                onClick={() => setIsAddPartyModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                onClick={() => setIsAddVendorModalOpen(true)}
+                className="px-4 py-2 bg-[#ff6600] text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Supplier Party</span>
+              </button>
+            </div>
+          ) : (
+            filteredVendors.map((vendor) => {
+              const due = vendor.current_balance || 0;
+              const hasDue = due > 0;
+
+              return (
+                <div
+                  key={vendor.id}
+                  className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors"
+                >
+                  <div className="flex items-start space-x-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-2xl bg-orange-50 text-orange-700 border border-orange-200 font-black text-sm flex items-center justify-center flex-shrink-0">
+                      {vendor.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm font-black text-slate-900 truncate">{vendor.name}</p>
+                        {vendor.city && (
+                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                            📍 {vendor.city}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        {vendor.contact_person && (
+                          <span className="font-medium">Contact: {vendor.contact_person}</span>
+                        )}
+                        {vendor.phone && (
+                          <span className="font-mono flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            <span>{vendor.phone}</span>
+                          </span>
+                        )}
+                        {vendor.category && (
+                          <span className="text-orange-700 font-bold bg-orange-50/60 px-2 py-0.5 rounded-md text-[10px]">
+                            {vendor.category}
+                          </span>
+                        )}
+                      </div>
+
+                      {vendor.weekly_payment_day && (
+                        <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span>Weekly Settlement: <strong>{vendor.weekly_payment_day}</strong></span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end space-x-4 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
+                    <div className="text-left sm:text-right">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Balance Due</p>
+                      <p className={`text-base sm:text-lg font-black font-mono ${hasDue ? 'text-rose-700' : 'text-emerald-700'}`}>
+                        ₹{due.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedVendorForPayment(vendor);
+                          setPaymentAmount(due > 0 ? due.toString() : '');
+                          setIsPayVendorModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
+                      >
+                        <DollarSign className="w-3.5 h-3.5" />
+                        <span>Pay</span>
+                      </button>
+
+                      {vendor.phone && (
+                        <a
+                          href={getSupplierWhatsAppUrl(vendor)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition-colors"
+                          title="WhatsApp Supplier"
+                        >
+                          <Send className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* 6. CUSTOMER UDHAAR LIST VIEW */}
+      {activeTab === 'CUSTOMERS' && (
+        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs divide-y divide-slate-100 overflow-hidden">
+          {filteredCustomers.length === 0 ? (
+            <div className="text-center py-12 px-4 space-y-3">
+              <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+                <Users className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold text-slate-800">No Retail Customer Dues</p>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                Customer udhaar generated from the POS Calculator will automatically appear here.
+              </p>
+            </div>
+          ) : (
+            filteredCustomers.map((customer) => {
+              const bal = customer.current_balance || 0;
+
+              return (
+                <div
+                  key={customer.id}
+                  onClick={() => navigate(`/app/parties/${customer.id}`)}
+                  className="p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50/80 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 font-black text-sm flex items-center justify-center flex-shrink-0">
+                      {customer.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{customer.name}</p>
+                      <p className="text-[11px] text-slate-500 font-medium flex items-center space-x-1 mt-0.5 font-mono">
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        <span>{customer.phone || 'No phone'}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right flex items-center space-x-3">
+                    <div>
+                      <p className="text-xs sm:text-sm font-black text-emerald-700 font-mono">
+                        ₹{bal.toLocaleString('en-IN')}
+                      </p>
+                      <span className="text-[10px] font-bold text-emerald-600 block">Due Receivable</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD NEW SUPPLIER PARTY */}
+      {/* ========================================================================= */}
+      {isAddVendorModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-[#ff6600]" />
+                <span>Add Footwear Supplier Party</span>
+              </h3>
+              <button
+                onClick={() => setIsAddVendorModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddParty} className="space-y-3.5">
+            <form onSubmit={handleCreateVendor} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                  Customer / Party Name *
-                </label>
+                <label className="font-black text-slate-800 uppercase block mb-1">Party / Firm Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Ramesh Kumar"
-                  value={newPartyName}
-                  onChange={(e) => setNewPartyName(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                  placeholder="e.g. Agra Royal Leather Shoes"
+                  value={vendorName}
+                  onChange={(e) => setVendorName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                  Mobile Phone Number
-                </label>
-                <input
-                  type="tel"
-                  placeholder="e.g. 98200 12345"
-                  value={newPartyPhone}
-                  onChange={(e) => setNewPartyPhone(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                  Opening Balance (Optional)
-                </label>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setBalanceType('RECEIVE')}
-                    className={`py-2 px-2 text-xs font-bold rounded-xl border ${
-                      balanceType === 'RECEIVE'
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                        : 'bg-white text-slate-600 border-slate-200'
-                    }`}
-                  >
-                    You will receive
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBalanceType('GIVE')}
-                    className={`py-2 px-2 text-xs font-bold rounded-xl border ${
-                      balanceType === 'GIVE'
-                        ? 'bg-rose-50 text-rose-800 border-rose-300'
-                        : 'bg-white text-slate-600 border-slate-200'
-                    }`}
-                  >
-                    You will give
-                  </button>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Contact Person</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Mohd Tariq"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
                 </div>
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Phone Number (WhatsApp)</label>
+                  <input
+                    type="tel"
+                    placeholder="10-digit Phone"
+                    value={vendorPhone}
+                    onChange={(e) => setVendorPhone(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Production Hub City</label>
+                  <select
+                    value={vendorCity}
+                    onChange={(e) => setVendorCity(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                  >
+                    {SUPPLIER_CITIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Weekly Settlement Day</label>
+                  <select
+                    value={weeklyPayoutDay}
+                    onChange={(e) => setWeeklyPayoutDay(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                  >
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => (
+                      <option key={d} value={d}>
+                        Every {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Footwear Category Supplied</label>
+                <select
+                  value={vendorCategory}
+                  onChange={(e) => setVendorCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                >
+                  {SUPPLIER_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Opening Balance Due (₹)</label>
                 <input
                   type="number"
-                  min="0"
                   placeholder="0"
                   value={openingBalance}
                   onChange={(e) => setOpeningBalance(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-900 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <div className="pt-3 flex space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddPartyModalOpen(false)}
-                  className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-600"
-                >
-                  Cancel
-                </button>
+              <div className="pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs"
+                  className="w-full py-3 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-xl font-black text-sm shadow-md transition-all cursor-pointer"
                 >
-                  Save Party
+                  Save Supplier Party
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: STOCK IN / PURCHASE WITH ATTACH INVOICE */}
+      {/* ========================================================================= */}
+      {isStockInModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Package className="w-5 h-5 text-orange-500" />
+                <span>Record Maal / Stock In (Purchase Bill)</span>
+              </h3>
+              <button
+                onClick={() => setIsStockInModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordStockIn} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Select Supplier Party *</label>
+                <select
+                  required
+                  value={stockVendorId}
+                  onChange={(e) => setStockVendorId(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                >
+                  <option value="">-- Choose Supplier Party --</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.city || 'Hub'}) - Due: ₹{v.current_balance || 0}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Bill / Invoice Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. INV-8812"
+                    value={billNumber}
+                    onChange={(e) => setBillNumber(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Bill Date</label>
+                  <input
+                    type="date"
+                    value={billDate}
+                    onChange={(e) => setBillDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Total Bill Amount (₹) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    placeholder="0"
+                    value={billTotal}
+                    onChange={(e) => setBillTotal(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border-2 border-orange-400 rounded-xl font-mono font-black text-slate-900 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Paid Now (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={billPaidNow}
+                    onChange={(e) => setBillPaidNow(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* ATTACH INVOICE (Bill Photo / File) */}
+              <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-3.5 text-center space-y-2">
+                <label className="font-black text-slate-800 uppercase block text-[11px]">
+                  📷 Attach Invoice / Bill Photo
+                </label>
+                {invoicePreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={invoicePreview}
+                      alt="Invoice Preview"
+                      className="w-32 h-32 object-cover rounded-xl border border-slate-300 shadow-sm mx-auto"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setInvoicePreview(null)}
+                      className="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full p-1 shadow-md hover:bg-rose-700 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs">
+                      <Upload className="w-3.5 h-3.5 text-orange-500" />
+                      <span>Upload Bill Photo / PDF</span>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={handleInvoiceUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Stock Details / Notes</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 20 cartons men formal shoes size 7-10"
+                  value={stockNotes}
+                  onChange={(e) => setStockNotes(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-xl font-black text-sm shadow-md transition-all cursor-pointer"
+                >
+                  Save Stock In & Update Party Due
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: PAY SUPPLIER & SEND WHATSAPP RECEIPT */}
+      {/* ========================================================================= */}
+      {isPayVendorModalOpen && selectedVendorForPayment && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-black text-base text-slate-900">Record Payment to Party</h3>
+                <p className="text-xs text-slate-500">{selectedVendorForPayment.name}</p>
+              </div>
+              <button
+                onClick={() => setIsPayVendorModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-orange-50 p-3 rounded-2xl border border-orange-200 flex justify-between items-center text-xs">
+              <span className="font-bold text-orange-950">Current Outstanding Due:</span>
+              <span className="font-mono font-black text-base text-rose-700">
+                ₹{(selectedVendorForPayment.current_balance || 0).toLocaleString('en-IN')}
+              </span>
+            </div>
+
+            <form onSubmit={handlePayVendorSubmit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Amount Paying Now (₹) *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="0"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border-2 border-emerald-400 rounded-xl font-mono font-black text-slate-900 text-base focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Payment Method</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {['Bank Transfer', 'UPI / GPay', 'Cash'].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPaymentMethod(m)}
+                      className={`py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                        paymentMethod === m
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Reference / Transaction Note</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Weekly settlement via NEFT/IMPS"
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-xl font-black text-sm shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Confirm Payment & Send WhatsApp</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD CUSTOMER UDHAAR */}
+      {/* ========================================================================= */}
+      {isAddCustomerModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-base text-slate-900">Add Customer for Udhaar</h3>
+              <button
+                onClick={() => setIsAddCustomerModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newCustName.trim()) return;
+                const dueNum = parseFloat(newCustDue) || 0;
+                addCustomer({
+                  organization_id: 'org-footwear-101',
+                  name: newCustName.trim(),
+                  phone: newCustPhone.trim() || 'N/A',
+                  opening_balance: dueNum,
+                  current_balance: dueNum,
+                  total_purchases_count: 1,
+                  total_spent: dueNum,
+                });
+                setIsAddCustomerModalOpen(false);
+                setNewCustName('');
+                setNewCustPhone('');
+                setNewCustDue('0');
+              }}
+              className="space-y-3.5 text-xs"
+            >
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Customer Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Suresh Bhai"
+                  value={newCustName}
+                  onChange={(e) => setNewCustName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Phone Number (for WhatsApp)</label>
+                <input
+                  type="tel"
+                  placeholder="10-digit Mobile"
+                  value={newCustPhone}
+                  onChange={(e) => setNewCustPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Initial Due Amount (₹)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={newCustDue}
+                  onChange={(e) => setNewCustDue(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl font-black text-sm shadow-md cursor-pointer"
+                >
+                  Save Customer Khata
                 </button>
               </div>
             </form>
@@ -296,5 +956,3 @@ export const PartiesListPage: React.FC = () => {
     </div>
   );
 };
-
-export default PartiesListPage;

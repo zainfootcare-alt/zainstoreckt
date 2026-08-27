@@ -18,6 +18,7 @@ import {
   CashSession,
   Customer,
   CustomerLedgerEntry,
+  TodoItem,
 } from '../types/database.types';
 
 export type ActiveRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'FINANCE';
@@ -42,7 +43,7 @@ export const DEFAULT_USERS: UserProfile[] = [
     id: 'usr-manager-02',
     email: 'manager@zainfootwear.com',
     username: 'manager',
-    full_name: 'Vikram Singh (Manager)',
+    full_name: 'Vikram Singh (Co-Admin / Manager)',
     organization_id: 'org-footwear-101',
     default_shop_id: 'shop-mumbai-01',
     is_onboarded: true,
@@ -55,9 +56,9 @@ export const DEFAULT_USERS: UserProfile[] = [
   },
   {
     id: 'usr-cashier-03',
-    email: 'cashier@zainfootwear.com',
-    username: 'cashier',
-    full_name: 'Pooja Verma (Cashier)',
+    email: 'salesman@zainfootwear.com',
+    username: 'salesman',
+    full_name: 'Pooja Verma (Sales Executive)',
     organization_id: 'org-footwear-101',
     default_shop_id: 'shop-mumbai-01',
     is_onboarded: true,
@@ -96,6 +97,39 @@ const DEFAULT_EXPENSES: Expense[] = [];
 const DEFAULT_EMPLOYEES: Employee[] = [];
 const DEFAULT_ATTENDANCE: AttendanceRecord[] = [];
 const DEFAULT_SALARIES: SalaryPayment[] = [];
+const DEFAULT_TODOS: TodoItem[] = [
+  {
+    id: 'todo-1',
+    organization_id: 'org-footwear-101',
+    title: 'Check stock of Sunday Running & Sports Shoes',
+    category: 'SHOP_TASK',
+    priority: 'HIGH',
+    is_completed: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'todo-2',
+    organization_id: 'org-footwear-101',
+    title: 'Pay weekly outstanding to Agra Leather Supplier',
+    category: 'SUPPLIER_PAYMENT',
+    priority: 'HIGH',
+    due_date: 'Friday',
+    is_completed: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'todo-3',
+    organization_id: 'org-footwear-101',
+    title: 'Daily Cash Drawer float reconciliation',
+    category: 'SELF_GROWTH',
+    priority: 'MEDIUM',
+    is_completed: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
 interface ShopContextType {
   organization: Organization | null;
@@ -130,6 +164,7 @@ interface ShopContextType {
   employees: Employee[];
   attendance: AttendanceRecord[];
   salaryPayments: SalaryPayment[];
+  todos: TodoItem[];
   activeCashSession: CashSession | null;
 
   recordSale: (saleData: Omit<SaleRecord, 'id' | 'created_at'>) => SaleRecord;
@@ -151,6 +186,7 @@ interface ShopContextType {
     total: number;
     amount_paid: number;
     payment_account_id?: string;
+    invoice_attachment_path?: string;
     notes?: string;
   }) => Purchase;
   recordVendorPayment: (paymentData: {
@@ -170,8 +206,13 @@ interface ShopContextType {
     payment_reference?: string;
   }) => SalaryPayment;
   markAttendance: (employeeId: string, status: 'present' | 'absent' | 'half_day' | 'leave', notes?: string) => AttendanceRecord;
+  punchAttendance: (employeeIdOrName?: string, status?: 'present' | 'absent' | 'half_day' | 'leave', notes?: string) => AttendanceRecord;
   addVendor: (vendorData: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'current_balance'>) => Vendor;
+  updateVendor: (vendorId: string, data: Partial<Vendor>) => void;
   deleteVendor: (vendorId: string) => void;
+  addTodo: (todoData: Omit<TodoItem, 'id' | 'created_at' | 'updated_at' | 'organization_id'>) => TodoItem;
+  toggleTodo: (todoId: string) => void;
+  deleteTodo: (todoId: string) => void;
   openCashCounter: (openingCash: number) => CashSession;
   closeCashCounter: (countedCash: number, reason?: string) => { expectedCash: number; variance: number };
   clearAllDummyData: () => void;
@@ -509,6 +550,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           (cleanId === 'admin' && u.role === 'ADMIN') ||
           (cleanId === 'manager' && u.role === 'MANAGER') ||
           (cleanId === 'cashier' && u.role === 'CASHIER') ||
+          (cleanId === 'salesman' && u.role === 'CASHIER') ||
           (cleanId === 'finance' && u.role === 'FINANCE')
       );
     }
@@ -516,7 +558,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!foundUser) {
       if (cleanId.includes('admin')) foundUser = DEFAULT_USERS[0];
       else if (cleanId.includes('manager')) foundUser = DEFAULT_USERS[1];
-      else if (cleanId.includes('cashier')) foundUser = DEFAULT_USERS[2];
+      else if (cleanId.includes('cashier') || cleanId.includes('salesman') || cleanId.includes('sales')) foundUser = DEFAULT_USERS[2];
       else if (cleanId.includes('finance')) foundUser = DEFAULT_USERS[3];
     }
 
@@ -986,6 +1028,101 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return newRecord;
   };
 
+  const [todos, setTodos] = useState<TodoItem[]>(() => {
+    const saved = localStorage.getItem('zain_pos_todos');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return DEFAULT_TODOS;
+      }
+    }
+    return DEFAULT_TODOS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('zain_pos_todos', JSON.stringify(todos));
+  }, [todos]);
+
+  const addTodo = (todoData: Omit<TodoItem, 'id' | 'created_at' | 'updated_at' | 'organization_id'>): TodoItem => {
+    const newTodo: TodoItem = {
+      ...todoData,
+      id: `todo_${Date.now()}`,
+      organization_id: activeShop?.organization_id || 'org-footwear-101',
+      created_by_user_id: userProfile?.id,
+      created_by_name: userProfile?.full_name,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setTodos((prev) => [newTodo, ...prev]);
+    return newTodo;
+  };
+
+  const toggleTodo = (todoId: string) => {
+    setTodos((prev) =>
+      prev.map((t) =>
+        t.id === todoId
+          ? {
+              ...t,
+              is_completed: !t.is_completed,
+              completed_at: !t.is_completed ? new Date().toISOString() : undefined,
+              updated_at: new Date().toISOString(),
+            }
+          : t
+      )
+    );
+  };
+
+  const deleteTodo = (todoId: string) => {
+    setTodos((prev) => prev.filter((t) => t.id !== todoId));
+  };
+
+  const updateVendor = (vendorId: string, data: Partial<Vendor>) => {
+    setVendors((prev) =>
+      prev.map((v) =>
+        v.id === vendorId
+          ? {
+              ...v,
+              ...data,
+              updated_at: new Date().toISOString(),
+            }
+          : v
+      )
+    );
+  };
+
+  const punchAttendance = (
+    employeeIdOrName?: string,
+    status: 'present' | 'absent' | 'half_day' | 'leave' = 'present',
+    notes?: string
+  ): AttendanceRecord => {
+    const targetName = employeeIdOrName || userProfile?.full_name || 'Sales Staff';
+    const targetId = userProfile?.id || `emp_${Date.now()}`;
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    const newRecord: AttendanceRecord = {
+      id: `att_${Date.now()}`,
+      organization_id: activeShop?.organization_id || 'org-footwear-101',
+      shop_id: activeShop?.id || 'shop-mumbai-01',
+      employee_id: targetId,
+      employee_name: targetName,
+      attendance_date: now.toISOString().split('T')[0],
+      status,
+      check_in_time: timeFormatted,
+      notes: notes || `Punched via POS terminal by ${userProfile?.username || 'Staff'}`,
+      created_at: now.toISOString(),
+    };
+
+    setAttendance((prev) => [newRecord, ...prev]);
+    return newRecord;
+  };
+
   const addVendor = (vendorData: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'current_balance'>): Vendor => {
     const newVendor: Vendor = {
       ...vendorData,
@@ -1084,6 +1221,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         employees,
         attendance,
         salaryPayments,
+        todos,
         activeCashSession,
 
         recordSale,
@@ -1097,8 +1235,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         recordExpense,
         recordSalaryPayment,
         markAttendance,
+        punchAttendance,
         addVendor,
+        updateVendor,
         deleteVendor,
+        addTodo,
+        toggleTodo,
+        deleteTodo,
         openCashCounter,
         closeCashCounter,
         clearAllDummyData,

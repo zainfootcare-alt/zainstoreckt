@@ -10,6 +10,7 @@ import {
   User,
   Building2,
   Bell,
+  CheckSquare,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../common/ZainLogo';
@@ -26,12 +27,13 @@ export const AppLayout: React.FC = () => {
     }
   }, [userProfile, location.pathname, navigate]);
 
-  // Primary 4 Navigation Tabs (Clean, focused)
+  // Primary 5 Navigation Tabs (Centered Sale & To-Do before More)
   const primaryNavItems = [
     { label: 'Home', path: '/app/dashboard', icon: Home, matchPaths: ['/app/dashboard', '/app'] },
-    { label: 'Parties', path: '/app/parties', icon: Users, matchPaths: ['/app/parties', '/app/vendors'] },
+    { label: 'Parties', path: '/app/parties', icon: Building2, matchPaths: ['/app/parties', '/app/vendors'] },
     { label: 'Sale', path: '/app/pos', icon: Calculator, isSale: true, matchPaths: ['/app/pos'] },
-    { label: 'More', path: '/app/more', icon: MoreHorizontal, matchPaths: ['/app/more', '/app/expenses', '/app/finance', '/app/staff', '/app/reports', '/app/counter', '/app/settings'] },
+    { label: 'To-Do', path: '/app/todos', icon: CheckSquare, matchPaths: ['/app/todos'] },
+    { label: 'More', path: '/app/more', icon: MoreHorizontal, matchPaths: ['/app/more', '/app/expenses', '/app/finance', '/app/staff', '/app/reports', '/app/counter', '/app/settings', '/app/my-attendance'] },
   ];
 
   const isCurrentActive = (item: typeof primaryNavItems[0]) => {

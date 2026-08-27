@@ -21,6 +21,8 @@ import { NewExpensePage } from './pages/Expenses/NewExpensePage';
 import { FinanceOverviewPage } from './pages/Finance/FinanceOverviewPage';
 import { ProfitLossPage } from './pages/Finance/ProfitLossPage';
 import { StaffManagementPage } from './pages/Staff/StaffManagementPage';
+import { MyAttendancePage } from './pages/Staff/MyAttendancePage';
+import { TodoPage } from './pages/Todo/TodoPage';
 import { UserManagementPage } from './pages/Settings/UserManagementPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { NotificationsPage } from './pages/Notifications/NotificationsPage';
@@ -35,15 +37,17 @@ export const App: React.FC = () => {
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             
-            {/* PRIMARY CORE MODULES */}
+            {/* PRIMARY CORE MODULES (5-TAB NAVIGATION) */}
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="parties" element={<PartiesListPage />} />
             <Route path="parties/:customerId" element={<PartyDetailPage />} />
             <Route path="pos" element={<CalculatorPOSPage />} />
+            <Route path="todos" element={<TodoPage />} />
             <Route path="more" element={<MoreHubPage />} />
 
             {/* SECONDARY WORKING MODULES (ACCESSIBLE VIA MORE & DEEP LINKS) */}
             <Route path="sales" element={<SalesPage />} />
+            <Route path="my-attendance" element={<MyAttendancePage />} />
 
             {/* CASH SHIFT COUNTER & EOD FINANCE CHECK */}
             <Route path="counter" element={<CounterIndexPage />} />

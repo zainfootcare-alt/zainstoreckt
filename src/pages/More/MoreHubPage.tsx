@@ -16,6 +16,7 @@ import {
   Calculator,
   Bell,
   Coins,
+  CheckSquare,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 
@@ -33,25 +34,32 @@ export const MoreHubPage: React.FC = () => {
       title: 'Operations',
       items: [
         {
+          label: 'Daily To-Do & Self Growth',
+          desc: 'Shop priorities, supplier payout reminders & goals',
+          path: '/app/todos',
+          icon: CheckSquare,
+          color: 'text-orange-600 bg-orange-50',
+        },
+        {
+          label: 'Parties & Suppliers (Agra / Kanpur)',
+          desc: 'Wholesale footwear vendors, stock-in & weekly dues',
+          path: '/app/parties',
+          icon: Truck,
+          color: 'text-blue-600 bg-blue-50',
+        },
+        {
+          label: 'Staff Attendance & Punch Log',
+          desc: '1-tap check-in with live timestamp & monthly records',
+          path: '/app/my-attendance',
+          icon: Users,
+          color: 'text-purple-600 bg-purple-50',
+        },
+        {
           label: 'Expenses & Petty Cash',
           desc: 'Shop rent, tea, transport & daily bills',
           path: '/app/expenses',
           icon: Receipt,
           color: 'text-amber-600 bg-amber-50',
-        },
-        {
-          label: 'Suppliers & Purchases',
-          desc: 'Vendor directory, bills & weekly payouts',
-          path: '/app/vendors',
-          icon: Truck,
-          color: 'text-blue-600 bg-blue-50',
-        },
-        {
-          label: 'Staff, Attendance & Payroll',
-          desc: 'Daily punch, advances & salary disbursement',
-          path: '/app/staff',
-          icon: Users,
-          color: 'text-purple-600 bg-purple-50',
         },
         {
           label: 'Cash Drawer & Shifts',

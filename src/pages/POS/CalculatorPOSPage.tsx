@@ -913,32 +913,6 @@ export const CalculatorPOSPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Customer Selector / Input */}
-              {customers.length > 0 && (
-                <div>
-                  <select
-                    value={selectedCustomerId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedCustomerId(id);
-                      const found = customers.find((c) => c.id === id);
-                      if (found) {
-                        setCustomerName(found.name);
-                        setCustomerPhone(found.phone || '');
-                      }
-                    }}
-                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none mb-1.5"
-                  >
-                    <option value="">-- Choose Existing Party / Enter New Below --</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.phone || 'No phone'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] font-black text-amber-900 uppercase block mb-0.5">
@@ -946,7 +920,7 @@ export const CalculatorPOSPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Ramesh Bhai"
+                    placeholder="Customer Name"
                     value={customerName === 'Walk-in Customer' ? '' : customerName}
                     onChange={(e) => {
                       setCustomerName(e.target.value);

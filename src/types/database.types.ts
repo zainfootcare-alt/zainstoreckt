@@ -71,6 +71,23 @@ export interface Shop {
   updated_at: string;
 }
 
+export interface TodoItem {
+  id: string;
+  organization_id: string;
+  shop_id?: string;
+  title: string;
+  description?: string;
+  category: 'SHOP_TASK' | 'SUPPLIER_PAYMENT' | 'CUSTOMER_FOLLOWUP' | 'SELF_GROWTH';
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  due_date?: string;
+  is_completed: boolean;
+  completed_at?: string;
+  created_by_user_id?: string;
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
