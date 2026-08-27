@@ -74,15 +74,15 @@ export const StaffManagementPage: React.FC = () => {
     setIsSalaryModalOpen(true);
   };
 
-  const handleConfirmSalaryDisbursement = () => {
+  const handleConfirmSalaryDisbursement = async () => {
     if (!targetEmpId || grossSalaryInput <= 0) return;
 
-    recordSalaryPayment({
+    await recordSalaryPayment({
       employee_id: targetEmpId,
       gross_salary: grossSalaryInput,
       deductions: deductionsInput,
       advances: advancesInput,
-      payment_account_id: selectedAccountId,
+      payment_account_id: selectedAccountId || paymentAccounts[0]?.id || 'd4000000-0000-0000-0000-000000000001',
       payment_reference: `Salary Payout (${new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })})`,
     });
 

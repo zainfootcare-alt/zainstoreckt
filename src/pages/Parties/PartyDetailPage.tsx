@@ -54,12 +54,12 @@ export const PartyDetailPage: React.FC = () => {
   const isSettled = currentBalance === 0;
 
   // Handle Save Payment
-  const handleSavePayment = (e: React.FormEvent) => {
+  const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(paymentAmount);
     if (isNaN(amt) || amt <= 0) return;
 
-    recordCustomerPayment({
+    await recordCustomerPayment({
       customer_id: customer.id,
       amount: amt,
       payment_method: paymentMode,

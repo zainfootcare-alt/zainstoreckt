@@ -9,15 +9,24 @@ import { DollarSign, ArrowLeftRight, BookOpen, AlertCircle, PieChart, CreditCard
 
 export const FinanceOverviewPage: React.FC = () => {
   const navigate = useNavigate();
-  const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const { paymentAccounts, vendors, expenses } = useShop();
 
-  useEffect(() => {
-    financeService.getPaymentAccounts().then(setAccounts);
-    financeService.getExpenses().then(setExpenses);
-  }, []);
+  const cashAcc = paymentAccounts.find((a) => a.type === 'cash');
+  const onlineAccs = paymentAccounts.filter((a) => a.type !== 'cash');
 
-  const metrics = financeService.getFinancialFormulas(accounts, expenses);
+  const expectedCash = cashAcc ? cashAcc.current_balance : 0.0;
+  const onlineBalances = onlineAccs.reduce((sum, a) => sum + (Number(a.current_balance) || 0), 0);
+  const totalAvailableMoney = expectedCash + onlineBalances;
+  const vendorPayable = vendors.reduce((sum, v) => sum + (v.current_balance || 0), 0);
+  const cashSurplus = totalAvailableMoney - vendorPayable;
+
+  const metrics = {
+    expectedCash,
+    onlineBalances,
+    totalAvailableMoney,
+    vendorPayable,
+    cashSurplus,
+  };
 
   return (
     <PermissionGuard requiredPermission="finance:view">
@@ -74,7 +83,7 @@ export const FinanceOverviewPage: React.FC = () => {
         <div className="space-y-4">
           <h3 className="text-base font-bold text-slate-900">Configured Payment & Treasury Accounts</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {accounts.map((acc) => (
+            {paymentAccounts.map((acc) => (
               <div key={acc.id} className="bg-white border border-[#e1e3e5] rounded-xl p-4 shadow-2xs space-y-2">
                 <div className="flex justify-between items-center text-xs text-slate-500 uppercase font-semibold">
                   <span>{acc.type}</span>

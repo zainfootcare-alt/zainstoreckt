@@ -53,11 +53,11 @@ export const TodoPage: React.FC = () => {
   const pendingCount = todos.filter((t) => !t.is_completed).length;
   const progressPercent = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) return;
 
-    addTodo({
+    await addTodo({
       title: taskTitle.trim(),
       category: taskCategory,
       priority: taskPriority,

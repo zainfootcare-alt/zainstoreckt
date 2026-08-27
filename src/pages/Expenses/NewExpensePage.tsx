@@ -9,7 +9,7 @@ import { ShieldCheck, IndianRupee } from 'lucide-react';
 
 export const NewExpensePage: React.FC = () => {
   const navigate = useNavigate();
-  const { activeShop, organization } = useShop();
+  const { activeShop, organization, recordExpense } = useShop();
 
   const [categoryName, setCategoryName] = useState<string>(PREDEFINED_CATEGORIES[0]);
   const [title, setTitle] = useState<string>('');
@@ -29,10 +29,7 @@ export const NewExpensePage: React.FC = () => {
     const idempotencyKey = `exp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     try {
-      const res = await financeService.createExpense({
-        idempotency_key: idempotencyKey,
-        organization_id: organization?.id || 'org-footwear-101',
-        shop_id: activeShop?.id || 'shop-mumbai-01',
+      await recordExpense({
         category_name: categoryName,
         title,
         amount,
@@ -44,14 +41,10 @@ export const NewExpensePage: React.FC = () => {
         notes,
       });
 
-      if (res.requires_approval) {
-        alert(`Expense ₹${amount.toFixed(2)} recorded! Note: Exceeds ₹25,000 threshold, set to PENDING MANAGER APPROVAL.`);
-      } else {
-        alert('Footwear Operational Expense Recorded Successfully!');
-      }
-
+      alert('Footwear Operational Expense Recorded Successfully!');
       navigate('/app/expenses');
     } catch (err) {
+      console.error('Failed to record expense:', err);
       alert('Failed to record expense.');
     } finally {
       setIsSubmitting(false);

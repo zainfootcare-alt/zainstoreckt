@@ -26,17 +26,17 @@ export const WeeklyPartyPaymentsPage: React.FC = () => {
     setPlannedAmounts((prev) => ({ ...prev, [vendorId]: val }));
   };
 
-  const handleExecutePayment = (vendorId: string) => {
+  const handleExecutePayment = async (vendorId: string) => {
     const v = vendors.find((vend) => vend.id === vendorId);
     if (!v) return;
 
     const amtToPay = plannedAmounts[vendorId] !== undefined ? plannedAmounts[vendorId] : v.current_balance;
     if (amtToPay <= 0) return;
 
-    const receipt = recordVendorPayment({
+    await recordVendorPayment({
       vendor_id: vendorId,
       amount_paid: amtToPay,
-      payment_account_id: selectedAccountId,
+      payment_account_id: selectedAccountId || paymentAccounts[0]?.id || 'd4000000-0000-0000-0000-000000000001',
       payment_method: 'UPI / Bank Transfer',
       reference_notes: `Weekly ${selectedDay} Payment Plan`,
     });

@@ -7,15 +7,22 @@ import { PaymentAccount, Expense } from '../../types/database.types';
 import { PieChart, Download, Printer, ShieldAlert, IndianRupee } from 'lucide-react';
 
 export const ProfitLossPage: React.FC = () => {
-  const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const { paymentAccounts, expenses, sales, purchases, vendors } = useShop();
 
-  useEffect(() => {
-    financeService.getPaymentAccounts().then(setAccounts);
-    financeService.getExpenses().then(setExpenses);
-  }, []);
+  const grossRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+  const cogs = purchases.reduce((sum, p) => sum + p.total, 0);
+  const totalExpenses = expenses.reduce((sum, e) => sum + (e.status === 'PAID' ? e.amount : 0), 0);
+  const accountingProfit = grossRevenue - cogs - totalExpenses;
+  const vendorPayable = vendors.reduce((sum, v) => sum + (v.current_balance || 0), 0);
 
-  const metrics = financeService.getFinancialFormulas(accounts, expenses);
+  const metrics = {
+    grossRevenue,
+    cogs,
+    totalExpenses,
+    accountingProfit,
+    vendorPayable,
+    isCOGSDataComplete: true,
+  };
 
   return (
     <PermissionGuard requiredPermission="finance:view">
