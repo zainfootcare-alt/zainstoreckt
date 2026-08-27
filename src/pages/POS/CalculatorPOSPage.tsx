@@ -554,61 +554,58 @@ export const CalculatorPOSPage: React.FC = () => {
   }
 
   // =========================================================================
-  // STEP 2: SHOE SIZE & CUSTOMER DETAILS SCREEN
+  // STEP 2: ULTRA-SIMPLE SHOE SIZE & CUSTOMER SCREEN (Fast 1-Tap)
   // =========================================================================
   if (step === 'DETAILS') {
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 animate-in fade-in duration-150">
-        {/* Step Indicator Header */}
-        <div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-xs">
+      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
+        {/* Top Header */}
+        <div className="flex items-center justify-between pb-1 flex-shrink-0">
           <button
             onClick={() => setStep('CALCULATOR')}
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Calculator</span>
+            <ArrowLeft className="w-4 h-4 text-slate-600" />
+            <span>Back</span>
           </button>
-          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
-            Step 2 of 3 • Footwear & Customer
+          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+            Step 2 • Size & Details
           </span>
         </div>
 
-        {/* Current Bill Amount Highlight */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-lg">
+        {/* Big Amount Summary Bar */}
+        <div className="bg-slate-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0 my-1">
           <div>
-            <p className="text-xs font-semibold text-slate-400">Total Calculated Amount</p>
+            <p className="text-[11px] font-semibold text-slate-400">Total Bill Amount</p>
             <p className="text-2xl sm:text-3xl font-black text-orange-400 font-mono">
               ₹{activeSubtotal.toLocaleString('en-IN')}
             </p>
           </div>
           <div className="text-right">
-            <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-slate-200 font-medium">
-              {lineItems.length > 0 ? `${lineItems.length} Footwear Item(s)` : '1 Item'}
+            <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-slate-200 font-bold">
+              {shoeCategory} • Size {shoeSize}
             </span>
           </div>
         </div>
 
-        {/* 1. SELECT FOOTWEAR SIZE (UK/IND SIZES) */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <span>👟 Select Shoe Size (UK / India)</span>
-            </label>
-            <span className="text-xs font-bold text-orange-600">Selected: Size {shoeSize}</span>
-          </div>
-
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 mb-1.5">Adult / Men / Unisex Sizes:</p>
-            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-              {MEN_SIZES.map((sz) => (
+        {/* Scrollable Center Content with Compact Height */}
+        <div className="flex-1 flex flex-col justify-center space-y-3 overflow-y-auto no-scrollbar py-1">
+          {/* 1. Shoe Size Selector (Clean Round Chips) */}
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">👟 Select Size (UK/IND)</span>
+              <span className="text-xs font-bold text-orange-600">Size {shoeSize}</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {['6', '7', '8', '9', '10', '11', '12', 'Free Size'].map((sz) => (
                 <button
                   key={sz}
                   type="button"
                   onClick={() => setShoeSize(sz)}
-                  className={`h-11 sm:h-12 rounded-xl font-black text-sm sm:text-base flex items-center justify-center transition-all cursor-pointer ${
+                  className={`h-10 ${sz === 'Free Size' ? 'px-3 text-xs' : 'w-10 text-sm'} rounded-xl font-black flex items-center justify-center transition-all cursor-pointer ${
                     shoeSize === sz
-                      ? 'bg-[#ff6600] text-white shadow-md shadow-orange-500/30 scale-105 border-2 border-orange-500'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                      ? 'bg-[#ff6600] text-white shadow-md shadow-orange-500/25 scale-105 border-2 border-orange-500'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
                   }`}
                 >
                   {sz}
@@ -617,152 +614,72 @@ export const CalculatorPOSPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-2">
-            <p className="text-[11px] font-bold text-slate-400 mb-1.5">Kids & Small Sizes / Free Size:</p>
-            <div className="flex flex-wrap gap-2">
-              {WOMEN_KIDS_SIZES.map((sz) => (
+          {/* 2. Footwear Category (6 Quick Chips) */}
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
+            <span className="text-xs font-black text-slate-900 uppercase tracking-wider block">🏷️ Category</span>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { id: 'Sneakers', label: '👟 Sneakers' },
+                { id: 'Formal', label: '👞 Formal' },
+                { id: 'Casual', label: '🥿 Casual' },
+                { id: 'Slippers', label: '🩴 Slippers' },
+                { id: 'Sandals', label: '👡 Sandals' },
+                { id: 'Other', label: '📦 Other' },
+              ].map((cat) => (
                 <button
-                  key={sz}
+                  key={cat.id}
                   type="button"
-                  onClick={() => setShoeSize(sz)}
-                  className={`px-4 h-10 rounded-xl font-black text-xs flex items-center justify-center transition-all cursor-pointer ${
-                    shoeSize === sz
-                      ? 'bg-[#ff6600] text-white shadow-md shadow-orange-500/30 border-2 border-orange-500'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                  onClick={() => setShoeCategory(cat.id)}
+                  className={`py-2 px-2 rounded-xl text-xs font-bold text-center truncate transition-all cursor-pointer ${
+                    shoeCategory === cat.id
+                      ? 'bg-orange-500 text-white shadow-sm font-black'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                   }`}
                 >
-                  Size {sz}
+                  {cat.label}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => setShoeSize('Free Size')}
-                className={`px-4 h-10 rounded-xl font-black text-xs flex items-center justify-center transition-all cursor-pointer ${
-                  shoeSize === 'Free Size'
-                    ? 'bg-[#ff6600] text-white shadow-md shadow-orange-500/30 border-2 border-orange-500'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
-                }`}
-              >
-                Free / Standard Size
-              </button>
             </div>
           </div>
-        </div>
 
-        {/* 2. SELECT FOOTWEAR CATEGORY / TYPE */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
-          <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <span>🏷️ Footwear Category</span>
-          </label>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {FOOTWEAR_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setShoeCategory(cat.id)}
-                className={`p-2.5 rounded-xl font-bold text-xs text-left flex items-center space-x-2 transition-all cursor-pointer ${
-                  shoeCategory === cat.id
-                    ? 'bg-orange-50 text-orange-800 border-2 border-[#ff6600] font-black'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span className="truncate">{cat.id}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="pt-2">
-            <input
-              type="text"
-              placeholder={`Optional Article / Note (e.g. ${shoeCategory} Size ${shoeSize})`}
-              value={customItemName}
-              onChange={(e) => setCustomItemName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500"
-            />
-          </div>
-        </div>
-
-        {/* 3. CUSTOMER DATA (CRM / KHATABOOK / WALK-IN) */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <span>👤 Customer Data (Optional for Fast WhatsApp Bill)</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCustomerId('');
-                setCustomerName('Walk-in Customer');
-                setCustomerPhone('');
-              }}
-              className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline"
-            >
-              Skip (Walk-in)
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                Select Existing Party / Customer
-              </label>
-              <select
-                value={selectedCustomerId}
+          {/* 3. Customer Info (Optional 1-Tap Field) */}
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">👤 Customer (Optional)</span>
+              <span className="text-[10px] text-slate-400 font-semibold">For WhatsApp Bill</span>
+            </div>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                placeholder="Customer Name / Mobile"
+                value={customerPhone ? `${customerName} (${customerPhone})` : customerName}
                 onChange={(e) => {
-                  const id = e.target.value;
-                  setSelectedCustomerId(id);
-                  const found = customers.find((c) => c.id === id);
-                  if (found) {
-                    setCustomerName(found.name);
-                    setCustomerPhone(found.phone || '');
-                  }
+                  const val = e.target.value;
+                  setCustomerName(val);
+                  setCustomerPhone(val.replace(/\D/g, '').length === 10 ? val.replace(/\D/g, '') : '');
                 }}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500"
+                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomerName('Walk-in Customer');
+                  setCustomerPhone('');
+                }}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
-                <option value="">-- Walk-in / Enter New Below --</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.phone ? `(${c.phone})` : ''} {c.current_balance ? `[Due: ₹${c.current_balance}]` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                Or Type Customer Name & Phone
-              </label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  placeholder="Customer Name"
-                  value={customerName}
-                  onChange={(e) => {
-                    setCustomerName(e.target.value);
-                    setSelectedCustomerId('');
-                  }}
-                  className="w-1/2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500"
-                />
-                <input
-                  type="tel"
-                  placeholder="10-digit Phone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-1/2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500"
-                />
-              </div>
+                Walk-in
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Proceed to Payment Action */}
-        <div className="pt-2">
+        {/* Bottom Action */}
+        <div className="pt-2 flex-shrink-0">
           <button
             type="button"
             onClick={handleProceedToPayment}
-            className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl font-black text-base sm:text-lg shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer"
+            className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer"
           >
             <span>Proceed to Payment (₹{activeSubtotal.toLocaleString('en-IN')})</span>
             <ArrowRight className="w-5 h-5" />
@@ -773,275 +690,194 @@ export const CalculatorPOSPage: React.FC = () => {
   }
 
   // =========================================================================
-  // STEP 3: FINAL PAYMENT & SPLIT SCREEN (Cash / Online / Change)
+  // STEP 3: ULTRA-SIMPLE PAYMENT SCREEN (1-Tap Fast Checkout)
   // =========================================================================
   if (step === 'PAYMENT') {
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 animate-in fade-in duration-150">
-        {/* Step Indicator Header */}
-        <div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-xs">
+      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
+        {/* Top Header */}
+        <div className="flex items-center justify-between pb-1 flex-shrink-0">
           <button
             onClick={() => setStep('DETAILS')}
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Details</span>
+            <ArrowLeft className="w-4 h-4 text-slate-600" />
+            <span>Back</span>
           </button>
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-            Step 3 of 3 • Final Payment
+          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            Step 3 • Payment
           </span>
         </div>
 
-        {/* Big Amount & Bill Summary Banner */}
-        <div className="bg-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs text-slate-400 font-semibold">Total Payable Amount</p>
-              <div className="flex items-baseline space-x-1 mt-0.5">
-                <span className="text-xl sm:text-2xl font-bold text-orange-400">₹</span>
-                <span className="text-3xl sm:text-5xl font-black tracking-tight font-mono text-white">
-                  {netPayable.toLocaleString('en-IN')}
-                </span>
-              </div>
-            </div>
-
-            {/* Discount Quick Field */}
-            <div className="text-right bg-white/10 p-2.5 rounded-2xl border border-white/10">
-              <span className="text-[10px] font-bold text-slate-300 block uppercase">Discount (₹)</span>
-              <input
-                type="number"
-                min="0"
-                value={discountAmount || ''}
-                onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
-                placeholder="0"
-                className="w-20 text-right bg-transparent border-b border-orange-400 text-white font-mono font-bold text-sm focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-xs text-slate-300">
-            <span>
-              Customer: <strong className="text-white">{customerName || 'Walk-in'}</strong>
-            </span>
-            <span>
-              Item: <strong className="text-white">{shoeCategory} (Size {shoeSize})</strong>
-            </span>
-          </div>
+        {/* Big Amount Card */}
+        <div className="bg-slate-950 text-white rounded-3xl p-5 shadow-lg space-y-2 text-center flex-shrink-0 my-1">
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Amount to Collect</p>
+          <p className="text-4xl sm:text-5xl font-black text-orange-400 font-mono tracking-tight">
+            ₹{netPayable.toLocaleString('en-IN')}
+          </p>
+          <p className="text-xs text-slate-300 font-medium">
+            {shoeCategory} (Size {shoeSize}) • {customerName || 'Walk-in'}
+          </p>
         </div>
 
-        {/* 4 ONE-TAP PAYMENT MODE SELECTORS */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
-          <label className="text-xs font-black text-slate-900 uppercase tracking-wider block">
-            Select Payment Method
-          </label>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* 4 Big 1-Tap Payment Buttons */}
+        <div className="flex-1 flex flex-col justify-center space-y-3 py-1">
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* 1. Cash Option */}
             <button
               type="button"
               onClick={() => handleSelectPaymentMode('CASH')}
-              className={`p-3 rounded-2xl font-black text-xs sm:text-sm flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
+              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
                 paymentMode === 'CASH'
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-500 scale-[1.02]'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 scale-[1.02] ring-2 ring-emerald-500'
+                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
               }`}
             >
-              <Banknote className="w-5 h-5" />
-              <span>💵 100% Cash</span>
+              <Banknote className="w-7 h-7" />
+              <span className="text-sm font-black">💵 Cash</span>
+              <span className="text-[11px] opacity-80">Full Cash Bill</span>
             </button>
 
+            {/* 2. Online UPI Option */}
             <button
               type="button"
               onClick={() => handleSelectPaymentMode('ONLINE')}
-              className={`p-3 rounded-2xl font-black text-xs sm:text-sm flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
+              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
                 paymentMode === 'ONLINE'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-2 ring-indigo-500 scale-[1.02]'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02] ring-2 ring-indigo-500'
+                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
               }`}
             >
-              <Smartphone className="w-5 h-5" />
-              <span>📱 100% Online/UPI</span>
+              <Smartphone className="w-7 h-7" />
+              <span className="text-sm font-black">📱 Online / UPI</span>
+              <span className="text-[11px] opacity-80">GPay / PhonePe / QR</span>
             </button>
 
+            {/* 3. Split Cash+UPI Option */}
             <button
               type="button"
               onClick={() => handleSelectPaymentMode('SPLIT')}
-              className={`p-3 rounded-2xl font-black text-xs sm:text-sm flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
+              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
                 paymentMode === 'SPLIT'
-                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 ring-2 ring-orange-400 scale-[1.02]'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 scale-[1.02] ring-2 ring-orange-400'
+                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
               }`}
             >
-              <Sparkles className="w-5 h-5" />
-              <span>⚖️ Split (Cash+UPI)</span>
+              <Sparkles className="w-7 h-7" />
+              <span className="text-sm font-black">⚖️ Split Pay</span>
+              <span className="text-[11px] opacity-80">Half Cash + UPI</span>
             </button>
 
+            {/* 4. Udhaar / Due Option */}
             <button
               type="button"
               onClick={() => handleSelectPaymentMode('CREDIT')}
-              className={`p-3 rounded-2xl font-black text-xs sm:text-sm flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
+              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
                 paymentMode === 'CREDIT'
-                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-2 ring-amber-500 scale-[1.02]'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 scale-[1.02] ring-2 ring-amber-500'
+                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
               }`}
             >
-              <Clock className="w-5 h-5" />
-              <span>⏳ Udhaar / Due</span>
+              <Clock className="w-7 h-7" />
+              <span className="text-sm font-black">⏳ Udhaar / Due</span>
+              <span className="text-[11px] opacity-80">Add to Ledger</span>
             </button>
           </div>
-        </div>
 
-        {/* PAYMENT BREAKDOWN FIELDS & CHANGE CALCULATOR */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-          {paymentMode === 'SPLIT' ? (
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-slate-500">
-                Enter Cash or Online amount (remaining auto-calculates):
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200 space-y-1">
-                  <label className="text-xs font-black text-emerald-900 flex items-center gap-1">
-                    <Banknote className="w-4 h-4 text-emerald-600" />
-                    <span>Cash Portion (₹)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={cashPaid}
-                    onChange={(e) => handleCashChangeInSplit(e.target.value)}
-                    placeholder="0"
-                    className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-lg text-base font-black text-slate-900 font-mono focus:outline-none"
-                  />
-                </div>
-
-                <div className="bg-indigo-50/60 p-3 rounded-xl border border-indigo-200 space-y-1">
-                  <label className="text-xs font-black text-indigo-900 flex items-center gap-1">
-                    <Smartphone className="w-4 h-4 text-indigo-600" />
-                    <span>Online/UPI Portion (₹)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={onlinePaid}
-                    onChange={(e) => handleOnlineChangeInSplit(e.target.value)}
-                    placeholder="0"
-                    className="w-full px-3 py-2 bg-white border border-indigo-300 rounded-lg text-base font-black text-slate-900 font-mono focus:outline-none"
-                  />
-                </div>
+          {/* Quick Context Helper (QR / Note / Split) */}
+          {paymentMode === 'ONLINE' ? (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-3 flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-900">Show UPI QR to customer:</span>
+              <button
+                type="button"
+                onClick={() => setShowQrModal(true)}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center space-x-1 cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Show QR Code</span>
+              </button>
+            </div>
+          ) : paymentMode === 'SPLIT' ? (
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-black text-orange-900 uppercase block">Cash Amount (₹)</label>
+                <input
+                  type="number"
+                  value={cashPaid}
+                  onChange={(e) => handleCashChangeInSplit(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white border border-orange-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-indigo-900 uppercase block">UPI Amount (₹)</label>
+                <input
+                  type="number"
+                  value={onlinePaid}
+                  onChange={(e) => handleOnlineChangeInSplit(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none"
+                />
               </div>
             </div>
           ) : paymentMode === 'CASH' ? (
-            <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-black text-emerald-900">💵 Cash Given by Customer (Optional)</span>
-                <span className="text-xs font-semibold text-emerald-700">Bill: ₹{netPayable}</span>
-              </div>
-              <div className="flex space-x-2">
-                <input
-                  type="number"
-                  placeholder="e.g. ₹500, ₹2000 Note"
-                  value={cashTendered}
-                  onChange={(e) => setCashTendered(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-emerald-300 rounded-xl text-base font-black text-slate-900 font-mono focus:outline-none"
-                />
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between text-xs">
+              <span className="font-bold text-emerald-900">💵 Quick Note tendered:</span>
+              <div className="flex space-x-1.5">
                 {[500, 1000, 2000].map((note) => (
                   <button
                     key={note}
                     type="button"
                     onClick={() => setCashTendered(note.toString())}
-                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-mono font-bold text-xs rounded-xl border border-emerald-200 transition-colors"
+                    className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs cursor-pointer ${
+                      cashTendered === note.toString()
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-white text-emerald-800 border border-emerald-300'
+                    }`}
                   >
                     ₹{note}
                   </button>
                 ))}
               </div>
-
-              {parsedCashTendered > parsedCashPaid && (
-                <div className="p-3 bg-emerald-500 text-white rounded-xl flex items-center justify-between font-black text-sm shadow-sm">
-                  <span>Return Change to Customer:</span>
-                  <span className="text-lg font-mono">₹{changeToReturn}</span>
-                </div>
-              )}
             </div>
-          ) : paymentMode === 'ONLINE' ? (
-            <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-200 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-black text-indigo-900">📱 Digital Payment Channel</span>
-                <button
-                  type="button"
-                  onClick={() => setShowQrModal(true)}
-                  className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-indigo-200"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>Show Store UPI QR</span>
-                </button>
-              </div>
+          ) : null}
 
-              <div className="flex space-x-2">
-                {(['upi', 'card', 'bank'] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setOnlineType(m)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all ${
-                      onlineType === m
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-white text-slate-700 border border-indigo-200'
-                    }`}
-                  >
-                    {m === 'upi' ? 'UPI (GPay/PhonePe)' : m === 'card' ? 'Card Machine' : 'Bank Transfer'}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 space-y-2 text-xs">
-              <p className="font-bold text-amber-900">
-                ⏳ ₹{netPayable} will be added as Outstanding Balance (Udhaar) in Customer's Ledger.
-              </p>
-              {!customerName && !selectedCustomerId && (
-                <p className="text-rose-600 font-semibold">
-                  ⚠️ Please enter customer name or select party in Step 2 to track this due properly.
-                </p>
-              )}
+          {/* Change return banner if applicable */}
+          {paymentMode === 'CASH' && parsedCashTendered > parsedCashPaid && (
+            <div className="bg-emerald-500 text-white px-4 py-2.5 rounded-2xl flex items-center justify-between font-black text-xs shadow-xs animate-in fade-in">
+              <span>Return Change to Customer:</span>
+              <span className="text-base font-mono">₹{changeToReturn}</span>
             </div>
           )}
         </div>
 
-        {/* Final Sale Confirmation Button */}
-        <div className="pt-2">
+        {/* Big Complete Sale Button */}
+        <div className="pt-2 flex-shrink-0">
           <button
             type="button"
             onClick={handleFinalizeSale}
-            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-2xl font-black text-base sm:text-lg shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition-all cursor-pointer"
+            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-full font-black text-base sm:text-lg shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition-all cursor-pointer"
           >
             <Check className="w-6 h-6 stroke-[3]" />
-            <span>Complete Sale & Generate Receipt (₹{netPayable.toLocaleString('en-IN')})</span>
+            <span>Complete Sale & Bill (₹{netPayable.toLocaleString('en-IN')})</span>
           </button>
         </div>
 
-        {/* Live Dynamic Store UPI QR Modal */}
+        {/* Live UPI QR Modal */}
         {showQrModal && (
           <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
             <div className="bg-white rounded-3xl max-w-xs w-full p-6 space-y-4 shadow-2xl text-center">
-              <div className="space-y-1">
-                <h3 className="font-black text-base text-slate-900">Scan & Pay via UPI</h3>
-                <p className="text-xs text-slate-500 font-medium">GPay • PhonePe • Paytm • BHIM</p>
-              </div>
-
-              <div className="w-48 h-48 mx-auto bg-slate-900 rounded-2xl p-3 flex flex-col items-center justify-center text-white space-y-2 border-2 border-orange-500 shadow-inner">
-                <QrCode className="w-24 h-24 text-orange-400" />
+              <h3 className="font-black text-base text-slate-900">Scan & Pay via UPI</h3>
+              <div className="w-44 h-44 mx-auto bg-slate-900 rounded-2xl p-3 flex flex-col items-center justify-center text-white space-y-1.5 border-2 border-orange-500">
+                <QrCode className="w-20 h-20 text-orange-400" />
                 <p className="text-sm font-black font-mono">₹{netPayable}</p>
                 <p className="text-[10px] text-slate-300 uppercase tracking-widest">{activeShop?.name || 'ZAIN POS'}</p>
               </div>
-
               <div className="text-xs font-mono font-bold text-slate-700 bg-slate-100 p-2 rounded-xl">
-                UPI ID: zainfootwear@upi
+                UPI: zainfootwear@upi
               </div>
-
               <button
                 type="button"
                 onClick={() => setShowQrModal(false)}
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold"
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer"
               >
                 Close QR Code
               </button>
