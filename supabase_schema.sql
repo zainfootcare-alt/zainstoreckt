@@ -82,22 +82,9 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
--- Drop auth.users foreign key if old schema had it
-DO $$
-DECLARE
-    r RECORD;
-BEGIN
-    FOR r IN (
-        SELECT constraint_name
-        FROM information_schema.table_constraints
-        WHERE table_schema = 'public' 
-          AND table_name = 'user_profiles' 
-          AND constraint_type = 'FOREIGN KEY'
-          AND constraint_name LIKE '%auth%'
-    ) LOOP
-        EXECUTE 'ALTER TABLE public.user_profiles DROP CONSTRAINT IF EXISTS ' || quote_ident(r.constraint_name);
-    END LOOP;
-END $$;
+-- Drop any existing foreign key constraint on id (such as user_profiles_id_fkey referencing auth.users)
+ALTER TABLE public.user_profiles DROP CONSTRAINT IF EXISTS user_profiles_id_fkey;
+ALTER TABLE public.user_profiles ALTER COLUMN id SET DEFAULT uuid_generate_v4();
 
 -- PAYMENT ACCOUNTS
 CREATE TABLE IF NOT EXISTS public.payment_accounts (
