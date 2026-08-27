@@ -226,10 +226,49 @@ export const CalculatorPOSPage: React.FC = () => {
     setStep('PAYMENT');
   };
 
+  // Auto-allocate or calculate remaining breakdown
+  const totalAmountPaidByCustomer = (parseFloat(cashPaid) || 0) + (parseFloat(onlinePaid) || 0);
+  const unpaidDifference = Math.max(0, activeSubtotal - totalAmountPaidByCustomer);
+
+  // Apply Remaining as Instant Discount (Full Settle)
+  const handleApplyRemainingAsDiscount = () => {
+    if (unpaidDifference > 0) {
+      setDiscountAmount(unpaidDifference);
+      setDueAmount('0');
+    }
+  };
+
+  // Keep Remaining as Udhaar / Due
+  const handleKeepRemainingAsDue = () => {
+    if (unpaidDifference > 0) {
+      setDiscountAmount(0);
+      setDueAmount(unpaidDifference.toString());
+    }
+  };
+
+  // Quick 100% Cash selector
+  const handleSelectFullCash = () => {
+    setPaymentMode('CASH');
+    setCashPaid(activeSubtotal.toString());
+    setOnlinePaid('0');
+    setDiscountAmount(0);
+    setDueAmount('0');
+  };
+
+  // Quick 100% Online UPI selector
+  const handleSelectFullOnline = () => {
+    setPaymentMode('ONLINE');
+    setCashPaid('0');
+    setOnlinePaid(activeSubtotal.toString());
+    setDiscountAmount(0);
+    setDueAmount('0');
+  };
+
   // Switch Payment Mode and Auto-Allocate Amounts
   const handleSelectPaymentMode = (mode: 'CASH' | 'ONLINE' | 'SPLIT' | 'CREDIT') => {
     setPaymentMode(mode);
-    const total = netPayable;
+    const total = activeSubtotal;
+    setDiscountAmount(0);
     if (mode === 'CASH') {
       setCashPaid(total.toString());
       setOnlinePaid('0');
@@ -253,19 +292,11 @@ export const CalculatorPOSPage: React.FC = () => {
   // Auto calculate remaining when changing Cash input in Split mode
   const handleCashChangeInSplit = (val: string) => {
     setCashPaid(val);
-    const numCash = parseFloat(val) || 0;
-    const remaining = Math.max(0, netPayable - numCash);
-    setOnlinePaid(remaining.toString());
-    setDueAmount('0');
   };
 
   // Auto calculate remaining when changing Online input in Split mode
   const handleOnlineChangeInSplit = (val: string) => {
     setOnlinePaid(val);
-    const numOnline = parseFloat(val) || 0;
-    const remaining = Math.max(0, netPayable - numOnline);
-    setCashPaid(remaining.toString());
-    setDueAmount('0');
   };
 
   // Cash change calculation
@@ -277,12 +308,20 @@ export const CalculatorPOSPage: React.FC = () => {
   const handleFinalizeSale = () => {
     const numCash = parseFloat(cashPaid) || 0;
     const numOnline = parseFloat(onlinePaid) || 0;
-    const numDue = parseFloat(dueAmount) || 0;
-    const totalPaidAllocated = numCash + numOnline + numDue;
+    const numDue = parseFloat(dueAmount) || (unpaidDifference > 0 && discountAmount === 0 ? unpaidDifference : 0);
+    const currentDiscount = discountAmount;
+    const finalTotal = activeSubtotal - currentDiscount;
 
-    if (Math.abs(totalPaidAllocated - netPayable) > 0.01 && netPayable > 0) {
-      alert(`Payment breakdown total (₹${totalPaidAllocated}) must equal net total (₹${netPayable})`);
-      return;
+    // Check if Due is present -> Customer Name & Phone are MANDATORY
+    if (numDue > 0) {
+      if (!customerName.trim() && !selectedCustomerId) {
+        alert('⚠️ Customer Name is required for Udhaar / Due balance!');
+        return;
+      }
+      if (!customerPhone.trim() && !selectedCustomerId) {
+        alert('⚠️ Customer 10-digit Phone Number is required to record Udhaar / Due!');
+        return;
+      }
     }
 
     const itemsForSale = lineItems.map((item) => ({
@@ -322,9 +361,9 @@ export const CalculatorPOSPage: React.FC = () => {
       customer_name: finalCustName,
       customer_phone: finalCustPhone,
       subtotal: activeSubtotal,
-      discount: discountAmount,
+      discount: currentDiscount,
       tax: 0,
-      total: netPayable,
+      total: finalTotal,
       cash_amount: numCash,
       online_amount: numOnline,
       due_amount: numDue,
@@ -335,9 +374,9 @@ export const CalculatorPOSPage: React.FC = () => {
     setCompletedSale({
       id: recorded.id,
       receipt_number: receiptNum,
-      total: netPayable,
+      total: finalTotal,
       subtotal: activeSubtotal,
-      discount: discountAmount,
+      discount: currentDiscount,
       cash_amount: numCash,
       online_amount: numOnline,
       due_amount: numDue,
@@ -690,9 +729,12 @@ export const CalculatorPOSPage: React.FC = () => {
   }
 
   // =========================================================================
-  // STEP 3: ULTRA-SIMPLE PAYMENT SCREEN (1-Tap Fast Checkout)
+  // STEP 3: ULTRA-EASY PAYMENT SCREEN (Cash / Online / Auto Discount / Due)
   // =========================================================================
   if (step === 'PAYMENT') {
+    const isDuePending = parseFloat(dueAmount) > 0 || (unpaidDifference > 0 && discountAmount === 0);
+    const isDueCustomerMissing = isDuePending && (!customerName.trim() || !customerPhone.trim()) && !selectedCustomerId;
+
     return (
       <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
         {/* Top Header */}
@@ -705,146 +747,240 @@ export const CalculatorPOSPage: React.FC = () => {
             <span>Back</span>
           </button>
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            Step 3 • Payment
+            Step 3 • Make Payment
           </span>
         </div>
 
         {/* Big Amount Card */}
-        <div className="bg-slate-950 text-white rounded-3xl p-5 shadow-lg space-y-2 text-center flex-shrink-0 my-1">
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Amount to Collect</p>
-          <p className="text-4xl sm:text-5xl font-black text-orange-400 font-mono tracking-tight">
-            ₹{netPayable.toLocaleString('en-IN')}
-          </p>
+        <div className="bg-slate-950 text-white rounded-3xl p-4 sm:p-5 shadow-lg space-y-1 text-center flex-shrink-0 my-1">
+          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Total Bill Amount</p>
+          <div className="flex items-baseline justify-center space-x-1">
+            <span className="text-2xl font-bold text-orange-400">₹</span>
+            <span className="text-4xl sm:text-5xl font-black text-white font-mono tracking-tight">
+              {(activeSubtotal - discountAmount).toLocaleString('en-IN')}
+            </span>
+            {discountAmount > 0 && (
+              <span className="text-xs font-bold text-emerald-400 ml-2 line-through opacity-70">
+                ₹{activeSubtotal}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-300 font-medium">
             {shoeCategory} (Size {shoeSize}) • {customerName || 'Walk-in'}
           </p>
         </div>
 
-        {/* 4 Big 1-Tap Payment Buttons */}
-        <div className="flex-1 flex flex-col justify-center space-y-3 py-1">
-          <div className="grid grid-cols-2 gap-2.5">
-            {/* 1. Cash Option */}
+        {/* Scrollable Center Content */}
+        <div className="flex-1 flex flex-col justify-center space-y-2.5 overflow-y-auto no-scrollbar py-1">
+          {/* Quick 1-Tap Payment Mode Presets */}
+          <div className="grid grid-cols-3 gap-1.5">
             <button
               type="button"
-              onClick={() => handleSelectPaymentMode('CASH')}
-              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
-                paymentMode === 'CASH'
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 scale-[1.02] ring-2 ring-emerald-500'
-                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
+              onClick={handleSelectFullCash}
+              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                cashPaid === activeSubtotal.toString() && onlinePaid === '0' && discountAmount === 0
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                  : 'bg-white text-emerald-800 border-slate-200 hover:bg-emerald-50'
               }`}
             >
-              <Banknote className="w-7 h-7" />
-              <span className="text-sm font-black">💵 Cash</span>
-              <span className="text-[11px] opacity-80">Full Cash Bill</span>
+              💵 100% Cash
             </button>
-
-            {/* 2. Online UPI Option */}
             <button
               type="button"
-              onClick={() => handleSelectPaymentMode('ONLINE')}
-              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
-                paymentMode === 'ONLINE'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02] ring-2 ring-indigo-500'
-                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
+              onClick={handleSelectFullOnline}
+              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                onlinePaid === activeSubtotal.toString() && cashPaid === '0' && discountAmount === 0
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                  : 'bg-white text-indigo-800 border-slate-200 hover:bg-indigo-50'
               }`}
             >
-              <Smartphone className="w-7 h-7" />
-              <span className="text-sm font-black">📱 Online / UPI</span>
-              <span className="text-[11px] opacity-80">GPay / PhonePe / QR</span>
+              📱 100% Online
             </button>
-
-            {/* 3. Split Cash+UPI Option */}
             <button
               type="button"
               onClick={() => handleSelectPaymentMode('SPLIT')}
-              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
-                paymentMode === 'SPLIT'
-                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 scale-[1.02] ring-2 ring-orange-400'
-                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
+              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                parseFloat(cashPaid) > 0 && parseFloat(onlinePaid) > 0
+                  ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
+                  : 'bg-white text-orange-800 border-slate-200 hover:bg-orange-50'
               }`}
             >
-              <Sparkles className="w-7 h-7" />
-              <span className="text-sm font-black">⚖️ Split Pay</span>
-              <span className="text-[11px] opacity-80">Half Cash + UPI</span>
-            </button>
-
-            {/* 4. Udhaar / Due Option */}
-            <button
-              type="button"
-              onClick={() => handleSelectPaymentMode('CREDIT')}
-              className={`p-4 rounded-2xl flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
-                paymentMode === 'CREDIT'
-                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 scale-[1.02] ring-2 ring-amber-500'
-                  : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
-              }`}
-            >
-              <Clock className="w-7 h-7" />
-              <span className="text-sm font-black">⏳ Udhaar / Due</span>
-              <span className="text-[11px] opacity-80">Add to Ledger</span>
+              ⚖️ Split (50/50)
             </button>
           </div>
 
-          {/* Quick Context Helper (QR / Note / Split) */}
-          {paymentMode === 'ONLINE' ? (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-3 flex items-center justify-between">
-              <span className="text-xs font-bold text-indigo-900">Show UPI QR to customer:</span>
+          {/* Cash & Online Direct Inputs */}
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2.5">
+            {/* Cash Input Box */}
+            <div className="flex items-center justify-between space-x-2 bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-200/80">
+              <div className="flex items-center space-x-2 min-w-0">
+                <Banknote className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-black text-emerald-900">Cash Received</p>
+                  <p className="text-[10px] text-emerald-700">Cash in drawer</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1">
+                <span className="text-sm font-bold text-slate-500">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={cashPaid}
+                  onChange={(e) => setCashPaid(e.target.value)}
+                  placeholder="0"
+                  className="w-24 text-right px-2.5 py-1.5 bg-white border border-emerald-300 rounded-lg text-base font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Online UPI Input Box */}
+            <div className="flex items-center justify-between space-x-2 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-200/80">
+              <div className="flex items-center space-x-2 min-w-0">
+                <Smartphone className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-black text-indigo-900">Online / UPI</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowQrModal(true)}
+                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                  >
+                    <QrCode className="w-3 h-3" />
+                    <span>Show Store QR</span>
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1">
+                <span className="text-sm font-bold text-slate-500">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={onlinePaid}
+                  onChange={(e) => setOnlinePaid(e.target.value)}
+                  placeholder="0"
+                  className="w-24 text-right px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg text-base font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* AUTO-DISCOUNT OR DUE PROMPT (When Customer Pays Less) */}
+          {unpaidDifference > 0 && discountAmount === 0 && (
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3 space-y-2 animate-in fade-in">
+              <div className="flex justify-between items-center text-xs font-black text-amber-900">
+                <span>⚠️ Remaining Amount: ₹{unpaidDifference}</span>
+                <span className="text-[10px] font-bold bg-amber-200 px-2 py-0.5 rounded-full text-amber-900">Action Required</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleApplyRemainingAsDiscount}
+                  className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs"
+                >
+                  🏷️ Give ₹{unpaidDifference} Discount
+                </button>
+                <button
+                  type="button"
+                  onClick={handleKeepRemainingAsDue}
+                  className="py-2.5 px-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs"
+                >
+                  ⏳ Keep ₹{unpaidDifference} as Due
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Discount Applied Badge */}
+          {discountAmount > 0 && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5 flex justify-between items-center text-xs">
+              <span className="font-bold text-emerald-900">🏷️ Discount Applied: ₹{discountAmount} (Bill Settled)</span>
               <button
                 type="button"
-                onClick={() => setShowQrModal(true)}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center space-x-1 cursor-pointer"
+                onClick={() => setDiscountAmount(0)}
+                className="text-slate-400 hover:text-rose-600 text-xs font-bold underline"
               >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>Show QR Code</span>
+                Remove
               </button>
             </div>
-          ) : paymentMode === 'SPLIT' ? (
-            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] font-black text-orange-900 uppercase block">Cash Amount (₹)</label>
-                <input
-                  type="number"
-                  value={cashPaid}
-                  onChange={(e) => handleCashChangeInSplit(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-white border border-orange-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-indigo-900 uppercase block">UPI Amount (₹)</label>
-                <input
-                  type="number"
-                  value={onlinePaid}
-                  onChange={(e) => handleOnlineChangeInSplit(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none"
-                />
-              </div>
-            </div>
-          ) : paymentMode === 'CASH' ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between text-xs">
-              <span className="font-bold text-emerald-900">💵 Quick Note tendered:</span>
-              <div className="flex space-x-1.5">
-                {[500, 1000, 2000].map((note) => (
-                  <button
-                    key={note}
-                    type="button"
-                    onClick={() => setCashTendered(note.toString())}
-                    className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs cursor-pointer ${
-                      cashTendered === note.toString()
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-white text-emerald-800 border border-emerald-300'
-                    }`}
-                  >
-                    ₹{note}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          )}
 
-          {/* Change return banner if applicable */}
-          {paymentMode === 'CASH' && parsedCashTendered > parsedCashPaid && (
+          {/* MANDATORY CUSTOMER DATA FOR DUE / UDHAAR */}
+          {isDuePending && (
+            <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in">
+              <div className="flex items-center space-x-1.5">
+                <Clock className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                <p className="text-xs font-black text-amber-950">
+                  Customer Details Required for Udhaar (Due: ₹{dueAmount || unpaidDifference})
+                </p>
+              </div>
+
+              {/* Customer Selector / Input */}
+              {customers.length > 0 && (
+                <div>
+                  <select
+                    value={selectedCustomerId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedCustomerId(id);
+                      const found = customers.find((c) => c.id === id);
+                      if (found) {
+                        setCustomerName(found.name);
+                        setCustomerPhone(found.phone || '');
+                      }
+                    }}
+                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none mb-1.5"
+                  >
+                    <option value="">-- Choose Existing Party / Enter New Below --</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.phone || 'No phone'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-black text-amber-900 uppercase block mb-0.5">
+                    Customer Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Ramesh Bhai"
+                    value={customerName === 'Walk-in Customer' ? '' : customerName}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      setSelectedCustomerId('');
+                    }}
+                    className="w-full px-2.5 py-2 bg-white border-2 border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-amber-900 uppercase block mb-0.5">
+                    10-digit Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="Mobile Number"
+                    value={customerPhone}
+                    onChange={(e) => {
+                      setCustomerPhone(e.target.value);
+                      setSelectedCustomerId('');
+                    }}
+                    className="w-full px-2.5 py-2 bg-white border-2 border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Change return banner if cash paid > payable */}
+          {parseFloat(cashPaid) > (activeSubtotal - discountAmount - (parseFloat(onlinePaid) || 0)) && (
             <div className="bg-emerald-500 text-white px-4 py-2.5 rounded-2xl flex items-center justify-between font-black text-xs shadow-xs animate-in fade-in">
               <span>Return Change to Customer:</span>
-              <span className="text-base font-mono">₹{changeToReturn}</span>
+              <span className="text-base font-mono">
+                ₹{parseFloat(cashPaid) - Math.max(0, (activeSubtotal - discountAmount - (parseFloat(onlinePaid) || 0)))}
+              </span>
             </div>
           )}
         </div>
@@ -854,10 +990,19 @@ export const CalculatorPOSPage: React.FC = () => {
           <button
             type="button"
             onClick={handleFinalizeSale}
-            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-full font-black text-base sm:text-lg shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition-all cursor-pointer"
+            disabled={isDueCustomerMissing}
+            className={`w-full py-4 rounded-full font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+              isDueCustomerMissing
+                ? 'bg-amber-400 text-amber-950 opacity-60 cursor-not-allowed'
+                : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-emerald-600/30'
+            }`}
           >
             <Check className="w-6 h-6 stroke-[3]" />
-            <span>Complete Sale & Bill (₹{netPayable.toLocaleString('en-IN')})</span>
+            <span>
+              {isDueCustomerMissing
+                ? '⚠️ Enter Customer Name & Phone for Udhaar'
+                : `Complete Sale (₹${(activeSubtotal - discountAmount).toLocaleString('en-IN')})`}
+            </span>
           </button>
         </div>
 
@@ -868,7 +1013,7 @@ export const CalculatorPOSPage: React.FC = () => {
               <h3 className="font-black text-base text-slate-900">Scan & Pay via UPI</h3>
               <div className="w-44 h-44 mx-auto bg-slate-900 rounded-2xl p-3 flex flex-col items-center justify-center text-white space-y-1.5 border-2 border-orange-500">
                 <QrCode className="w-20 h-20 text-orange-400" />
-                <p className="text-sm font-black font-mono">₹{netPayable}</p>
+                <p className="text-sm font-black font-mono">₹{activeSubtotal - discountAmount}</p>
                 <p className="text-[10px] text-slate-300 uppercase tracking-widest">{activeShop?.name || 'ZAIN POS'}</p>
               </div>
               <div className="text-xs font-mono font-bold text-slate-700 bg-slate-100 p-2 rounded-xl">
