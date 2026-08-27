@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../common/ZainLogo';
-import { PwaInstallButton } from '../common/PwaInstallButton';
 
 export const AppLayout: React.FC = () => {
   const { activeShop, userProfile, activeRole, logoutUser } = useShop();
@@ -161,14 +160,12 @@ export const AppLayout: React.FC = () => {
 
           {/* Right Header Utilities */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <PwaInstallButton className="hidden sm:inline-flex" />
-
             <button
               onClick={() => navigate('/app/notifications')}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl relative transition-colors"
+              className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl relative transition-colors"
               title="Notifications"
             >
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Bell className="w-5 h-5" />
             </button>
 
             {/* Mobile User Profile Dropdown */}
