@@ -143,27 +143,25 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Wipe all customer, party, sales, and non-saif user data on schema initialization
+  // One-time migration: ensure Saif admin is always present in users list (without wiping extra users)
   useEffect(() => {
-    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
-    if (!isCleaned) {
-      localStorage.removeItem('zain_pos_customers');
-      localStorage.removeItem('zain_pos_customer_ledgers');
-      localStorage.removeItem('zain_pos_sales');
-      localStorage.removeItem('zain_pos_vendors');
-      localStorage.removeItem('zain_pos_vendor_ledgers');
-      localStorage.removeItem('zain_pos_expenses');
-      localStorage.removeItem('zain_pos_employees');
-      localStorage.removeItem('zain_pos_attendance');
-      localStorage.removeItem('zain_pos_salary_payments');
-      localStorage.removeItem('zain_pos_todos');
-      localStorage.removeItem('zain_pos_users');
-      localStorage.removeItem('zain_pos_current_user');
-      localStorage.removeItem('zain_pos_products');
-      localStorage.removeItem('zain_pos_cart');
-      localStorage.setItem('zain_pos_current_user', JSON.stringify(DEFAULT_USERS[0]));
+    const existingUsers = localStorage.getItem('zain_pos_users');
+    let users: any[] = [];
+    try {
+      if (existingUsers) users = JSON.parse(existingUsers);
+    } catch (e) { /* fallback */ }
+
+    if (!Array.isArray(users) || users.length === 0) {
+      // No users at all — set defaults
       localStorage.setItem('zain_pos_users', JSON.stringify(DEFAULT_USERS));
-      localStorage.setItem('zain_pos_db_fresh_saif_only_v20', 'true');
+      localStorage.setItem('zain_pos_current_user', JSON.stringify(DEFAULT_USERS[0]));
+    } else {
+      // Ensure Saif admin account always exists
+      const hasSaif = users.some((u: any) => u.email?.toLowerCase() === 'saif@admin.com');
+      if (!hasSaif) {
+        const withSaif = [DEFAULT_USERS[0], ...users];
+        localStorage.setItem('zain_pos_users', JSON.stringify(withSaif));
+      }
     }
   }, []);
 
