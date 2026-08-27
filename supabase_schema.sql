@@ -1,5 +1,5 @@
 -- ============================================================================
--- ZAIN FOOTWEAR POS — COMPLETE SUPABASE SCHEMA v2
+-- ZAIN FOOTWEAR POS — BULLETPROOF SUPABASE SCHEMA (Idempotent & Migration-Safe)
 -- Run this in Supabase Dashboard → SQL Editor
 -- Project URL: https://fcgtjbmrguziyctvqfjr.supabase.co
 -- ============================================================================
@@ -21,10 +21,10 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================================
--- TABLES
+-- 3. TABLES (CREATE IF NOT EXISTS)
 -- ============================================================================
 
--- 3. ORGANIZATIONS
+-- ORGANIZATIONS
 CREATE TABLE IF NOT EXISTS public.organizations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. SHOPS
+-- SHOPS
 CREATE TABLE IF NOT EXISTS public.shops (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. USER PROFILES (Custom auth)
+-- USER PROFILES (Custom Auth - Independent of Supabase Auth)
 CREATE TABLE IF NOT EXISTS public.user_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -69,7 +69,37 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. PAYMENT ACCOUNTS
+-- Ensure all columns exist on user_profiles if it was previously created
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS username VARCHAR(100);
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES public.organizations(id);
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS default_shop_id UUID REFERENCES public.shops(id);
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS role system_role_enum DEFAULT 'CASHIER';
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS pin VARCHAR(100);
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Active';
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Drop auth.users foreign key if old schema had it
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT constraint_name
+        FROM information_schema.table_constraints
+        WHERE table_schema = 'public' 
+          AND table_name = 'user_profiles' 
+          AND constraint_type = 'FOREIGN KEY'
+          AND constraint_name LIKE '%auth%'
+    ) LOOP
+        EXECUTE 'ALTER TABLE public.user_profiles DROP CONSTRAINT IF EXISTS ' || quote_ident(r.constraint_name);
+    END LOOP;
+END $$;
+
+-- PAYMENT ACCOUNTS
 CREATE TABLE IF NOT EXISTS public.payment_accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -81,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.payment_accounts (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. CASH SESSIONS
+-- CASH SESSIONS
 CREATE TABLE IF NOT EXISTS public.cash_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -101,7 +131,7 @@ CREATE TABLE IF NOT EXISTS public.cash_sessions (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. CUSTOMERS
+-- CUSTOMERS
 CREATE TABLE IF NOT EXISTS public.customers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -120,7 +150,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. CUSTOMER LEDGER ENTRIES
+-- CUSTOMER LEDGER ENTRIES
 CREATE TABLE IF NOT EXISTS public.customer_ledger_entries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -135,13 +165,13 @@ CREATE TABLE IF NOT EXISTS public.customer_ledger_entries (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. SALES
+-- SALES
 CREATE TABLE IF NOT EXISTS public.sales (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
     shop_id UUID REFERENCES public.shops(id) ON DELETE CASCADE,
     receipt_number VARCHAR(100) NOT NULL UNIQUE,
-    created_by_user_id UUID REFERENCES public.user_profiles(id),
+    created_by_user_id UUID,
     created_by_name VARCHAR(255) NOT NULL,
     customer_id UUID REFERENCES public.customers(id),
     customer_name VARCHAR(255),
@@ -156,7 +186,13 @@ CREATE TABLE IF NOT EXISTS public.sales (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. SALE ITEMS
+-- Ensure customer columns exist on sales
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES public.customers(id);
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255);
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50);
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS due_amount NUMERIC(12, 2) DEFAULT 0.00;
+
+-- SALE ITEMS
 CREATE TABLE IF NOT EXISTS public.sale_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     sale_id UUID REFERENCES public.sales(id) ON DELETE CASCADE,
@@ -167,7 +203,7 @@ CREATE TABLE IF NOT EXISTS public.sale_items (
     total_price NUMERIC(12, 2) NOT NULL
 );
 
--- 12. SALE PAYMENTS
+-- SALE PAYMENTS
 CREATE TABLE IF NOT EXISTS public.sale_payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     sale_id UUID REFERENCES public.sales(id) ON DELETE CASCADE,
@@ -177,7 +213,7 @@ CREATE TABLE IF NOT EXISTS public.sale_payments (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 13. VENDORS / PARTIES
+-- VENDORS / PARTIES
 CREATE TABLE IF NOT EXISTS public.vendors (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -203,7 +239,7 @@ CREATE TABLE IF NOT EXISTS public.vendors (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 14. PURCHASES
+-- PURCHASES
 CREATE TABLE IF NOT EXISTS public.purchases (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -232,7 +268,7 @@ CREATE TABLE IF NOT EXISTS public.purchases (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 15. VENDOR LEDGER ENTRIES
+-- VENDOR LEDGER ENTRIES
 CREATE TABLE IF NOT EXISTS public.vendor_ledger_entries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -247,7 +283,7 @@ CREATE TABLE IF NOT EXISTS public.vendor_ledger_entries (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 16. VENDOR PAYMENTS
+-- VENDOR PAYMENTS
 CREATE TABLE IF NOT EXISTS public.vendor_payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -265,7 +301,7 @@ CREATE TABLE IF NOT EXISTS public.vendor_payments (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 17. EXPENSES
+-- EXPENSES
 CREATE TABLE IF NOT EXISTS public.expenses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -288,7 +324,7 @@ CREATE TABLE IF NOT EXISTS public.expenses (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 18. EMPLOYEES
+-- EMPLOYEES
 CREATE TABLE IF NOT EXISTS public.employees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -305,7 +341,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
     UNIQUE(organization_id, employee_code)
 );
 
--- 19. ATTENDANCE RECORDS
+-- ATTENDANCE RECORDS
 CREATE TABLE IF NOT EXISTS public.attendance_records (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -321,7 +357,7 @@ CREATE TABLE IF NOT EXISTS public.attendance_records (
     UNIQUE(employee_id, attendance_date)
 );
 
--- 20. SALARY PAYMENTS
+-- SALARY PAYMENTS
 CREATE TABLE IF NOT EXISTS public.salary_payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -341,7 +377,7 @@ CREATE TABLE IF NOT EXISTS public.salary_payments (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 21. TODOS
+-- TODOS
 CREATE TABLE IF NOT EXISTS public.todos (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -353,13 +389,13 @@ CREATE TABLE IF NOT EXISTS public.todos (
     due_date DATE,
     is_completed BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMPTZ,
-    created_by_user_id UUID REFERENCES public.user_profiles(id),
+    created_by_user_id UUID,
     created_by_name VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 22. ESTIMATES
+-- ESTIMATES
 CREATE TABLE IF NOT EXISTS public.estimates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -381,7 +417,7 @@ CREATE TABLE IF NOT EXISTS public.estimates (
 );
 
 -- ============================================================================
--- ROW LEVEL SECURITY — Allow anon key (custom auth model)
+-- 4. ROW LEVEL SECURITY (RLS) POLICIES (Safe Drop & Create)
 -- ============================================================================
 
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
@@ -405,43 +441,58 @@ ALTER TABLE public.salary_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.estimates ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow all for anon" ON public.organizations FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.shops FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.user_profiles FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.payment_accounts FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.cash_sessions FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.customers FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.customer_ledger_entries FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.sales FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.sale_items FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.sale_payments FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.vendors FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.purchases FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.vendor_ledger_entries FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.vendor_payments FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.expenses FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.employees FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.attendance_records FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.salary_payments FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.todos FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for anon" ON public.estimates FOR ALL TO anon USING (true) WITH CHECK (true);
+DO $$ 
+DECLARE
+  tbl text;
+BEGIN
+  FOR tbl IN 
+    SELECT unnest(ARRAY[
+      'organizations', 'shops', 'user_profiles', 'payment_accounts', 'cash_sessions',
+      'customers', 'customer_ledger_entries', 'sales', 'sale_items', 'sale_payments',
+      'vendors', 'purchases', 'vendor_ledger_entries', 'vendor_payments', 'expenses',
+      'employees', 'attendance_records', 'salary_payments', 'todos', 'estimates'
+    ])
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Allow all for anon" ON public.%I;', tbl);
+    EXECUTE format('CREATE POLICY "Allow all for anon" ON public.%I FOR ALL TO anon USING (true) WITH CHECK (true);', tbl);
+  END LOOP;
+END $$;
 
 -- ============================================================================
--- SEED DATA
+-- 5. SEED DATA (Safe Upserts)
 -- ============================================================================
 
+-- 1. Organization
 INSERT INTO public.organizations (id, name, currency, tax_rate)
 VALUES ('a1000000-0000-0000-0000-000000000001', 'Zain Footwear', 'INR', 0.00)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
+-- 2. Main Store
 INSERT INTO public.shops (id, organization_id, name, code, email, is_active)
 VALUES ('b2000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 'Zain Footwear (Main Store)', 'ZAIN-01', 'saif@admin.com', TRUE)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
+-- 3. Saif Admin Profile
 INSERT INTO public.user_profiles (id, email, username, full_name, organization_id, default_shop_id, role, pin, status)
-VALUES ('c3000000-0000-0000-0000-000000000003', 'saif@admin.com', 'saif', 'Saif', 'a1000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000002', 'ADMIN', 'Saif@Zain', 'Active')
-ON CONFLICT (email) DO UPDATE SET role = 'ADMIN', status = 'Active';
+VALUES (
+    'c3000000-0000-0000-0000-000000000003',
+    'saif@admin.com',
+    'saif',
+    'Saif',
+    'a1000000-0000-0000-0000-000000000001',
+    'b2000000-0000-0000-0000-000000000002',
+    'ADMIN',
+    'Saif@Zain',
+    'Active'
+)
+ON CONFLICT (email) DO UPDATE SET 
+    username = EXCLUDED.username,
+    full_name = EXCLUDED.full_name,
+    role = 'ADMIN',
+    pin = 'Saif@Zain',
+    status = 'Active';
 
+-- 4. Payment Accounts
 INSERT INTO public.payment_accounts (id, organization_id, shop_id, name, type, current_balance, is_active)
 VALUES
     ('d4000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000002', 'Cash Counter Register', 'cash', 0.00, TRUE),
