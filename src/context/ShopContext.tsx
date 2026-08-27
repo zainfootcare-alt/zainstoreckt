@@ -252,9 +252,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return 'ADMIN';
   });
 
-  useEffect(() => {
-    localStorage.setItem('zain_pos_users', JSON.stringify(users));
-  }, [users]);
 
   // Clean Zero-data state for Customers
   const [customers, setCustomers] = useState<Customer[]>(() => {
