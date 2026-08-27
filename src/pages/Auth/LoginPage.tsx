@@ -47,8 +47,8 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-sm bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center p-2.5 bg-orange-50 rounded-2xl border border-orange-100 mb-1">
-            <ZainLogo size="md" showText={true} />
+          <div className="flex justify-center mb-1">
+            <ZainLogo size="lg" showText={true} />
           </div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight">Sign In</h1>
           <p className="text-xs text-slate-500 font-medium">Zain Footwear POS & CRM</p>

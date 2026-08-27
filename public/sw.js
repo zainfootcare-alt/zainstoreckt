@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zain-pos-pwa-v2';
+const CACHE_NAME = 'zain-pos-pwa-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
