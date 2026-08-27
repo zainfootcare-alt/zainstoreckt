@@ -214,7 +214,7 @@ export const DashboardPage: React.FC = () => {
                       ? 'Split'
                       : sale.cash_amount > 0
                       ? 'Cash'
-                      : sale.due_amount > 0
+                      : (sale.due_amount || 0) > 0
                       ? 'Due'
                       : 'Online'}
                   </p>

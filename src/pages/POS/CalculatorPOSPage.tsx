@@ -91,6 +91,49 @@ export const CalculatorPOSPage: React.FC = () => {
   const activeSubtotal = lineItems.length > 0 ? calculatedItemsTotal : currentCalcValue;
   const netPayable = Math.max(0, activeSubtotal - discountAmount);
 
+  const totalPaidSoFar = (parseFloat(cashPaid) || 0) + (parseFloat(onlinePaid) || 0);
+  const unpaidDifference = Math.max(0, activeSubtotal - totalPaidSoFar);
+
+  const shoeCategory = lineItems[0]?.category || 'Footwear';
+  const shoeSize = lineItems.length > 1 ? `${lineItems[0]?.size || '8'} (+${lineItems.length - 1})` : (lineItems[0]?.size || '8');
+
+  const handleSelectFullCash = () => {
+    setPaymentMode('CASH');
+    setCashPaid(activeSubtotal.toString());
+    setOnlinePaid('0');
+    setDueAmount('0');
+    setDiscountAmount(0);
+  };
+
+  const handleSelectFullOnline = () => {
+    setPaymentMode('ONLINE');
+    setCashPaid('0');
+    setOnlinePaid(activeSubtotal.toString());
+    setDueAmount('0');
+    setDiscountAmount(0);
+  };
+
+  const handleSelectPaymentMode = (mode: 'CASH' | 'ONLINE' | 'SPLIT' | 'CREDIT') => {
+    setPaymentMode(mode);
+    if (mode === 'SPLIT') {
+      const half = Math.floor(activeSubtotal / 2);
+      setCashPaid(half.toString());
+      setOnlinePaid((activeSubtotal - half).toString());
+      setDueAmount('0');
+      setDiscountAmount(0);
+    }
+  };
+
+  const handleApplyRemainingAsDiscount = () => {
+    setDiscountAmount(unpaidDifference);
+    setDueAmount('0');
+  };
+
+  const handleKeepRemainingAsDue = () => {
+    setDueAmount(unpaidDifference.toString());
+    setDiscountAmount(0);
+  };
+
   // Keypad Button Press Handler (Pressing + automatically adds item and increments count)
   const handleKeypadPress = (key: string) => {
     if (key === 'C') {
@@ -338,7 +381,7 @@ export const CalculatorPOSPage: React.FC = () => {
     const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
 
     const itemsText = completedSale.items
-      .map((it, idx) => `${idx + 1}. ${it.item_name} - ₹${it.unit_price}`)
+      .map((it: any, idx: number) => `${idx + 1}. ${it.item_name} - ₹${it.unit_price}`)
       .join('\n');
 
     const msg = `*ZAIN FOOTWEAR - POS BILL RECEIPT*\n--------------------------------\n*Receipt #:* ${completedSale.receipt_number}\n*Date:* ${new Date(completedSale.created_at).toLocaleDateString('en-IN')}\n*Store:* ${activeShop?.name || 'Zain Footwear (Main Store)'}\n--------------------------------\n*Items Purchased:*\n${itemsText}\n--------------------------------\n*Subtotal:* ₹${completedSale.subtotal.toLocaleString('en-IN')}\n*Discount:* ₹${completedSale.discount.toLocaleString('en-IN')}\n*Total Paid:* ₹${completedSale.total.toLocaleString('en-IN')}\n${completedSale.due_amount > 0 ? `*Balance Due (Udhaar):* ₹${completedSale.due_amount.toLocaleString('en-IN')}\n` : ''}--------------------------------\nThank you for shopping at *Zain Footwear*!\nVisit again soon! 👟✨`;
@@ -590,7 +633,7 @@ export const CalculatorPOSPage: React.FC = () => {
 
             {/* Items Purchased */}
             <div className="space-y-1.5 py-1">
-              {completedSale.items.map((it, idx) => (
+              {completedSale.items.map((it: any, idx: number) => (
                 <div key={idx} className="flex justify-between text-xs font-semibold text-slate-700">
                   <span className="truncate pr-2">
                     {idx + 1}. {it.item_name} {it.size ? `(Size ${it.size})` : ''}

@@ -177,6 +177,7 @@ export interface InventoryMovement {
   reference_number?: string;
   unit_cost: number;
   notes?: string;
+  reason_code?: string;
   created_at: string;
   product_name?: string;
   sku?: string;
@@ -188,14 +189,19 @@ export interface DemandLog {
   shop_id: string;
   product_id?: string;
   requested_item_text: string;
-  quantity: number;
+  quantity?: number;
+  category?: string;
+  size_requested?: string;
+  brand_requested?: string;
   customer_id?: string;
-  salesperson_name: string;
-  status: 'PENDING' | 'CONVERTED_TO_PO' | 'FULFILLED' | 'DISCARDED';
+  customer_name?: string;
+  customer_phone?: string;
+  salesperson_name?: string;
+  status?: 'PENDING' | 'CONVERTED_TO_PO' | 'FULFILLED' | 'DISCARDED';
+  is_fulfilled?: boolean;
   converted_po_id?: string;
   notes?: string;
   created_at: string;
-  customer_name?: string;
 }
 
 export type CustomerOrderStatus =
@@ -388,6 +394,7 @@ export interface AttendanceRecord {
   check_in_time?: string;
   check_out_time?: string;
   manager_notes?: string;
+  notes?: string;
   created_at: string;
 }
 
@@ -398,10 +405,12 @@ export interface SalaryPayment {
   employee_id: string;
   employee_name?: string;
   payment_date: string;
+  month_year?: string;
   gross_salary: number;
   deductions: number;
   advances: number;
   net_salary: number;
+  net_salary_paid?: number;
   payment_account_id?: string;
   payment_reference: string;
   status: 'UNPAID' | 'PAID';

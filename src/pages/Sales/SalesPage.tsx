@@ -428,7 +428,7 @@ export const SalesPage: React.FC = () => {
                       </td>
 
                       <td className="py-4 px-5 text-slate-500 text-[11px]">
-                        {new Date(customer.last_purchase_date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {customer.last_purchase_date ? new Date(customer.last_purchase_date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
                       </td>
 
                       <td className="py-4 px-5 text-right space-x-2">

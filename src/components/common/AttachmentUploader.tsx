@@ -41,7 +41,9 @@ export const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
           <div className="flex items-center space-x-2 text-emerald-800 font-medium">
             <FileText className="w-4 h-4 text-[#008060]" />
             <span className="truncate max-w-xs">{value}</span>
-            <ShieldCheck className="w-3.5 h-3.5 text-[#008060]" title="RLS Private Vault Secured" />
+            <span title="RLS Private Vault Secured">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#008060]" />
+            </span>
           </div>
           <button
             type="button"
