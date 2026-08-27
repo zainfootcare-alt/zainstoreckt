@@ -69,62 +69,57 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-      {/* 1. SALES OVERVIEW CARD WITH CALENDAR POPUP FILTER */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-        {/* Card Header with Date Selector Popup Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div>
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+      {/* 1. SALES OVERVIEW CARD WITH SIDE CALENDAR POPUP FILTER */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3.5">
+        {/* Card Header with Side Date Selector Button */}
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
               Total Sales
             </span>
             <div className="flex items-baseline space-x-2 mt-0.5">
-              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-mono">
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight font-mono">
                 ₹{totalSalesAmount.toLocaleString('en-IN')}
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
+            <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 truncate">
               {filteredSales.length} order{filteredSales.length === 1 ? '' : 's'} ({currentLabel})
             </p>
           </div>
 
-          {/* Clean Calendar Selection Popup Trigger Button */}
+          {/* Clean Compact Side Calendar Filter Button */}
           <button
             type="button"
             onClick={() => setIsDateModalOpen(true)}
-            className="flex items-center space-x-2 self-start sm:self-auto bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200/90 px-3.5 py-2 rounded-2xl shadow-2xs transition-all cursor-pointer group"
+            className="flex items-center space-x-1.5 bg-slate-50 hover:bg-orange-50/80 active:scale-95 border border-slate-200 hover:border-orange-300 px-3 py-2 rounded-2xl shadow-2xs transition-all cursor-pointer flex-shrink-0 group"
           >
-            <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
-              <Calendar className="w-3.5 h-3.5 text-[#ff6600]" />
-            </div>
-            <div className="text-left">
-              <span className="block text-[10px] uppercase font-bold text-slate-400">Filter Date</span>
-              <span className="block text-xs font-black text-slate-800 group-hover:text-orange-600 transition-colors">
-                {currentLabel}
-              </span>
-            </div>
-            <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-transform ml-1" />
+            <Calendar className="w-4 h-4 text-[#ff6600]" />
+            <span className="text-xs font-extrabold text-slate-800 group-hover:text-orange-600 transition-colors">
+              {currentLabel}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-orange-600 transition-colors ml-0.5" />
           </button>
         </div>
 
         {/* 3-Column Payment Breakdown (Shopify metrics style) */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-1">
-          <div className="bg-slate-50/80 rounded-2xl p-3 text-left border border-slate-100">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-0.5">
+          <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cash</p>
-            <p className="text-sm sm:text-base font-black text-emerald-700 font-mono mt-0.5">
+            <p className="text-xs sm:text-base font-black text-emerald-700 font-mono mt-0.5 truncate">
               ₹{cashSalesAmount.toLocaleString('en-IN')}
             </p>
           </div>
 
-          <div className="bg-slate-50/80 rounded-2xl p-3 text-left border border-slate-100">
+          <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Online UPI</p>
-            <p className="text-sm sm:text-base font-black text-indigo-700 font-mono mt-0.5">
+            <p className="text-xs sm:text-base font-black text-indigo-700 font-mono mt-0.5 truncate">
               ₹{onlineSalesAmount.toLocaleString('en-IN')}
             </p>
           </div>
 
-          <div className="bg-slate-50/80 rounded-2xl p-3 text-left border border-slate-100">
+          <div className="bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 text-left border border-slate-100">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Udhaar / Due</p>
-            <p className={`text-sm sm:text-base font-black font-mono mt-0.5 ${dueSalesAmount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
+            <p className={`text-xs sm:text-base font-black font-mono mt-0.5 truncate ${dueSalesAmount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
               ₹{dueSalesAmount.toLocaleString('en-IN')}
             </p>
           </div>
