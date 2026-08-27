@@ -121,7 +121,7 @@ export const TodoPage: React.FC = () => {
             className="px-4 py-3 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-2xl font-black text-xs sm:text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer self-start sm:self-auto"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Add New Task</span>
+            <span>Add New Task</span>
           </button>
         </div>
 

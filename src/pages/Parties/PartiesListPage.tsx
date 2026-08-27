@@ -340,68 +340,77 @@ export const PartiesListPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5 font-sans">
       {/* 1. TOP HEADER & QUICK ACTIONS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-2xs">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-[#ff6600]" />
-            <span>Parties & Khatabook</span>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Building2 className="w-6 h-6 text-[#ff6600] flex-shrink-0" />
+            <span className="truncate">Parties & Khatabook</span>
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Footwear Suppliers (Agra, Kanpur, Custom) & Retail Customer Receivables
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
+            Footwear Wholesale Suppliers & Retail Customer Udhaar
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {activeTab === 'SUPPLIERS' ? (
             <>
               <button
+                type="button"
                 onClick={() => setIsStockInModalOpen(true)}
-                className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center space-x-1.5 cursor-pointer transition-all"
+                className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
               >
-                <Package className="w-4 h-4 text-orange-400" />
-                <span>+ Maal In</span>
+                <Package className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                <span>Maal In</span>
               </button>
               <button
+                type="button"
                 onClick={() => setIsAddVendorModalOpen(true)}
-                className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center space-x-1.5 cursor-pointer transition-all"
+                className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
               >
-                <Plus className="w-4 h-4" />
-                <span>+ Add Party</span>
+                <Plus className="w-4 h-4 flex-shrink-0" />
+                <span>Add Party</span>
               </button>
             </>
           ) : (
             <button
+              type="button"
               onClick={() => setIsAddCustomerModalOpen(true)}
-              className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center space-x-1.5 cursor-pointer transition-all"
+              className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
             >
-              <Plus className="w-4 h-4" />
-              <span>+ Add Customer</span>
+              <Plus className="w-4 h-4 flex-shrink-0" />
+              <span>Add Customer</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 2. DUAL SEGMENT TOGGLE TABS */}
-      <div className="flex bg-slate-200/80 p-1 rounded-2xl max-w-md">
+      {/* 2. DUAL SEGMENT TOGGLE TABS (Clean & Minimal) */}
+      <div className="flex bg-slate-100 p-1 rounded-2xl w-full sm:max-w-md border border-slate-200/80">
         <button
+          type="button"
           onClick={() => setActiveTab('SUPPLIERS')}
-          className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
-            activeTab === 'SUPPLIERS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === 'SUPPLIERS'
+              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
+              : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          <Building2 className="w-4 h-4 text-orange-500" />
-          <span>🏭 Suppliers / Maal Kharid ({vendors.length})</span>
+          <Building2 className={`w-4 h-4 flex-shrink-0 ${activeTab === 'SUPPLIERS' ? 'text-orange-600' : 'text-slate-400'}`} />
+          <span className="truncate">Suppliers / Maal Kharid ({vendors.length})</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('CUSTOMERS')}
-          className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
-            activeTab === 'CUSTOMERS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === 'CUSTOMERS'
+              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
+              : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          <Users className="w-4 h-4 text-indigo-500" />
-          <span>👥 Customer Udhaar ({customers.length})</span>
+          <Users className={`w-4 h-4 flex-shrink-0 ${activeTab === 'CUSTOMERS' ? 'text-indigo-600' : 'text-slate-400'}`} />
+          <span className="truncate">Customer Udhaar ({customers.length})</span>
         </button>
       </div>
 
@@ -455,8 +464,8 @@ export const PartiesListPage: React.FC = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={
             activeTab === 'SUPPLIERS'
-              ? '🔍 Search supplier by party name, city, category or phone...'
-              : '🔍 Search retail customer by name or phone...'
+              ? 'Search supplier by party name, city, category or phone...'
+              : 'Search retail customer by name or phone...'
           }
           className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 shadow-2xs"
         />
