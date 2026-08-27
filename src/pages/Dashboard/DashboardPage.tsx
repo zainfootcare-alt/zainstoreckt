@@ -3,55 +3,45 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Calculator,
   History,
-  CreditCard,
-  Users,
-  ArrowRight,
-  Receipt,
-  CheckCircle2,
-  Calendar,
-  Filter,
-  TrendingUp,
   Building2,
   CheckSquare,
-  Clock,
-  UserCheck,
-  DollarSign,
+  ArrowRight,
+  Calendar,
+  ChevronDown,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import {
+  DateFilterModal,
+  DateFilterValue,
+  getPresetDates,
+  formatDateLabel,
+} from '../../components/common/DateFilterModal';
 
 export const DashboardPage: React.FC = () => {
-  const { sales, customers, userProfile, attendance, punchAttendance, recordCustomerPayment } = useShop();
+  const { sales } = useShop();
   const navigate = useNavigate();
 
-  // Date Filter State
-  const [dateFilter, setDateFilter] = useState<'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'CUSTOM'>('TODAY');
-  const [customDate, setCustomDate] = useState<string>(new Date().toISOString().split('T')[0]);
-
-  // Today String
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
-
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-  // Start of week (Monday)
-  const startOfWeek = new Date();
-  const day = startOfWeek.getDay() || 7;
-  if (day !== 1) startOfWeek.setHours(-24 * (day - 1));
-  const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
-
-  // Start of month
-  const startOfMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  // Date Filter Modal & State (Default: TODAY)
+  const [isDateModalOpen, setIsDateModalOpen] = useState<boolean>(false);
+  const todayPreset = getPresetDates('TODAY');
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    preset: 'TODAY',
+    startDate: todayPreset.startDate,
+    endDate: todayPreset.endDate,
+    label: 'Today',
+  });
 
   // Filter sales by selected date range
   const filteredSales = sales.filter((s) => {
+    if (dateFilter.preset === 'ALL_TIME') return true;
     const saleDate = s.created_at.split('T')[0];
-    if (dateFilter === 'TODAY') return saleDate === todayStr;
-    if (dateFilter === 'YESTERDAY') return saleDate === yesterdayStr;
-    if (dateFilter === 'THIS_WEEK') return saleDate >= startOfWeekStr && saleDate <= todayStr;
-    if (dateFilter === 'THIS_MONTH') return saleDate >= startOfMonthStr && saleDate <= todayStr;
-    if (dateFilter === 'CUSTOM') return saleDate === customDate;
+
+    if (dateFilter.startDate && dateFilter.endDate) {
+      return saleDate >= dateFilter.startDate && saleDate <= dateFilter.endDate;
+    }
+    if (dateFilter.startDate) {
+      return saleDate === dateFilter.startDate;
+    }
     return true;
   });
 
@@ -60,15 +50,9 @@ export const DashboardPage: React.FC = () => {
   const onlineSalesAmount = filteredSales.reduce((sum, s) => sum + s.online_amount, 0);
   const dueSalesAmount = filteredSales.reduce((sum, s) => sum + (s.due_amount || 0), 0);
 
-  // Attendance check for logged in user
-  const hasPunchedToday = attendance.some(
-    (a) =>
-      a.attendance_date === todayStr &&
-      (a.employee_id === userProfile?.id || (userProfile?.full_name && a.employee_name === userProfile.full_name))
-  );
-
-  // Latest 5 Transactions
-  const latestTransactions = [...sales]
+  // Latest Transactions (from filtered or all)
+  const displaySales = filteredSales.length > 0 ? filteredSales : sales;
+  const latestTransactions = [...displaySales]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
@@ -81,54 +65,13 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
-  const getFilterLabel = () => {
-    if (dateFilter === 'TODAY') return "Today's Sales";
-    if (dateFilter === 'YESTERDAY') return "Yesterday's Sales";
-    if (dateFilter === 'THIS_WEEK') return "This Week's Sales";
-    if (dateFilter === 'THIS_MONTH') return "This Month's Sales";
-    return `Sales on ${customDate}`;
-  };
+  const currentLabel = formatDateLabel(dateFilter);
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-      {/* 1. STORE HEADER & LIVE PUNCH BANNER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-        <div>
-          <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Zain Footwear</h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Welcome, <strong>{userProfile?.full_name || 'Staff'}</strong> ({userProfile?.role || 'Admin'})
-          </p>
-        </div>
-
-        {/* 1-Tap Attendance Punch Status */}
-        <div className="flex items-center space-x-2">
-          {hasPunchedToday ? (
-            <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-full border border-emerald-200 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Attendance Punched</span>
-            </span>
-          ) : (
-            <button
-              onClick={() => punchAttendance(userProfile?.full_name || 'Staff')}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs rounded-full shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-            >
-              <UserCheck className="w-4 h-4" />
-              <span>Punch In Today</span>
-            </button>
-          )}
-
-          <Link
-            to="/app/my-attendance"
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-full transition-colors"
-          >
-            My Log
-          </Link>
-        </div>
-      </div>
-
-      {/* SHOPIFY-STYLE SALES OVERVIEW CARD WITH INTEGRATED DATE FILTER */}
+      {/* 1. SALES OVERVIEW CARD WITH CALENDAR POPUP FILTER */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-        {/* Card Header with Shopify-style Date Selector */}
+        {/* Card Header with Date Selector Popup Button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
@@ -140,33 +83,27 @@ export const DashboardPage: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              {filteredSales.length} order{filteredSales.length === 1 ? '' : 's'} {dateFilter === 'TODAY' ? 'today' : 'in selected period'}
+              {filteredSales.length} order{filteredSales.length === 1 ? '' : 's'} ({currentLabel})
             </p>
           </div>
 
-          {/* Shopify-Style Compact Date Filter Dropdown / Pill */}
-          <div className="flex items-center space-x-1.5 self-start sm:self-auto bg-slate-50 border border-slate-200/90 p-1 rounded-2xl shadow-2xs">
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value as any)}
-              className="bg-transparent text-xs font-black text-slate-800 px-2.5 py-1.5 focus:outline-none cursor-pointer"
-            >
-              <option value="TODAY">📅 Today</option>
-              <option value="YESTERDAY">📅 Yesterday</option>
-              <option value="THIS_WEEK">📅 This Week (Mon-Sun)</option>
-              <option value="THIS_MONTH">📅 This Month</option>
-              <option value="CUSTOM">📅 Custom Date...</option>
-            </select>
-
-            {dateFilter === 'CUSTOM' && (
-              <input
-                type="date"
-                value={customDate}
-                onChange={(e) => setCustomDate(e.target.value)}
-                className="px-2 py-1 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
-              />
-            )}
-          </div>
+          {/* Clean Calendar Selection Popup Trigger Button */}
+          <button
+            type="button"
+            onClick={() => setIsDateModalOpen(true)}
+            className="flex items-center space-x-2 self-start sm:self-auto bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200/90 px-3.5 py-2 rounded-2xl shadow-2xs transition-all cursor-pointer group"
+          >
+            <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+              <Calendar className="w-3.5 h-3.5 text-[#ff6600]" />
+            </div>
+            <div className="text-left">
+              <span className="block text-[10px] uppercase font-bold text-slate-400">Filter Date</span>
+              <span className="block text-xs font-black text-slate-800 group-hover:text-orange-600 transition-colors">
+                {currentLabel}
+              </span>
+            </div>
+            <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-transform ml-1" />
+          </button>
         </div>
 
         {/* 3-Column Payment Breakdown (Shopify metrics style) */}
@@ -194,7 +131,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. MAIN QUICK ACTIONS (4 Core Hub Tiles) */}
+      {/* 2. MAIN QUICK ACTIONS (4 Core Hub Tiles) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
         {/* Action 1: New Sale */}
         <button
@@ -237,10 +174,13 @@ export const DashboardPage: React.FC = () => {
         </button>
       </div>
 
-      {/* 5. RECENT SALES TRANSACTIONS */}
+      {/* 3. RECENT SALES TRANSACTIONS */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-black text-sm text-slate-900">Recent Sales</h3>
+          <div>
+            <h3 className="font-black text-sm text-slate-900">Recent Sales</h3>
+            <p className="text-[11px] text-slate-400 font-medium">{currentLabel}</p>
+          </div>
           <Link to="/app/sales" className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center">
             <span>View All</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -250,7 +190,7 @@ export const DashboardPage: React.FC = () => {
         <div className="divide-y divide-slate-100">
           {latestTransactions.length === 0 ? (
             <div className="text-center py-6 text-xs text-slate-400">
-              No sales recorded yet. Start billing via the POS Calculator!
+              No sales recorded for {currentLabel}. Start billing via the POS Calculator!
             </div>
           ) : (
             latestTransactions.map((sale) => (
@@ -278,6 +218,16 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 4. CALENDAR DATE FILTER MODAL */}
+      <DateFilterModal
+        isOpen={isDateModalOpen}
+        onClose={() => setIsDateModalOpen(false)}
+        currentValue={dateFilter}
+        onApply={(newFilter) => setDateFilter(newFilter)}
+      />
     </div>
   );
 };
+
+export default DashboardPage;

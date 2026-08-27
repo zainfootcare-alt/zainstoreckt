@@ -16,10 +16,17 @@ import {
   Phone,
   MessageSquare,
   Calendar,
+  ChevronDown,
   Sparkles,
   UserPlus,
   Trash2,
 } from 'lucide-react';
+import {
+  DateFilterModal,
+  DateFilterValue,
+  getPresetDates,
+  formatDateLabel,
+} from '../../components/common/DateFilterModal';
 
 export const SalesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +34,15 @@ export const SalesPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'sales' | 'crm'>('sales');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Date Filter Modal State for Sales
+  const [isDateModalOpen, setIsDateModalOpen] = useState<boolean>(false);
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    preset: 'ALL_TIME',
+    startDate: '',
+    endDate: '',
+    label: 'All Time',
+  });
 
   // Add Customer Modal State
   const [isAddCustModalOpen, setIsAddCustModalOpen] = useState<boolean>(false);
@@ -42,12 +58,23 @@ export const SalesPage: React.FC = () => {
   // Filter Sales
   const filteredSales = sales.filter((s) => {
     const q = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       s.receipt_number.toLowerCase().includes(q) ||
       (s.customer_name && s.customer_name.toLowerCase().includes(q)) ||
       (s.customer_phone && s.customer_phone.includes(q)) ||
-      s.created_by_name.toLowerCase().includes(q)
-    );
+      s.created_by_name.toLowerCase().includes(q);
+
+    if (!matchesSearch) return false;
+
+    if (dateFilter.preset === 'ALL_TIME') return true;
+    const saleDate = s.created_at.split('T')[0];
+    if (dateFilter.startDate && dateFilter.endDate) {
+      return saleDate >= dateFilter.startDate && saleDate <= dateFilter.endDate;
+    }
+    if (dateFilter.startDate) {
+      return saleDate === dateFilter.startDate;
+    }
+    return true;
   });
 
   // Filter Customers CRM Directory
@@ -184,15 +211,29 @@ export const SalesPage: React.FC = () => {
 
         {/* SEARCH BAR & CONTROLS */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:w-96">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={activeTab === 'sales' ? 'Search receipt #, customer name, phone...' : 'Search customer by name or WhatsApp phone...'}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
-            />
+          <div className="flex items-center gap-2.5 w-full sm:w-auto flex-1">
+            <div className="relative flex-1 sm:max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={activeTab === 'sales' ? 'Search receipt #, customer name, phone...' : 'Search customer by name or WhatsApp phone...'}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            {activeTab === 'sales' && (
+              <button
+                type="button"
+                onClick={() => setIsDateModalOpen(true)}
+                className="flex items-center space-x-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
+              >
+                <Calendar className="w-3.5 h-3.5 text-[#ff6600]" />
+                <span>{formatDateLabel(dateFilter)}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            )}
           </div>
 
           {activeTab === 'crm' && (
@@ -488,6 +529,14 @@ export const SalesPage: React.FC = () => {
             </form>
           </div>
         )}
+
+        {/* CALENDAR DATE FILTER MODAL */}
+        <DateFilterModal
+          isOpen={isDateModalOpen}
+          onClose={() => setIsDateModalOpen(false)}
+          currentValue={dateFilter}
+          onApply={(newFilter) => setDateFilter(newFilter)}
+        />
       </div>
     </PermissionGuard>
   );
