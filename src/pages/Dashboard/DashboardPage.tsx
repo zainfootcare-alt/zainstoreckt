@@ -126,81 +126,68 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. DYNAMIC DATE FILTER SELECTOR */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-2xs space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-            <Calendar className="w-4 h-4 text-orange-500" />
-            <span>Filter Sales by Date</span>
-          </span>
-          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">
-            {filteredSales.length} Bill(s)
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {[
-            { id: 'TODAY', label: 'Today' },
-            { id: 'YESTERDAY', label: 'Yesterday' },
-            { id: 'THIS_WEEK', label: 'This Week' },
-            { id: 'THIS_MONTH', label: 'This Month' },
-            { id: 'CUSTOM', label: 'Custom Date' },
-          ].map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setDateFilter(f.id as any)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                dateFilter === f.id
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-
-          {dateFilter === 'CUSTOM' && (
-            <input
-              type="date"
-              value={customDate}
-              onChange={(e) => setCustomDate(e.target.value)}
-              className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
-            />
-          )}
-        </div>
-      </div>
-
-      {/* 3. DYNAMIC REVENUE SUMMARY BANNER */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3.5">
-        <div className="flex justify-between items-start">
+      {/* SHOPIFY-STYLE SALES OVERVIEW CARD WITH INTEGRATED DATE FILTER */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+        {/* Card Header with Shopify-style Date Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{getFilterLabel()}</p>
-            <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mt-0.5 font-mono">
-              ₹{totalSalesAmount.toLocaleString('en-IN')}
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+              Total Sales
+            </span>
+            <div className="flex items-baseline space-x-2 mt-0.5">
+              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-mono">
+                ₹{totalSalesAmount.toLocaleString('en-IN')}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              {filteredSales.length} order{filteredSales.length === 1 ? '' : 's'} {dateFilter === 'TODAY' ? 'today' : 'in selected period'}
             </p>
           </div>
-          <span className="text-xs px-2.5 py-1 bg-slate-100 font-bold text-slate-600 rounded-full">
-            {filteredSales.length} Transactions
-          </span>
+
+          {/* Shopify-Style Compact Date Filter Dropdown / Pill */}
+          <div className="flex items-center space-x-1.5 self-start sm:self-auto bg-slate-50 border border-slate-200/90 p-1 rounded-2xl shadow-2xs">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as any)}
+              className="bg-transparent text-xs font-black text-slate-800 px-2.5 py-1.5 focus:outline-none cursor-pointer"
+            >
+              <option value="TODAY">📅 Today</option>
+              <option value="YESTERDAY">📅 Yesterday</option>
+              <option value="THIS_WEEK">📅 This Week (Mon-Sun)</option>
+              <option value="THIS_MONTH">📅 This Month</option>
+              <option value="CUSTOM">📅 Custom Date...</option>
+            </select>
+
+            {dateFilter === 'CUSTOM' && (
+              <input
+                type="date"
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                className="px-2 py-1 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+              />
+            )}
+          </div>
         </div>
 
-        {/* 3-Way Payment Breakdown */}
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
-          <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 text-center sm:text-left">
-            <p className="text-[10px] font-bold text-slate-500 uppercase">💵 Cash</p>
-            <p className="text-xs sm:text-sm font-black text-emerald-700 mt-0.5 font-mono">
+        {/* 3-Column Payment Breakdown (Shopify metrics style) */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-1">
+          <div className="bg-slate-50/80 rounded-2xl p-3 text-left border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cash</p>
+            <p className="text-sm sm:text-base font-black text-emerald-700 font-mono mt-0.5">
               ₹{cashSalesAmount.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 text-center sm:text-left">
-            <p className="text-[10px] font-bold text-slate-500 uppercase">📱 Online UPI</p>
-            <p className="text-xs sm:text-sm font-black text-indigo-700 mt-0.5 font-mono">
+
+          <div className="bg-slate-50/80 rounded-2xl p-3 text-left border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Online UPI</p>
+            <p className="text-sm sm:text-base font-black text-indigo-700 font-mono mt-0.5">
               ₹{onlineSalesAmount.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 text-center sm:text-left">
-            <p className="text-[10px] font-bold text-slate-500 uppercase">⏳ Udhaar / Due</p>
-            <p className={`text-xs sm:text-sm font-black mt-0.5 font-mono ${dueSalesAmount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
+
+          <div className="bg-slate-50/80 rounded-2xl p-3 text-left border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Udhaar / Due</p>
+            <p className={`text-sm sm:text-base font-black font-mono mt-0.5 ${dueSalesAmount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
               ₹{dueSalesAmount.toLocaleString('en-IN')}
             </p>
           </div>

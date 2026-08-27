@@ -197,6 +197,8 @@ interface ShopContextType {
     reference_notes?: string;
   }) => VendorPayment;
   recordExpense: (expenseData: Omit<Expense, 'id' | 'created_at' | 'organization_id' | 'shop_id' | 'expense_date'>) => Expense;
+  updateExpense: (expenseId: string, data: Partial<Expense>) => void;
+  deleteExpense: (expenseId: string) => void;
   recordSalaryPayment: (salaryData: {
     employee_id: string;
     gross_salary: number;
@@ -977,6 +979,24 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return newExp;
   };
 
+  const updateExpense = (expenseId: string, data: Partial<Expense>) => {
+    setExpenses((prev) =>
+      prev.map((e) =>
+        e.id === expenseId
+          ? {
+              ...e,
+              ...data,
+              updated_at: new Date().toISOString(),
+            }
+          : e
+      )
+    );
+  };
+
+  const deleteExpense = (expenseId: string) => {
+    setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+  };
+
   const recordSalaryPayment = (salaryData: {
     employee_id: string;
     gross_salary: number;
@@ -1233,6 +1253,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         recordPurchase,
         recordVendorPayment,
         recordExpense,
+        updateExpense,
+        deleteExpense,
         recordSalaryPayment,
         markAttendance,
         punchAttendance,

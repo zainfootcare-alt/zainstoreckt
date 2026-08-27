@@ -19,6 +19,9 @@ import {
   Sparkles,
   DollarSign,
   Package,
+  Edit,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { Vendor, Customer } from '../../types/database.types';
@@ -27,16 +30,21 @@ export const PartiesListPage: React.FC = () => {
   const {
     vendors,
     addVendor,
+    updateVendor,
+    deleteVendor,
     purchases,
     recordPurchase,
     recordVendorPayment,
     customers,
     addCustomer,
-    recordCustomerPayment,
+    updateCustomer,
+    deleteCustomer,
     userProfile,
+    activeRole,
   } = useShop();
 
   const navigate = useNavigate();
+  const isAdmin = activeRole === 'ADMIN' || activeRole === 'MANAGER';
 
   // Active Sub-tab: 'SUPPLIERS' (Maal Kharid) or 'CUSTOMERS' (Grahak Udhaar)
   const [activeTab, setActiveTab] = useState<'SUPPLIERS' | 'CUSTOMERS'>('SUPPLIERS');
@@ -44,6 +52,9 @@ export const PartiesListPage: React.FC = () => {
 
   // Modals
   const [isAddVendorModalOpen, setIsAddVendorModalOpen] = useState<boolean>(false);
+  const [isEditVendorModalOpen, setIsEditVendorModalOpen] = useState<boolean>(false);
+  const [selectedVendorForEdit, setSelectedVendorForEdit] = useState<Vendor | null>(null);
+
   const [isStockInModalOpen, setIsStockInModalOpen] = useState<boolean>(false);
   const [isPayVendorModalOpen, setIsPayVendorModalOpen] = useState<boolean>(false);
   const [selectedVendorForPayment, setSelectedVendorForPayment] = useState<Vendor | null>(null);
@@ -53,10 +64,37 @@ export const PartiesListPage: React.FC = () => {
   const [contactPerson, setContactPerson] = useState<string>('');
   const [vendorPhone, setVendorPhone] = useState<string>('');
   const [vendorCity, setVendorCity] = useState<string>('Agra');
+  const [isCustomCity, setIsCustomCity] = useState<boolean>(false);
+  const [customCityInput, setCustomCityInput] = useState<string>('');
+
   const [vendorCategory, setVendorCategory] = useState<string>('Leather Formal Shoes');
+  const [isCustomCategory, setIsCustomCategory] = useState<boolean>(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState<string>('');
+
   const [weeklyPayoutDay, setWeeklyPayoutDay] = useState<string>('Friday');
   const [openingBalance, setOpeningBalance] = useState<string>('0');
   const [vendorNotes, setVendorNotes] = useState<string>('');
+
+  // Edit Vendor Form State
+  const [editVendorName, setEditVendorName] = useState<string>('');
+  const [editContactPerson, setEditContactPerson] = useState<string>('');
+  const [editVendorPhone, setEditVendorPhone] = useState<string>('');
+  const [editVendorCity, setEditVendorCity] = useState<string>('');
+  const [editVendorCategory, setEditVendorCategory] = useState<string>('');
+  const [editWeeklyPayoutDay, setEditWeeklyPayoutDay] = useState<string>('Friday');
+  const [editDueBalance, setEditDueBalance] = useState<string>('0');
+
+  // Customer Udhaar Modals & States
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState<boolean>(false);
+  const [newCustName, setNewCustName] = useState<string>('');
+  const [newCustPhone, setNewCustPhone] = useState<string>('');
+  const [newCustDue, setNewCustDue] = useState<string>('0');
+
+  const [isEditCustomerModalOpen, setIsEditCustomerModalOpen] = useState<boolean>(false);
+  const [selectedCustForEdit, setSelectedCustForEdit] = useState<Customer | null>(null);
+  const [editCustName, setEditCustName] = useState<string>('');
+  const [editCustPhone, setEditCustPhone] = useState<string>('');
+  const [editCustDue, setEditCustDue] = useState<string>('0');
 
   // Stock In / Purchase Form State
   const [stockVendorId, setStockVendorId] = useState<string>('');
@@ -72,24 +110,19 @@ export const PartiesListPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>('Bank Transfer');
   const [paymentNote, setPaymentNote] = useState<string>('');
 
-  // Customer Udhaar Modal
-  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState<boolean>(false);
-  const [newCustName, setNewCustName] = useState<string>('');
-  const [newCustPhone, setNewCustPhone] = useState<string>('');
-  const [newCustDue, setNewCustDue] = useState<string>('0');
-
-  // Footwear Supplier Categories
-  const SUPPLIER_CATEGORIES = [
+  // Preset Footwear Supplier Categories
+  const PRESET_CATEGORIES = [
     'Leather Formal Shoes',
     'Sports & Running Shoes',
     'Casual Sneakers & Loafers',
     'Daily Slippers & Chappal',
     'Sandals & Heels',
+    'School Shoes & Boots',
     'Soles, Raw Materials & Accessories',
   ];
 
-  // Major Footwear Production Hub Cities in India
-  const SUPPLIER_CITIES = ['Agra', 'Kanpur', 'Delhi NCR', 'Mumbai', 'Jaipur', 'Chennai', 'Kolkata', 'Other'];
+  // Major Footwear Production Hub Cities
+  const PRESET_CITIES = ['Agra', 'Kanpur', 'Delhi NCR', 'Mumbai', 'Jaipur', 'Chennai', 'Kolkata', 'Hathras', 'Unnao'];
 
   // Filtered Lists
   const filteredVendors = vendors.filter((v) => {
@@ -112,19 +145,22 @@ export const PartiesListPage: React.FC = () => {
   const totalSupplierDue = vendors.reduce((sum, v) => sum + (v.current_balance || 0), 0);
   const totalCustomerDue = customers.reduce((sum, c) => sum + Math.max(0, c.current_balance || 0), 0);
 
-  // Handle Add New Supplier
+  // Handle Add New Supplier Party
   const handleCreateVendor = (e: React.FormEvent) => {
     e.preventDefault();
     if (!vendorName.trim()) return;
 
+    const resolvedCity = isCustomCity ? customCityInput.trim() || 'Other' : vendorCity;
+    const resolvedCategory = isCustomCategory ? customCategoryInput.trim() || 'General Footwear' : vendorCategory;
     const opBal = parseFloat(openingBalance) || 0;
+
     addVendor({
       organization_id: 'org-footwear-101',
       name: vendorName.trim(),
       contact_person: contactPerson.trim() || undefined,
       phone: vendorPhone.trim() || undefined,
-      city: vendorCity,
-      category: vendorCategory,
+      city: resolvedCity,
+      category: resolvedCategory,
       weekly_payment_day: weeklyPayoutDay,
       opening_balance: opBal,
       credit_limit: 500000,
@@ -137,8 +173,84 @@ export const PartiesListPage: React.FC = () => {
     setVendorName('');
     setContactPerson('');
     setVendorPhone('');
+    setVendorCity('Agra');
+    setIsCustomCity(false);
+    setCustomCityInput('');
+    setVendorCategory('Leather Formal Shoes');
+    setIsCustomCategory(false);
+    setCustomCategoryInput('');
     setOpeningBalance('0');
     setVendorNotes('');
+  };
+
+  // Open Edit Vendor Modal
+  const handleOpenEditVendor = (v: Vendor) => {
+    setSelectedVendorForEdit(v);
+    setEditVendorName(v.name);
+    setEditContactPerson(v.contact_person || '');
+    setEditVendorPhone(v.phone || '');
+    setEditVendorCity(v.city || 'Agra');
+    setEditVendorCategory(v.category || 'Leather Formal Shoes');
+    setEditWeeklyPayoutDay(v.weekly_payment_day || 'Friday');
+    setEditDueBalance((v.current_balance || 0).toString());
+    setIsEditVendorModalOpen(true);
+  };
+
+  // Handle Save Edit Vendor
+  const handleSaveEditVendor = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVendorForEdit || !editVendorName.trim()) return;
+
+    updateVendor(selectedVendorForEdit.id, {
+      name: editVendorName.trim(),
+      contact_person: editContactPerson.trim() || undefined,
+      phone: editVendorPhone.trim() || undefined,
+      city: editVendorCity.trim() || 'Agra',
+      category: editVendorCategory.trim() || 'General Footwear',
+      weekly_payment_day: editWeeklyPayoutDay,
+      current_balance: parseFloat(editDueBalance) || 0,
+    });
+
+    setIsEditVendorModalOpen(false);
+    setSelectedVendorForEdit(null);
+  };
+
+  // Handle Delete Vendor
+  const handleDeleteVendor = (vendor: Vendor) => {
+    if (window.confirm(`Are you sure you want to delete supplier "${vendor.name}"? This action cannot be undone.`)) {
+      deleteVendor(vendor.id);
+    }
+  };
+
+  // Open Edit Customer Modal
+  const handleOpenEditCustomer = (c: Customer) => {
+    setSelectedCustForEdit(c);
+    setEditCustName(c.name);
+    setEditCustPhone(c.phone || '');
+    setEditCustDue((c.current_balance || 0).toString());
+    setIsEditCustomerModalOpen(true);
+  };
+
+  // Handle Save Edit Customer
+  const handleSaveEditCustomer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustForEdit || !editCustName.trim()) return;
+
+    updateCustomer(selectedCustForEdit.id, {
+      name: editCustName.trim(),
+      phone: editCustPhone.trim() || 'N/A',
+      current_balance: parseFloat(editCustDue) || 0,
+    });
+
+    setIsEditCustomerModalOpen(false);
+    setSelectedCustForEdit(null);
+  };
+
+  // Handle Delete Customer
+  const handleDeleteCustomer = (c: Customer) => {
+    if (window.confirm(`Are you sure you want to delete customer "${c.name}" and their khata?`)) {
+      deleteCustomer(c.id);
+    }
   };
 
   // Handle File / Invoice Upload
@@ -214,7 +326,6 @@ export const PartiesListPage: React.FC = () => {
     setPaymentAmount('');
     setPaymentNote('');
 
-    // Open WhatsApp in new tab if phone is available
     if (cleanPhone.length >= 10) {
       window.open(whatsappUrl, '_blank');
     }
@@ -229,16 +340,16 @@ export const PartiesListPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
       {/* 1. TOP HEADER & QUICK ACTIONS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-2xs">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Building2 className="w-6 h-6 text-[#ff6600]" />
             <span>Parties & Khatabook</span>
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Footwear Suppliers (Agra, Kanpur, Delhi) & Retail Customer Receivables
+            Footwear Suppliers (Agra, Kanpur, Custom) & Retail Customer Receivables
           </p>
         </div>
 
@@ -250,7 +361,7 @@ export const PartiesListPage: React.FC = () => {
                 className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center space-x-1.5 cursor-pointer transition-all"
               >
                 <Package className="w-4 h-4 text-orange-400" />
-                <span>+ Maal / Stock In</span>
+                <span>+ Maal In</span>
               </button>
               <button
                 onClick={() => setIsAddVendorModalOpen(true)}
@@ -298,21 +409,21 @@ export const PartiesListPage: React.FC = () => {
       {activeTab === 'SUPPLIERS' ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Supplier Dues (Payable)</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Supplier Dues (Payable)</p>
             <p className="text-2xl font-black text-rose-700 mt-1 font-mono">
               ₹{totalSupplierDue.toLocaleString('en-IN')}
             </p>
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">To pay across weekly cycles</p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Across {vendors.length} supplier parties</p>
           </div>
 
           <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Parties / Suppliers</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Parties</p>
             <p className="text-2xl font-black text-slate-900 mt-1 font-mono">{vendors.length}</p>
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Agra, Kanpur, Delhi manufacturers</p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Agra, Kanpur & custom hubs</p>
           </div>
 
           <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Stock Purchases Recorded</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Purchases Recorded</p>
             <p className="text-2xl font-black text-emerald-700 mt-1 font-mono">{purchases.length}</p>
             <p className="text-[10px] text-slate-400 font-semibold mt-0.5">With attached bills & invoices</p>
           </div>
@@ -320,7 +431,7 @@ export const PartiesListPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Customer Udhaar (Receivable)</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Customer Udhaar (Receivable)</p>
             <p className="text-2xl font-black text-emerald-700 mt-1 font-mono">
               ₹{totalCustomerDue.toLocaleString('en-IN')}
             </p>
@@ -328,9 +439,9 @@ export const PartiesListPage: React.FC = () => {
           </div>
 
           <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Due Customers</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Due Customers</p>
             <p className="text-2xl font-black text-slate-900 mt-1 font-mono">{customers.length}</p>
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">1-click WhatsApp payment reminders</p>
+            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Admin can edit / delete customer records</p>
           </div>
         </div>
       )}
@@ -344,7 +455,7 @@ export const PartiesListPage: React.FC = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={
             activeTab === 'SUPPLIERS'
-              ? '🔍 Search supplier by party name, city (Agra/Kanpur), category or phone...'
+              ? '🔍 Search supplier by party name, city, category or phone...'
               : '🔍 Search retail customer by name or phone...'
           }
           className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 shadow-2xs"
@@ -353,7 +464,7 @@ export const PartiesListPage: React.FC = () => {
 
       {/* 5. SUPPLIERS LIST VIEW */}
       {activeTab === 'SUPPLIERS' && (
-        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs divide-y divide-slate-100 overflow-hidden">
+        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xs divide-y divide-slate-100 overflow-hidden">
           {filteredVendors.length === 0 ? (
             <div className="text-center py-12 px-4 space-y-3">
               <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
@@ -361,7 +472,7 @@ export const PartiesListPage: React.FC = () => {
               </div>
               <p className="text-sm font-bold text-slate-800">No Footwear Suppliers Found</p>
               <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                Add your Agra, Kanpur, or local wholesale footwear parties to track stock and weekly dues.
+                Add wholesale footwear parties to track stock and weekly dues.
               </p>
               <button
                 onClick={() => setIsAddVendorModalOpen(true)}
@@ -421,22 +532,22 @@ export const PartiesListPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end space-x-4 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
+                  <div className="flex items-center justify-between sm:justify-end space-x-3 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
                     <div className="text-left sm:text-right">
-                      <p className="text-xs font-bold text-slate-400 uppercase">Balance Due</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Balance Due</p>
                       <p className={`text-base sm:text-lg font-black font-mono ${hasDue ? 'text-rose-700' : 'text-emerald-700'}`}>
                         ₹{due.toLocaleString('en-IN')}
                       </p>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1.5">
                       <button
                         onClick={() => {
                           setSelectedVendorForPayment(vendor);
                           setPaymentAmount(due > 0 ? due.toString() : '');
                           setIsPayVendorModalOpen(true);
                         }}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
                       >
                         <DollarSign className="w-3.5 h-3.5" />
                         <span>Pay</span>
@@ -453,6 +564,26 @@ export const PartiesListPage: React.FC = () => {
                           <Send className="w-4 h-4" />
                         </a>
                       )}
+
+                      {/* Admin Edit & Delete */}
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => handleOpenEditVendor(vendor)}
+                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
+                            title="Edit Party Details"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVendor(vendor)}
+                            className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-colors cursor-pointer"
+                            title="Delete Party"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -464,7 +595,7 @@ export const PartiesListPage: React.FC = () => {
 
       {/* 6. CUSTOMER UDHAAR LIST VIEW */}
       {activeTab === 'CUSTOMERS' && (
-        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs divide-y divide-slate-100 overflow-hidden">
+        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xs divide-y divide-slate-100 overflow-hidden">
           {filteredCustomers.length === 0 ? (
             <div className="text-center py-12 px-4 space-y-3">
               <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
@@ -482,10 +613,12 @@ export const PartiesListPage: React.FC = () => {
               return (
                 <div
                   key={customer.id}
-                  onClick={() => navigate(`/app/parties/${customer.id}`)}
-                  className="p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50/80 cursor-pointer transition-colors"
+                  className="p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50/80 transition-colors"
                 >
-                  <div className="flex items-center space-x-3 min-w-0">
+                  <div
+                    onClick={() => navigate(`/app/parties/${customer.id}`)}
+                    className="flex items-center space-x-3 min-w-0 cursor-pointer flex-1"
+                  >
                     <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 font-black text-sm flex items-center justify-center flex-shrink-0">
                       {customer.name.charAt(0).toUpperCase()}
                     </div>
@@ -505,7 +638,32 @@ export const PartiesListPage: React.FC = () => {
                       </p>
                       <span className="text-[10px] font-bold text-emerald-600 block">Due Receivable</span>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400" />
+
+                    {isAdmin && (
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleOpenEditCustomer(customer)}
+                          className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
+                          title="Edit Customer"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCustomer(customer)}
+                          className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-colors cursor-pointer"
+                          title="Delete Customer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => navigate(`/app/parties/${customer.id}`)}
+                      className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               );
@@ -515,7 +673,7 @@ export const PartiesListPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD NEW SUPPLIER PARTY */}
+      {/* MODAL: ADD NEW SUPPLIER PARTY (WITH MANUAL CITY & CUSTOM CATEGORY) */}
       {/* ========================================================================= */}
       {isAddVendorModalOpen && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
@@ -558,7 +716,7 @@ export const PartiesListPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="font-black text-slate-800 uppercase block mb-1">Phone Number (WhatsApp)</label>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Phone (WhatsApp)</label>
                   <input
                     type="tel"
                     placeholder="10-digit Phone"
@@ -569,27 +727,87 @@ export const PartiesListPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="font-black text-slate-800 uppercase block mb-1">Production Hub City</label>
+              {/* MANUAL / CUSTOM CITY SELECTION */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-black text-slate-800 uppercase">Production Hub / City</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomCity(!isCustomCity)}
+                    className="text-[11px] font-bold text-orange-600 hover:text-orange-700 cursor-pointer"
+                  >
+                    {isCustomCity ? '← Choose Preset City' : '+ Enter Custom City Manually'}
+                  </button>
+                </div>
+
+                {isCustomCity ? (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Type city name (e.g. Hathras, Ambur, Jalandhar)..."
+                    value={customCityInput}
+                    onChange={(e) => setCustomCityInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border-2 border-orange-400 rounded-xl font-bold text-slate-900 focus:outline-none"
+                  />
+                ) : (
                   <select
                     value={vendorCity}
                     onChange={(e) => setVendorCity(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500 cursor-pointer"
                   >
-                    {SUPPLIER_CITIES.map((c) => (
+                    {PRESET_CITIES.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
                     ))}
                   </select>
+                )}
+              </div>
+
+              {/* MANUAL / CUSTOM CATEGORY SELECTION */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-black text-slate-800 uppercase">Footwear Category</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomCategory(!isCustomCategory)}
+                    className="text-[11px] font-bold text-orange-600 hover:text-orange-700 cursor-pointer"
+                  >
+                    {isCustomCategory ? '← Choose Preset Category' : '+ Add Custom Category'}
+                  </button>
                 </div>
+
+                {isCustomCategory ? (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Type custom category (e.g. EVA Sliders, Kids LED Shoes)..."
+                    value={customCategoryInput}
+                    onChange={(e) => setCustomCategoryInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border-2 border-orange-400 rounded-xl font-bold text-slate-900 focus:outline-none"
+                  />
+                ) : (
+                  <select
+                    value={vendorCategory}
+                    onChange={(e) => setVendorCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500 cursor-pointer"
+                  >
+                    {PRESET_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="font-black text-slate-800 uppercase block mb-1">Weekly Settlement Day</label>
                   <select
                     value={weeklyPayoutDay}
                     onChange={(e) => setWeeklyPayoutDay(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none cursor-pointer"
                   >
                     {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => (
                       <option key={d} value={d}>
@@ -598,32 +816,17 @@ export const PartiesListPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div>
-                <label className="font-black text-slate-800 uppercase block mb-1">Footwear Category Supplied</label>
-                <select
-                  value={vendorCategory}
-                  onChange={(e) => setVendorCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-                >
-                  {SUPPLIER_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="font-black text-slate-800 uppercase block mb-1">Opening Balance Due (₹)</label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={openingBalance}
-                  onChange={(e) => setOpeningBalance(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-                />
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Opening Balance Due (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={openingBalance}
+                    onChange={(e) => setOpeningBalance(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="pt-2">
@@ -632,6 +835,182 @@ export const PartiesListPage: React.FC = () => {
                   className="w-full py-3 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-xl font-black text-sm shadow-md transition-all cursor-pointer"
                 >
                   Save Supplier Party
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADMIN EDIT SUPPLIER PARTY */}
+      {/* ========================================================================= */}
+      {isEditVendorModalOpen && selectedVendorForEdit && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Edit className="w-5 h-5 text-orange-500" />
+                <span>Edit Supplier Party Details</span>
+              </h3>
+              <button
+                onClick={() => setIsEditVendorModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditVendor} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Party / Firm Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editVendorName}
+                  onChange={(e) => setEditVendorName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Contact Person</label>
+                  <input
+                    type="text"
+                    value={editContactPerson}
+                    onChange={(e) => setEditContactPerson(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={editVendorPhone}
+                    onChange={(e) => setEditVendorPhone(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">City / Production Hub</label>
+                  <input
+                    type="text"
+                    value={editVendorCity}
+                    onChange={(e) => setEditVendorCity(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Category Supplied</label>
+                  <input
+                    type="text"
+                    value={editVendorCategory}
+                    onChange={(e) => setEditVendorCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Weekly Settlement Day</label>
+                  <select
+                    value={editWeeklyPayoutDay}
+                    onChange={(e) => setEditWeeklyPayoutDay(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none"
+                  >
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => (
+                      <option key={d} value={d}>
+                        Every {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-black text-slate-800 uppercase block mb-1">Current Balance Due (₹)</label>
+                  <input
+                    type="number"
+                    value={editDueBalance}
+                    onChange={(e) => setEditDueBalance(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border-2 border-rose-400 rounded-xl font-mono font-black text-rose-700 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white rounded-xl font-black text-sm shadow-md transition-all cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADMIN EDIT CUSTOMER KHATA */}
+      {/* ========================================================================= */}
+      {isEditCustomerModalOpen && selectedCustForEdit && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Edit className="w-5 h-5 text-indigo-500" />
+                <span>Edit Customer Khata</span>
+              </h3>
+              <button
+                onClick={() => setIsEditCustomerModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditCustomer} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Customer Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editCustName}
+                  onChange={(e) => setEditCustName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={editCustPhone}
+                  onChange={(e) => setEditCustPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 uppercase block mb-1">Outstanding Due Amount (₹)</label>
+                <input
+                  type="number"
+                  value={editCustDue}
+                  onChange={(e) => setEditCustDue(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border-2 border-emerald-400 rounded-xl font-mono font-black text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-sm shadow-md cursor-pointer"
+                >
+                  Update Customer Khata
                 </button>
               </div>
             </form>
@@ -685,7 +1064,7 @@ export const PartiesListPage: React.FC = () => {
                     placeholder="e.g. INV-8812"
                     value={billNumber}
                     onChange={(e) => setBillNumber(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -694,7 +1073,7 @@ export const PartiesListPage: React.FC = () => {
                     type="date"
                     value={billDate}
                     onChange={(e) => setBillDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
                   />
                 </div>
               </div>
@@ -768,7 +1147,7 @@ export const PartiesListPage: React.FC = () => {
                   placeholder="e.g. 20 cartons men formal shoes size 7-10"
                   value={stockNotes}
                   onChange={(e) => setStockNotes(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none"
                 />
               </div>
 
