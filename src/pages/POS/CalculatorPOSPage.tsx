@@ -980,23 +980,34 @@ export const CalculatorPOSPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Live UPI QR Modal */}
+        {/* Live PhonePe & BHIM UPI Store QR Modal */}
         {showQrModal && (
-          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-xs w-full p-6 space-y-4 shadow-2xl text-center">
-              <h3 className="font-black text-base text-slate-900">Scan & Pay via UPI</h3>
-              <div className="w-44 h-44 mx-auto bg-slate-900 rounded-2xl p-3 flex flex-col items-center justify-center text-white space-y-1.5 border-2 border-orange-500">
-                <QrCode className="w-20 h-20 text-orange-400" />
-                <p className="text-sm font-black font-mono">₹{activeSubtotal - discountAmount}</p>
-                <p className="text-[10px] text-slate-300 uppercase tracking-widest">{activeShop?.name || 'ZAIN POS'}</p>
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-xs w-full p-5 space-y-3 shadow-2xl text-center">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-xs font-black text-slate-900">Scan & Pay via UPI</span>
+                <span className="text-sm font-black font-mono text-orange-600">
+                  ₹{(activeSubtotal - discountAmount).toLocaleString('en-IN')}
+                </span>
               </div>
-              <div className="text-xs font-mono font-bold text-slate-700 bg-slate-100 p-2 rounded-xl">
-                UPI: zainfootwear@upi
+
+              {/* Exact Attached Store QR Image */}
+              <div className="bg-white rounded-2xl p-2 border-2 border-orange-500 shadow-inner overflow-hidden">
+                <img
+                  src="/zain_store_qr.png"
+                  alt="Zain Footwear PhonePe QR Code"
+                  className="w-full max-h-80 object-contain mx-auto rounded-xl"
+                />
               </div>
+
+              <div className="text-[11px] font-mono font-bold text-slate-700 bg-slate-100 p-2 rounded-xl">
+                Zain Footwear • Terminal 3-Q03886898
+              </div>
+
               <button
                 type="button"
                 onClick={() => setShowQrModal(false)}
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer"
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white rounded-xl text-xs font-black transition-all cursor-pointer"
               >
                 Close QR Code
               </button>
