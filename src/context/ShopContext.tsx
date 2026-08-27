@@ -211,17 +211,15 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [activeShop, setActiveShop] = useState<Shop | null>(shops[0]);
 
-  // Strictly only saif@admin.com user
+  // Persistent Users state (always maintains Saif Admin plus any added staff/managers)
   const [users, setUsers] = useState<UserProfile[]>(() => {
-    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
-    if (!isCleaned) return DEFAULT_USERS;
     const saved = localStorage.getItem('zain_pos_users');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const saifOnly = parsed.filter((u: any) => u.email?.toLowerCase() === 'saif@admin.com');
-          if (saifOnly.length > 0) return saifOnly;
+          const hasSaif = parsed.some((u: any) => u.email?.toLowerCase() === 'saif@admin.com');
+          return hasSaif ? parsed : [DEFAULT_USERS[0], ...parsed];
         }
       } catch (e) {
         /* fallback */
@@ -231,13 +229,11 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_only_v20');
-    if (!isCleaned) return DEFAULT_USERS[0];
     const savedUser = localStorage.getItem('zain_pos_current_user');
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.email?.toLowerCase() === 'saif@admin.com') return parsed;
+        if (parsed && parsed.id) return parsed;
       } catch (e) {
         return DEFAULT_USERS[0];
       }
@@ -520,37 +516,36 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = (pinOrPassword || '').trim();
 
-    // Check Saif admin credentials
+    // 1. Check in all users state
+    const foundUser = users.find(
+      (u) =>
+        u.email?.toLowerCase() === cleanId ||
+        (u.username && u.username?.toLowerCase() === cleanId)
+    );
+
+    if (foundUser) {
+      const userPin = foundUser.pin || '1234';
+      if (
+        cleanPass === userPin ||
+        (foundUser.email?.toLowerCase() === 'saif@admin.com' && (cleanPass === 'Saif@Zain' || cleanPass === '1234'))
+      ) {
+        loginAsUserProfile(foundUser);
+        return { success: true };
+      }
+      return { success: false, message: 'Invalid email/username or password.' };
+    }
+
+    // 2. Default Saif admin fallback
     if (
       (cleanId === 'saif@admin.com' || cleanId === 'saif' || cleanId === 'admin') &&
-      (cleanPass === 'Saif@Zain' || cleanPass === '1234' || cleanPass.toLowerCase() === 'saif@zain')
+      (cleanPass === 'Saif@Zain' || cleanPass === '1234')
     ) {
       loginAsUserProfile(DEFAULT_USERS[0]);
       return { success: true };
     }
 
-    // Check in users state
-    const foundUser = users.find(
-      (u) =>
-        u.email.toLowerCase() === cleanId ||
-        (u.username && u.username.toLowerCase() === cleanId)
-    );
-
-    if (foundUser) {
-      if (foundUser.pin && cleanPass && foundUser.pin !== cleanPass && cleanPass !== 'Saif@Zain') {
-        return { success: false, message: 'Incorrect Password / PIN entered.' };
-      }
-      loginAsUserProfile(foundUser);
-      return { success: true };
-    }
-
-    // Default Saif fallback if password matches
-    if (cleanPass === 'Saif@Zain' || cleanPass.toLowerCase() === 'saif@zain') {
-      loginAsUserProfile(DEFAULT_USERS[0]);
-      return { success: true };
-    }
-
-    return { success: false, message: 'Invalid credentials. Enter Email: saif@admin.com and Password: Saif@Zain' };
+    // Secure generic message without leaking any passwords or usernames
+    return { success: false, message: 'Invalid email/username or password.' };
   };
 
   const logoutUser = () => {
@@ -567,31 +562,41 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       updated_at: new Date().toISOString(),
     };
 
-    setUsers((prev) => [newUser, ...prev]);
+    setUsers((prev) => {
+      const updated = [newUser, ...prev];
+      localStorage.setItem('zain_pos_users', JSON.stringify(updated));
+      return updated;
+    });
     return newUser;
   };
 
   const updateUser = (userId: string, userData: Partial<UserProfile>) => {
-    setUsers((prev) =>
-      prev.map((u) => {
+    setUsers((prev) => {
+      const updated = prev.map((u) => {
         if (u.id === userId) {
-          const updated = { ...u, ...userData, updated_at: new Date().toISOString() };
+          const mod = { ...u, ...userData, updated_at: new Date().toISOString() };
           if (userProfile?.id === userId) {
-            setUserProfile(updated);
-            if (updated.role) {
-              setActiveRole(updated.role as ActiveRole);
+            setUserProfile(mod);
+            if (mod.role) {
+              setActiveRole(mod.role as ActiveRole);
             }
-            localStorage.setItem('zain_pos_current_user', JSON.stringify(updated));
+            localStorage.setItem('zain_pos_current_user', JSON.stringify(mod));
           }
-          return updated;
+          return mod;
         }
         return u;
-      })
-    );
+      });
+      localStorage.setItem('zain_pos_users', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const deleteUser = (userId: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    setUsers((prev) => {
+      const updated = prev.filter((u) => u.id !== userId);
+      localStorage.setItem('zain_pos_users', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const addShop = (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Shop => {
