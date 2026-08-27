@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Calculator,
-  FileText,
+  History,
   CreditCard,
   Users,
   ArrowRight,
@@ -130,13 +130,13 @@ export const DashboardPage: React.FC = () => {
           <span className="font-extrabold text-xs sm:text-sm">New Sale</span>
         </button>
 
-        {/* Action 2: Estimate */}
+        {/* Action 2: Sales History */}
         <button
-          onClick={() => navigate('/app/estimates')}
+          onClick={() => navigate('/app/sales')}
           className="flex flex-col items-center justify-center p-3.5 sm:p-4 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-800 rounded-2xl shadow-2xs transition-all text-center"
         >
-          <FileText className="w-5 h-5 mb-1.5 text-slate-600" />
-          <span className="font-extrabold text-xs sm:text-sm">Estimate</span>
+          <History className="w-5 h-5 mb-1.5 text-slate-600" />
+          <span className="font-extrabold text-xs sm:text-sm">Sales History</span>
         </button>
 
         {/* Action 3: Receive Payment */}

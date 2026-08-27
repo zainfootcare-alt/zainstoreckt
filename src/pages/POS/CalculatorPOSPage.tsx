@@ -1053,101 +1053,99 @@ export const CalculatorPOSPage: React.FC = () => {
   }
 
   // =========================================================================
-  // STEP 1: FULL-SCREEN NORMAL CALCULATOR (Clean, edge-to-edge, responsive)
+  // STEP 1: ANDROID MATERIAL YOU FULLSCREEN CALCULATOR
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-between max-w-lg mx-auto p-3 sm:p-5 select-none animate-in fade-in duration-150">
-      {/* Top Header Bar with Exit/Home button and reset */}
-      <div className="flex items-center justify-between pb-2">
+    <div className="h-[100dvh] max-h-[100dvh] bg-[#131417] text-white flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
+      {/* Top Header Bar with Exit Sale & Clear buttons */}
+      <div className="flex items-center justify-between pt-1 pb-2 flex-shrink-0">
         <Link
           to="/app/dashboard"
-          className="flex items-center space-x-1.5 text-xs font-extrabold text-slate-700 bg-white border border-slate-200/90 px-3 py-2 rounded-xl shadow-xs hover:bg-slate-100 active:scale-95 transition-all"
+          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
         >
-          <ArrowLeft className="w-4 h-4 text-slate-600" />
+          <ArrowLeft className="w-4 h-4 text-orange-400" />
           <span>Exit Sale</span>
         </Link>
 
         <div className="flex items-center space-x-2">
           {lineItems.length > 0 && (
-            <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
-              {lineItems.length} in Bill (₹{calculatedItemsTotal})
+            <span className="text-[11px] font-bold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full border border-orange-500/20">
+              {lineItems.length} Footwear (₹{calculatedItemsTotal})
             </span>
           )}
           <button
             type="button"
             onClick={() => handleKeypadPress('AC')}
-            className="text-xs font-bold text-slate-500 hover:text-rose-600 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-rose-50 transition-colors cursor-pointer"
+            className="text-xs font-bold text-slate-400 hover:text-rose-400 px-3 py-1.5 rounded-full bg-[#282a2d] hover:bg-rose-950/40 border border-white/5 transition-colors cursor-pointer"
           >
             Clear All
           </button>
         </div>
       </div>
 
-      {/* Big Calculator Display Screen */}
-      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-800 flex flex-col justify-end text-right space-y-1 relative overflow-hidden my-2">
-        <div className="absolute -top-12 -left-12 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl pointer-events-none" />
-
+      {/* Android Big Display Screen */}
+      <div className="flex-1 flex flex-col justify-end text-right px-3 py-2 space-y-1 relative overflow-hidden flex-shrink-0">
         <p className="text-xs sm:text-sm font-mono text-slate-400 tracking-wider min-h-[1.25rem] truncate">
-          {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} footwear items added` : ''}
+          {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} item(s) in bill` : ''}
         </p>
 
-        <div className="flex items-baseline justify-end space-x-1.5">
-          <span className="text-2xl sm:text-3xl font-bold text-orange-500">₹</span>
-          <span className="text-4xl sm:text-6xl font-black tracking-tight font-mono text-white">
+        <div className="flex items-baseline justify-end space-x-2">
+          <span className="text-2xl sm:text-3xl font-bold text-[#ff7b00]">₹</span>
+          <span className="text-4xl sm:text-5xl font-black tracking-tight font-sans text-white">
             {(lineItems.length > 0 ? activeSubtotal : currentCalcValue || 0).toLocaleString('en-IN')}
           </span>
         </div>
+
+        {/* Itemized Mini Badges (Chips) */}
+        {lineItems.length > 0 && (
+          <div className="flex items-center justify-end space-x-1.5 overflow-x-auto py-1 no-scrollbar">
+            {lineItems.map((it, idx) => (
+              <div
+                key={it.id}
+                className="flex items-center space-x-1 bg-[#282a2d] border border-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-200 flex-shrink-0"
+              >
+                <span>#{idx + 1} ₹{it.unit_price}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveLineItem(it.id)}
+                  className="text-slate-400 hover:text-rose-400 ml-1 text-xs cursor-pointer"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Itemized Mini Badges */}
-      {lineItems.length > 0 && (
-        <div className="flex items-center space-x-1.5 overflow-x-auto py-1 px-1 no-scrollbar my-1">
-          {lineItems.map((it, idx) => (
-            <div
-              key={it.id}
-              className="flex items-center space-x-1.5 bg-white border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-800 shadow-xs flex-shrink-0"
-            >
-              <span>#{idx + 1} ₹{it.unit_price}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveLineItem(it.id)}
-                className="text-slate-400 hover:text-rose-600 ml-1 text-sm"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Full-Height Touch Keypad */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-3 flex-1 my-2">
-        {/* Row 1: C, ⌫, %, ÷ */}
+      {/* Android Material You 4x5 Circular Touch Keypad */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-2.5 my-2 flex-shrink-0">
+        {/* Row 1: AC, ⌫, %, ÷ */}
         <button
           type="button"
           onClick={() => handleKeypadPress('C')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-xl bg-rose-50 text-rose-600 hover:bg-rose-100 active:scale-95 transition-all border border-rose-200 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-lg bg-[#383b40] text-[#ff7b00] hover:bg-[#44474d] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-xs"
         >
           C
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('BACKSPACE')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-xl bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition-all border border-slate-200 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-lg bg-[#383b40] text-slate-200 hover:bg-[#44474d] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-xs"
         >
           ⌫
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('%')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-xl bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition-all border border-slate-200 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-lg bg-[#383b40] text-slate-200 hover:bg-[#44474d] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-xs"
         >
           %
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('÷')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-orange-50 text-orange-600 hover:bg-orange-100 active:scale-95 transition-all border border-orange-200 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
         >
           ÷
         </button>
@@ -1158,7 +1156,7 @@ export const CalculatorPOSPage: React.FC = () => {
             key={n}
             type="button"
             onClick={() => handleKeypadPress(n)}
-            className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-white text-slate-900 hover:bg-slate-50 active:scale-95 transition-all border border-slate-200/90 shadow-xs cursor-pointer flex items-center justify-center"
+            className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
           >
             {n}
           </button>
@@ -1166,7 +1164,7 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('×')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-orange-50 text-orange-600 hover:bg-orange-100 active:scale-95 transition-all border border-orange-200 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
         >
           ×
         </button>
@@ -1177,7 +1175,7 @@ export const CalculatorPOSPage: React.FC = () => {
             key={n}
             type="button"
             onClick={() => handleKeypadPress(n)}
-            className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-white text-slate-900 hover:bg-slate-50 active:scale-95 transition-all border border-slate-200/90 shadow-xs cursor-pointer flex items-center justify-center"
+            className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
           >
             {n}
           </button>
@@ -1185,7 +1183,7 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('-')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-orange-50 text-orange-600 hover:bg-orange-100 active:scale-95 transition-all border border-orange-200 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
         >
           -
         </button>
@@ -1196,7 +1194,7 @@ export const CalculatorPOSPage: React.FC = () => {
             key={n}
             type="button"
             onClick={() => handleKeypadPress(n)}
-            className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-white text-slate-900 hover:bg-slate-50 active:scale-95 transition-all border border-slate-200/90 shadow-xs cursor-pointer flex items-center justify-center"
+            className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
           >
             {n}
           </button>
@@ -1204,7 +1202,7 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('+')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-orange-50 text-orange-600 hover:bg-orange-100 active:scale-95 transition-all border border-orange-200 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
         >
           +
         </button>
@@ -1213,43 +1211,43 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('0')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-white text-slate-900 hover:bg-slate-50 active:scale-95 transition-all border border-slate-200/90 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
         >
           0
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('00')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-xl bg-white text-slate-900 hover:bg-slate-50 active:scale-95 transition-all border border-slate-200/90 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
         >
           00
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('.')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-white text-slate-900 hover:bg-slate-50 active:scale-95 transition-all border border-slate-200/90 shadow-xs cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
         >
           .
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('=')}
-          className="h-14 sm:h-16 rounded-2xl font-black text-2xl bg-slate-900 text-white hover:bg-slate-800 active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center"
+          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-lg shadow-orange-500/30"
         >
           =
         </button>
       </div>
 
-      {/* Action Footer Bar */}
-      <div className="space-y-2 pt-2">
+      {/* Action Footer Bar (Material You Pill Action) */}
+      <div className="space-y-2 pt-1 pb-1 flex-shrink-0">
         {currentCalcValue > 0 && (
           <button
             type="button"
             onClick={handleAddCurrentItem}
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+            className="w-full py-2 bg-[#282a2d] hover:bg-[#34373c] text-slate-200 rounded-full text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer border border-white/5"
           >
-            <Plus className="w-4 h-4 text-orange-600" />
-            <span>+ Add this item (₹{Math.round(currentCalcValue)}) & Calculate Next</span>
+            <Plus className="w-3.5 h-3.5 text-[#ff7b00]" />
+            <span>+ Add item (₹{Math.round(currentCalcValue)}) & Continue</span>
           </button>
         )}
 
@@ -1257,7 +1255,7 @@ export const CalculatorPOSPage: React.FC = () => {
           type="button"
           onClick={handleProceedToDetails}
           disabled={activeSubtotal <= 0 && currentCalcValue <= 0}
-          className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl font-black text-base sm:text-lg shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+          className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
         >
           <span>Next: Size & Customer (₹{(activeSubtotal || currentCalcValue).toLocaleString('en-IN')})</span>
           <ArrowRight className="w-5 h-5" />

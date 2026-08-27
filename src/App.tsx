@@ -7,7 +7,6 @@ import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CalculatorPOSPage } from './pages/POS/CalculatorPOSPage';
 import { PartiesListPage } from './pages/Parties/PartiesListPage';
 import { PartyDetailPage } from './pages/Parties/PartyDetailPage';
-import { EstimatesListPage } from './pages/Estimates/EstimatesListPage';
 import { MoreHubPage } from './pages/More/MoreHubPage';
 import { SalesPage } from './pages/Sales/SalesPage';
 import { CounterIndexPage } from './pages/Counter/CounterIndexPage';
@@ -36,12 +35,11 @@ export const App: React.FC = () => {
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             
-            {/* PRIMARY 5 CORE MODULES */}
+            {/* PRIMARY CORE MODULES */}
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="parties" element={<PartiesListPage />} />
             <Route path="parties/:customerId" element={<PartyDetailPage />} />
             <Route path="pos" element={<CalculatorPOSPage />} />
-            <Route path="estimates" element={<EstimatesListPage />} />
             <Route path="more" element={<MoreHubPage />} />
 
             {/* SECONDARY WORKING MODULES (ACCESSIBLE VIA MORE & DEEP LINKS) */}

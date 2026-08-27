@@ -4,7 +4,6 @@ import {
   Home,
   Users,
   Calculator,
-  FileText,
   MoreHorizontal,
   ChevronDown,
   LogOut,
@@ -27,12 +26,11 @@ export const AppLayout: React.FC = () => {
     }
   }, [userProfile, location.pathname, navigate]);
 
-  // Primary 5 Navigation Tabs (Khatabook-inspired Simplicity)
+  // Primary 4 Navigation Tabs (Clean, focused)
   const primaryNavItems = [
     { label: 'Home', path: '/app/dashboard', icon: Home, matchPaths: ['/app/dashboard', '/app'] },
     { label: 'Parties', path: '/app/parties', icon: Users, matchPaths: ['/app/parties', '/app/vendors'] },
     { label: 'Sale', path: '/app/pos', icon: Calculator, isSale: true, matchPaths: ['/app/pos'] },
-    { label: 'Estimates', path: '/app/estimates', icon: FileText, matchPaths: ['/app/estimates'] },
     { label: 'More', path: '/app/more', icon: MoreHorizontal, matchPaths: ['/app/more', '/app/expenses', '/app/finance', '/app/staff', '/app/reports', '/app/counter', '/app/settings'] },
   ];
 
