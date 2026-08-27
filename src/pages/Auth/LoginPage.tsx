@@ -8,8 +8,8 @@ export const LoginPage: React.FC = () => {
   const { loginUser } = useShop();
   const navigate = useNavigate();
 
-  const [identifierInput, setIdentifierInput] = useState<string>('saif@admin.com');
-  const [passwordInput, setPasswordInput] = useState<string>('Saif@Zain');
+  const [identifierInput, setIdentifierInput] = useState<string>('');
+  const [passwordInput, setPasswordInput] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -19,12 +19,12 @@ export const LoginPage: React.FC = () => {
     setErrorMsg('');
 
     if (!identifierInput.trim()) {
-      setErrorMsg('Please enter your email or username (saif@admin.com)');
+      setErrorMsg('Please enter your email or username');
       return;
     }
 
     if (!passwordInput.trim()) {
-      setErrorMsg('Please enter your password (Saif@Zain)');
+      setErrorMsg('Please enter your password');
       return;
     }
 
@@ -50,7 +50,7 @@ export const LoginPage: React.FC = () => {
           <div className="inline-flex items-center justify-center p-2.5 bg-orange-50 rounded-2xl border border-orange-100 mb-1">
             <ZainLogo size="md" showText={true} />
           </div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Admin Sign In</h1>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Sign In</h1>
           <p className="text-xs text-slate-500 font-medium">Zain Footwear POS & CRM</p>
         </div>
 
@@ -62,7 +62,7 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Login Form */}
+        {/* Login Form (Clean Manual Input) */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
@@ -74,7 +74,7 @@ export const LoginPage: React.FC = () => {
                 type="text"
                 value={identifierInput}
                 onChange={(e) => setIdentifierInput(e.target.value)}
-                placeholder="saif@admin.com"
+                placeholder="Enter email or username"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-colors"
                 autoComplete="username"
               />
@@ -91,14 +91,14 @@ export const LoginPage: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Saif@Zain"
+                placeholder="Enter password"
                 className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-colors"
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -110,16 +110,10 @@ export const LoginPage: React.FC = () => {
             disabled={isSubmitting}
             className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white font-black rounded-2xl text-sm shadow-xs flex items-center justify-center space-x-2 transition-all mt-2 disabled:opacity-50 cursor-pointer"
           >
-            <span>{isSubmitting ? 'Signing In...' : 'Sign In as Admin'}</span>
+            <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        {/* Credentials Info */}
-        <div className="pt-2 text-center text-[11px] text-slate-400 border-t border-slate-100 space-y-0.5 font-medium">
-          <p>Admin Login: <strong className="text-slate-700">saif@admin.com</strong></p>
-          <p>Password: <strong className="text-slate-700 font-mono">Saif@Zain</strong></p>
-        </div>
       </div>
     </div>
   );
