@@ -23,7 +23,7 @@ import {
 
 export type ActiveRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'FINANCE';
 
-const DEFAULT_USERS: UserProfile[] = [
+export const DEFAULT_USERS: UserProfile[] = [
   {
     id: 'usr-admin-01',
     email: 'admin@zainfootwear.com',
@@ -94,7 +94,7 @@ const DEFAULT_CUSTOMERS: Customer[] = [
     name: 'Rahul Sharma',
     phone: '9820011223',
     opening_balance: 0,
-    current_balance: 2000, // You will receive ₹2,000
+    current_balance: 2000,
     total_purchases_count: 3,
     total_spent: 6500,
     last_purchase_date: new Date().toISOString(),
@@ -109,7 +109,7 @@ const DEFAULT_CUSTOMERS: Customer[] = [
     name: 'Amit Patel',
     phone: '9820033445',
     opening_balance: 0,
-    current_balance: -1500, // You will give ₹1,500 (Advance / Credit)
+    current_balance: -1500,
     total_purchases_count: 2,
     total_spent: 4200,
     last_purchase_date: new Date(Date.now() - 86400000).toISOString(),
@@ -124,7 +124,7 @@ const DEFAULT_CUSTOMERS: Customer[] = [
     name: 'Neha Verma',
     phone: '9820055667',
     opening_balance: 0,
-    current_balance: 0, // Settled
+    current_balance: 0,
     total_purchases_count: 5,
     total_spent: 12800,
     last_purchase_date: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -139,7 +139,7 @@ const DEFAULT_CUSTOMERS: Customer[] = [
     name: 'Suresh Kumar',
     phone: '9820077889',
     opening_balance: 0,
-    current_balance: 3500, // You will receive ₹3,500
+    current_balance: 3500,
     total_purchases_count: 1,
     total_spent: 3500,
     last_purchase_date: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -398,7 +398,6 @@ interface ShopContextType {
   hasPermission: (permissionKey: string) => boolean;
   isLoading: boolean;
 
-  // Authentication & User Management Actions
   loginUser: (identifier: string, pinOrPassword?: string) => { success: boolean; message?: string };
   loginAsUserProfile: (user: UserProfile) => void;
   logoutUser: () => void;
@@ -408,7 +407,6 @@ interface ShopContextType {
   addShop: (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>) => Shop;
   updateShop: (shopId: string, shopData: Partial<Shop>) => void;
 
-  // Real-time State Arrays
   sales: SaleRecord[];
   customers: Customer[];
   customerLedgers: Record<string, CustomerLedgerEntry[]>;
@@ -424,7 +422,6 @@ interface ShopContextType {
   salaryPayments: SalaryPayment[];
   activeCashSession: CashSession | null;
 
-  // Actions
   recordSale: (saleData: Omit<SaleRecord, 'id' | 'created_at'>) => SaleRecord;
   addCustomer: (customerData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Customer;
   updateCustomer: (customerId: string, customerData: Partial<Customer>) => void;
@@ -437,7 +434,6 @@ interface ShopContextType {
     notes?: string;
   }) => CustomerLedgerEntry;
 
-  // Estimates
   addEstimate: (estimateData: Omit<Estimate, 'id' | 'created_at' | 'updated_at' | 'estimate_number'> & { estimate_number?: string }) => Estimate;
   updateEstimate: (estimateId: string, estimateData: Partial<Estimate>) => void;
   deleteEstimate: (estimateId: string) => void;
@@ -451,7 +447,6 @@ interface ShopContextType {
     }
   ) => SaleRecord;
 
-  // Vendors & Purchases
   recordPurchase: (purchaseData: {
     vendor_id: string;
     bill_number: string;
@@ -535,9 +530,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const saved = localStorage.getItem('zain_pos_users');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= 4) return parsed;
       } catch (e) {
-        return DEFAULT_USERS;
+        /* fallback */
       }
     }
     return DEFAULT_USERS;
@@ -698,7 +694,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       payment_terms: 30,
       weekly_payment_day: 'Monday',
       opening_balance: 25000,
-      current_balance: 25000, // You will give ₹25,000
+      current_balance: 25000,
       status: 'Active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -716,7 +712,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       payment_terms: 15,
       weekly_payment_day: 'Thursday',
       opening_balance: 8500,
-      current_balance: 8500, // You will give ₹8,500
+      current_balance: 8500,
       status: 'Active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -907,16 +903,45 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setActiveRole(userRole);
     localStorage.setItem('zain_pos_current_user', JSON.stringify(updatedUser));
 
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
+    setUsers((prev) => {
+      const exists = prev.some((u) => u.id === user.id);
+      if (exists) {
+        return prev.map((u) => (u.id === user.id ? updatedUser : u));
+      }
+      return [...prev, updatedUser];
+    });
   };
 
   const loginUser = (identifier: string, pinOrPassword?: string) => {
     const cleanId = identifier.trim().toLowerCase();
-    const foundUser = users.find(
+    
+    // Check in both state users and DEFAULT_USERS fallback
+    let foundUser = users.find(
       (u) =>
         u.email.toLowerCase() === cleanId ||
-        (u.username && u.username.toLowerCase() === cleanId)
+        (u.username && u.username.toLowerCase() === cleanId) ||
+        (u.role && u.role.toLowerCase() === cleanId)
     );
+
+    if (!foundUser) {
+      foundUser = DEFAULT_USERS.find(
+        (u) =>
+          u.email.toLowerCase() === cleanId ||
+          (u.username && u.username.toLowerCase() === cleanId) ||
+          (u.role && u.role.toLowerCase() === cleanId) ||
+          (cleanId === 'admin' && u.role === 'ADMIN') ||
+          (cleanId === 'manager' && u.role === 'MANAGER') ||
+          (cleanId === 'cashier' && u.role === 'CASHIER') ||
+          (cleanId === 'finance' && u.role === 'FINANCE')
+      );
+    }
+
+    if (!foundUser) {
+      if (cleanId.includes('admin')) foundUser = DEFAULT_USERS[0];
+      else if (cleanId.includes('manager')) foundUser = DEFAULT_USERS[1];
+      else if (cleanId.includes('cashier')) foundUser = DEFAULT_USERS[2];
+      else if (cleanId.includes('finance')) foundUser = DEFAULT_USERS[3];
+    }
 
     if (!foundUser) {
       return { success: false, message: 'No user account found with this email/username.' };
@@ -1106,7 +1131,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  // Record Customer Payment (Receive Money)
   const recordCustomerPayment = (paymentData: {
     customer_id: string;
     amount: number;
@@ -1118,12 +1142,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const prevBalance = cust?.current_balance || 0;
     const newBalance = prevBalance - paymentData.amount;
 
-    // Update customer balance
     setCustomers((prev) =>
       prev.map((c) => (c.id === paymentData.customer_id ? { ...c, current_balance: newBalance, updated_at: new Date().toISOString() } : c))
     );
 
-    // Update selected payment account balance
     const targetAccountId = paymentData.payment_account_id || (paymentData.payment_method === 'cash' ? 'acc-cash-01' : 'acc-upi-02');
     setPaymentAccounts((prevAccs) =>
       prevAccs.map((acc) =>
@@ -1133,7 +1155,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       )
     );
 
-    // Add to Customer Ledger
     const entryId = `cl_${Date.now()}`;
     const ledgerEntry: CustomerLedgerEntry = {
       id: entryId,
@@ -1157,7 +1178,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return ledgerEntry;
   };
 
-  // Central Sale Handler (Supports Split Payments & Dues)
   const recordSale = (saleData: Omit<SaleRecord, 'id' | 'created_at'>): SaleRecord => {
     const newSale: SaleRecord = {
       ...saleData,
@@ -1168,7 +1188,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setSales((prev) => [newSale, ...prev]);
 
-    // Update payment accounts based on payment types
     setPaymentAccounts((prevAccs) =>
       prevAccs.map((acc) => {
         let added = 0;
@@ -1186,7 +1205,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       })
     );
 
-    // Update session expected cash if cash was received
     if (activeCashSession && newSale.cash_amount > 0) {
       setActiveCashSession({
         ...activeCashSession,
@@ -1194,7 +1212,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     }
 
-    // Customer balance reconciliation & CRM record
     const cleanPhone = (saleData.customer_phone || '').trim();
     const cleanName = (saleData.customer_name || 'Walk-in Customer').trim();
     const dueAmount = newSale.due_amount || 0;
@@ -1249,7 +1266,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return prev;
     });
 
-    // If customer identified, record customer ledger entry
     if (targetCustomerId) {
       setCustomerLedgers((prev) => {
         const list = prev[targetCustomerId!] || [];
@@ -1277,7 +1293,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return newSale;
   };
 
-  // Estimates Management
   const addEstimate = (
     estimateData: Omit<Estimate, 'id' | 'created_at' | 'updated_at' | 'estimate_number'> & { estimate_number?: string }
   ): Estimate => {
@@ -1341,7 +1356,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       payments: paymentDetails.payments,
     });
 
-    // Mark estimate as Converted
     updateEstimate(estimateId, {
       status: 'Converted',
       converted_sale_id: createdSale.id,
@@ -1350,7 +1364,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return createdSale;
   };
 
-  // Vendor & Purchase Handlers
   const recordPurchase = (purchaseData: {
     vendor_id: string;
     bill_number: string;
@@ -1391,7 +1404,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setPurchases((prev) => [newPurchase, ...prev]);
 
-    // Update Vendor Outstanding
     setVendors((prev) =>
       prev.map((v) =>
         v.id === purchaseData.vendor_id
@@ -1400,7 +1412,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       )
     );
 
-    // Ledger entries
     setVendorLedgers((prev) => {
       const partyLedger = prev[purchaseData.vendor_id] || [];
       const prevBal = partyLedger.length > 0 ? partyLedger[partyLedger.length - 1].running_balance : vendor?.opening_balance || 0;
