@@ -472,6 +472,11 @@ INSERT INTO public.shops (id, organization_id, name, code, email, is_active)
 VALUES ('b2000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 'Zain Footwear (Main Store)', 'ZAIN-01', 'saif@admin.com', TRUE)
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
+-- Ensure email is unique in user_profiles
+DO $$ BEGIN
+  ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_email_unique UNIQUE (email);
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
 -- 3. Saif Admin Profile
 INSERT INTO public.user_profiles (id, email, username, full_name, organization_id, default_shop_id, role, pin, status)
 VALUES (
@@ -485,7 +490,8 @@ VALUES (
     'Saif@Zain',
     'Active'
 )
-ON CONFLICT (email) DO UPDATE SET 
+ON CONFLICT (id) DO UPDATE SET 
+    email = EXCLUDED.email,
     username = EXCLUDED.username,
     full_name = EXCLUDED.full_name,
     role = 'ADMIN',
