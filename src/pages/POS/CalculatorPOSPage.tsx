@@ -14,13 +14,17 @@ import {
   Clock,
   Check,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  Layers,
 } from 'lucide-react';
 
 interface PosLineItem {
   id: string;
   name: string;
-  category?: string;
-  size?: string;
+  category: string;
+  size: string;
   unit_price: number;
 }
 
@@ -35,9 +39,7 @@ export const CalculatorPOSPage: React.FC = () => {
   const [lineItems, setLineItems] = useState<PosLineItem[]>([]);
 
   // STEP 2: SHOE SIZE & CUSTOMER STATE
-  const [shoeCategory, setShoeCategory] = useState<string>('Sneakers');
-  const [shoeSize, setShoeSize] = useState<string>('8');
-  const [customItemName, setCustomItemName] = useState<string>('');
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
@@ -49,42 +51,28 @@ export const CalculatorPOSPage: React.FC = () => {
   const [onlinePaid, setOnlinePaid] = useState<string>('');
   const [dueAmount, setDueAmount] = useState<string>('');
   const [onlineType, setOnlineType] = useState<'upi' | 'card' | 'bank'>('upi');
-  const [cashTendered, setCashTendered] = useState<string>(''); // For change return calculation
+  const [cashTendered, setCashTendered] = useState<string>(''); 
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
 
   // STEP 4: COMPLETED SALE STATE
-  const [completedSale, setCompletedSale] = useState<{
-    id: string;
-    receipt_number: string;
-    total: number;
-    subtotal: number;
-    discount: number;
-    cash_amount: number;
-    online_amount: number;
-    due_amount: number;
-    created_at: string;
-    customer_name?: string;
-    customer_phone?: string;
-    items: Array<{ item_name: string; size?: string; unit_price: number; quantity: number; total_price: number }>;
-  } | null>(null);
+  const [completedSale, setCompletedSale] = useState<any>(null);
 
   const [showThermalPreview, setShowThermalPreview] = useState<boolean>(false);
 
   // Footwear Categories
   const FOOTWEAR_CATEGORIES = [
     { id: 'Sneakers', label: '👟 Sneakers', icon: '👟' },
-    { id: 'Formal', label: '👞 Formal Shoes', icon: '👞' },
-    { id: 'Casual', label: '🥿 Casual Loafers', icon: '🥿' },
-    { id: 'Slippers', label: '🩴 Daily Slippers / Chappal', icon: '🩴' },
-    { id: 'Sandals', label: '👡 Sandals & Heels', icon: '👡' },
-    { id: 'Boots', label: '🥾 Boots / Sports', icon: '🥾' },
-    { id: 'Kids', label: '🧒 Kids Footwear', icon: '🧒' },
-    { id: 'Other', label: '📦 Accessories / Insole', icon: '📦' },
+    { id: 'Formal', label: '👞 Formal', icon: '👞' },
+    { id: 'Casual', label: '🥿 Casual', icon: '🥿' },
+    { id: 'Slippers', label: '🩴 Slippers', icon: '🩴' },
+    { id: 'Sandals', label: '👡 Sandals', icon: '👡' },
+    { id: 'Boots', label: '🥾 Boots', icon: '🥾' },
+    { id: 'Kids', label: '🧒 Kids', icon: '🧒' },
+    { id: 'Other', label: '📦 Other', icon: '📦' },
   ];
 
   // UK/India Shoe Sizes
-  const MEN_SIZES = ['6', '7', '8', '9', '10', '11', '12'];
-  const WOMEN_KIDS_SIZES = ['1', '2', '3', '4', '5'];
+  const ALL_SHOE_SIZES = ['6', '7', '8', '9', '10', '11', '12', 'Free Size', '1', '2', '3', '4', '5'];
 
   // Keypad Expression Evaluator
   const evaluateCalc = (expr: string): number => {
@@ -103,7 +91,7 @@ export const CalculatorPOSPage: React.FC = () => {
   const activeSubtotal = lineItems.length > 0 ? calculatedItemsTotal : currentCalcValue;
   const netPayable = Math.max(0, activeSubtotal - discountAmount);
 
-  // Keypad Button Press Handler
+  // Keypad Button Press Handler (Pressing + automatically adds item and increments count)
   const handleKeypadPress = (key: string) => {
     if (key === 'C') {
       setCalcDisplay('0');
@@ -125,7 +113,25 @@ export const CalculatorPOSPage: React.FC = () => {
       return;
     }
 
-    if (['+', '-', '×', '÷'].includes(key)) {
+    // AUTOMATIC PLUS (+) BEHAVIOR: Adds item to cart immediately and increments count
+    if (key === '+') {
+      const val = Math.round(evaluateCalc(calcDisplay));
+      if (val > 0) {
+        const itemIndex = lineItems.length + 1;
+        const newItem: PosLineItem = {
+          id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          name: `Item #${itemIndex}`,
+          category: 'Sneakers',
+          size: '8',
+          unit_price: val,
+        };
+        setLineItems((prev) => [...prev, newItem]);
+        setCalcDisplay('0');
+      }
+      return;
+    }
+
+    if (['-', '×', '÷'].includes(key)) {
       const lastChar = calcDisplay.slice(-1);
       if (['+', '-', '×', '÷'].includes(lastChar)) {
         setCalcDisplay(calcDisplay.slice(0, -1) + key);
@@ -154,59 +160,58 @@ export const CalculatorPOSPage: React.FC = () => {
     }
   };
 
-  // Add Item to Bill (from Keypad)
-  const handleAddCurrentItem = () => {
-    const val = Math.round(currentCalcValue);
-    if (val <= 0) return;
-
-    const newItem: PosLineItem = {
-      id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      name: `${shoeCategory} (Size ${shoeSize})`,
-      category: shoeCategory,
-      size: shoeSize,
-      unit_price: val,
-    };
-
-    setLineItems((prev) => [...prev, newItem]);
-    setCalcDisplay('0');
-  };
-
-  // Remove Item from Bill
+  // Remove Line Item from Bill
   const handleRemoveLineItem = (id: string) => {
     setLineItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Go to Step 2 (Shoe & Customer Details)
+  // Update Category for specific item
+  const updateItemCategory = (itemId: string, newCategory: string) => {
+    setLineItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, category: newCategory } : it))
+    );
+  };
+
+  // Update Size for specific item
+  const updateItemSize = (itemId: string, newSize: string) => {
+    setLineItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, size: newSize } : it))
+    );
+  };
+
+  // Go to Step 2 (Shoe Size & Category Configuration)
   const handleProceedToDetails = () => {
-    const currentVal = Math.round(currentCalcValue);
-    if (lineItems.length === 0 && currentVal > 0) {
-      const singleItem: PosLineItem = {
-        id: `item_${Date.now()}`,
-        name: `${shoeCategory} (Size ${shoeSize})`,
-        category: shoeCategory,
-        size: shoeSize,
+    const currentVal = Math.round(evaluateCalc(calcDisplay));
+    let items = [...lineItems];
+
+    // If there's an amount on screen that wasn't added with plus yet, add it
+    if (currentVal > 0) {
+      const itemIndex = items.length + 1;
+      const newItem: PosLineItem = {
+        id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        name: `Item #${itemIndex}`,
+        category: 'Sneakers',
+        size: '8',
         unit_price: currentVal,
       };
-      setLineItems([singleItem]);
+      items.push(newItem);
+      setLineItems(items);
       setCalcDisplay('0');
-    } else if (lineItems.length === 0 && currentVal <= 0) {
-      return;
     }
+
+    if (items.length === 0) return;
+
+    setExpandedItemId(items[0]?.id || null);
     setStep('DETAILS');
   };
 
   // Go to Step 3 (Payment Screen)
   const handleProceedToPayment = () => {
-    if (lineItems.length === 1) {
-      const updated = [...lineItems];
-      const displayName = customItemName.trim()
-        ? customItemName.trim()
-        : `${shoeCategory} (Size ${shoeSize})`;
-      updated[0].name = displayName;
-      updated[0].category = shoeCategory;
-      updated[0].size = shoeSize;
-      setLineItems(updated);
-    }
+    const updated = lineItems.map((it) => ({
+      ...it,
+      name: `${it.category} (Size ${it.size})`,
+    }));
+    setLineItems(updated);
 
     const total = netPayable;
     if (paymentMode === 'CASH') {
@@ -226,204 +231,321 @@ export const CalculatorPOSPage: React.FC = () => {
     setStep('PAYMENT');
   };
 
-  // Auto-allocate or calculate remaining breakdown
-  const totalAmountPaidByCustomer = (parseFloat(cashPaid) || 0) + (parseFloat(onlinePaid) || 0);
-  const unpaidDifference = Math.max(0, activeSubtotal - totalAmountPaidByCustomer);
-
-  // Apply Remaining as Instant Discount (Full Settle)
-  const handleApplyRemainingAsDiscount = () => {
-    if (unpaidDifference > 0) {
-      setDiscountAmount(unpaidDifference);
-      setDueAmount('0');
-    }
-  };
-
-  // Keep Remaining as Udhaar / Due
-  const handleKeepRemainingAsDue = () => {
-    if (unpaidDifference > 0) {
-      setDiscountAmount(0);
-      setDueAmount(unpaidDifference.toString());
-    }
-  };
-
-  // Quick 100% Cash selector
-  const handleSelectFullCash = () => {
-    setPaymentMode('CASH');
-    setCashPaid(activeSubtotal.toString());
-    setOnlinePaid('0');
-    setDiscountAmount(0);
-    setDueAmount('0');
-  };
-
-  // Quick 100% Online UPI selector
-  const handleSelectFullOnline = () => {
-    setPaymentMode('ONLINE');
-    setCashPaid('0');
-    setOnlinePaid(activeSubtotal.toString());
-    setDiscountAmount(0);
-    setDueAmount('0');
-  };
-
-  // Switch Payment Mode and Auto-Allocate Amounts
-  const handleSelectPaymentMode = (mode: 'CASH' | 'ONLINE' | 'SPLIT' | 'CREDIT') => {
-    setPaymentMode(mode);
-    const total = activeSubtotal;
-    setDiscountAmount(0);
-    if (mode === 'CASH') {
-      setCashPaid(total.toString());
-      setOnlinePaid('0');
-      setDueAmount('0');
-    } else if (mode === 'ONLINE') {
-      setCashPaid('0');
-      setOnlinePaid(total.toString());
-      setDueAmount('0');
-    } else if (mode === 'CREDIT') {
-      setCashPaid('0');
-      setOnlinePaid('0');
-      setDueAmount(total.toString());
-    } else if (mode === 'SPLIT') {
-      const half = Math.round(total / 2);
-      setCashPaid(half.toString());
-      setOnlinePaid((total - half).toString());
-      setDueAmount('0');
-    }
-  };
-
-  // Auto calculate remaining when changing Cash input in Split mode
-  const handleCashChangeInSplit = (val: string) => {
-    setCashPaid(val);
-  };
-
   // Auto calculate remaining when changing Online input in Split mode
   const handleOnlineChangeInSplit = (val: string) => {
     setOnlinePaid(val);
   };
 
-  // Cash change calculation
-  const parsedCashTendered = parseFloat(cashTendered) || 0;
-  const parsedCashPaid = parseFloat(cashPaid) || 0;
-  const changeToReturn = Math.max(0, parsedCashTendered - parsedCashPaid);
+  // Quick Cash Tender Suggestions
+  const roundToNextHundred = (num: number) => Math.ceil(num / 100) * 100;
+  const roundToNextFiveHundred = (num: number) => Math.ceil(num / 500) * 500;
 
-  // Finalize & Record the Sale
-  const handleFinalizeSale = () => {
-    const numCash = parseFloat(cashPaid) || 0;
-    const numOnline = parseFloat(onlinePaid) || 0;
-    const numDue = parseFloat(dueAmount) || (unpaidDifference > 0 && discountAmount === 0 ? unpaidDifference : 0);
-    const currentDiscount = discountAmount;
-    const finalTotal = activeSubtotal - currentDiscount;
+  const cashSuggestions = Array.from(
+    new Set([
+      netPayable,
+      roundToNextHundred(netPayable),
+      roundToNextFiveHundred(netPayable),
+      2000,
+    ])
+  )
+    .filter((amt) => amt >= netPayable)
+    .slice(0, 4);
 
-    // Check if Due is present -> Customer Name & Phone are MANDATORY
-    if (numDue > 0) {
-      if (!customerName.trim() && !selectedCustomerId) {
-        alert('⚠️ Customer Name is required for Udhaar / Due balance!');
-        return;
-      }
-      if (!customerPhone.trim() && !selectedCustomerId) {
-        alert('⚠️ Customer 10-digit Phone Number is required to record Udhaar / Due!');
-        return;
-      }
-    }
+  const tenderedVal = parseFloat(cashTendered) || 0;
+  const changeToReturn = tenderedVal >= netPayable ? tenderedVal - netPayable : 0;
 
-    const itemsForSale = lineItems.map((item) => ({
-      item_name: item.name,
-      size: item.size || shoeSize,
+  // Complete Sale & Store Transaction
+  const handleCompleteSale = () => {
+    if (activeSubtotal <= 0) return;
+
+    const cashNum = parseFloat(cashPaid) || 0;
+    const onlineNum = parseFloat(onlinePaid) || 0;
+    const dueNum = parseFloat(dueAmount) || 0;
+
+    const itemsPayload = lineItems.map((it) => ({
+      item_name: `${it.category} (Size ${it.size})`,
+      size: it.size,
       quantity: 1,
-      unit_price: item.unit_price,
-      total_price: item.unit_price,
+      unit_price: it.unit_price,
+      total_price: it.unit_price,
     }));
 
-    const receiptNum = `REC-${Date.now().toString().slice(-4)}`;
-
-    const paymentsArray: Array<{ payment_type: 'cash' | 'upi' | 'card' | 'bank' | 'credit'; amount: number }> = [];
-    if (numCash > 0) paymentsArray.push({ payment_type: 'cash', amount: numCash });
-    if (numOnline > 0) paymentsArray.push({ payment_type: onlineType, amount: numOnline });
-    if (numDue > 0) paymentsArray.push({ payment_type: 'credit', amount: numDue });
-
-    const finalCustName = customerName.trim()
-      ? customerName.trim()
-      : selectedCustomerId
-      ? customers.find((c) => c.id === selectedCustomerId)?.name
-      : 'Walk-in Customer';
-
-    const finalCustPhone = customerPhone.trim()
-      ? customerPhone.trim()
-      : selectedCustomerId
-      ? customers.find((c) => c.id === selectedCustomerId)?.phone
-      : undefined;
-
-    const recorded = recordSale({
+    const finalSale = recordSale({
       organization_id: 'org-footwear-101',
       shop_id: activeShop?.id || 'shop-mumbai-01',
-      receipt_number: receiptNum,
-      created_by_user_id: userProfile?.id || 'usr-admin-01',
-      created_by_name: userProfile?.full_name || 'Cashier',
+      receipt_number: `ZAIN-${Date.now().toString().slice(-6)}`,
+      created_by_user_id: userProfile?.id,
+      created_by_name: userProfile?.full_name || 'POS Cashier',
       customer_id: selectedCustomerId || undefined,
-      customer_name: finalCustName,
-      customer_phone: finalCustPhone,
+      customer_name: customerName.trim() || undefined,
+      customer_phone: customerPhone.trim() || undefined,
       subtotal: activeSubtotal,
-      discount: currentDiscount,
+      discount: discountAmount,
       tax: 0,
-      total: finalTotal,
-      cash_amount: numCash,
-      online_amount: numOnline,
-      due_amount: numDue,
-      items: itemsForSale,
-      payments: paymentsArray,
+      total: netPayable,
+      cash_amount: cashNum,
+      online_amount: onlineNum,
+      due_amount: dueNum,
+      items: itemsPayload,
     });
 
     setCompletedSale({
-      id: recorded.id,
-      receipt_number: receiptNum,
-      total: finalTotal,
-      subtotal: activeSubtotal,
-      discount: currentDiscount,
-      cash_amount: numCash,
-      online_amount: numOnline,
-      due_amount: numDue,
-      created_at: new Date().toISOString(),
-      customer_name: finalCustName,
-      customer_phone: finalCustPhone,
-      items: itemsForSale,
+      id: finalSale.id,
+      receipt_number: finalSale.receipt_number,
+      total: finalSale.total,
+      subtotal: finalSale.subtotal,
+      discount: finalSale.discount,
+      cash_amount: finalSale.cash_amount,
+      online_amount: finalSale.online_amount,
+      due_amount: finalSale.due_amount || 0,
+      created_at: finalSale.created_at,
+      customer_name: finalSale.customer_name,
+      customer_phone: finalSale.customer_phone,
+      items: itemsPayload,
     });
 
     setStep('COMPLETED');
   };
 
-  // Reset entire POS flow for next sale
-  const handleResetSale = () => {
+  // Reset entire POS to clean initial state
+  const handleResetForNextSale = () => {
+    setStep('CALCULATOR');
     setCalcDisplay('0');
     setLineItems([]);
-    setShoeCategory('Sneakers');
-    setShoeSize('8');
-    setCustomItemName('');
-    setSelectedCustomerId('');
-    setCustomerName('');
-    setCustomerPhone('');
     setDiscountAmount(0);
     setPaymentMode('CASH');
     setCashPaid('');
     setOnlinePaid('');
     setDueAmount('');
+    setCustomerName('');
+    setCustomerPhone('');
+    setSelectedCustomerId('');
     setCashTendered('');
     setCompletedSale(null);
-    setShowThermalPreview(false);
-    setShowQrModal(false);
-    setStep('CALCULATOR');
+    setExpandedItemId(null);
   };
 
   // WhatsApp formatted receipt link
   const getWhatsAppShareUrl = () => {
-    if (!completedSale) return '#';
-    const phone = (completedSale.customer_phone || '').replace(/\D/g, '');
-    const cleanPhone = phone.length === 10 ? `91${phone}` : phone;
-    const itemsList = completedSale.items
-      .map((i) => `• ${i.item_name} ${i.size ? `[Size ${i.size}]` : ''} - ₹${i.unit_price}`)
+    if (!completedSale) return '';
+    const cleanPhone = (completedSale.customer_phone || '').replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+    const itemsText = completedSale.items
+      .map((it, idx) => `${idx + 1}. ${it.item_name} - ₹${it.unit_price}`)
       .join('\n');
 
-    const msg = `*👟 ZAIN FOOTWEAR - BILL RECEIPT*\n------------------------------\n*Receipt:* #${completedSale.receipt_number}\n*Date:* ${new Date().toLocaleDateString('en-IN')}\n*Store:* ${activeShop?.name || 'Main Store'}\n\n*Items:*\n${itemsList}\n\n*Total Amount:* ₹${completedSale.total}\n*Paid (Cash):* ₹${completedSale.cash_amount}\n*Paid (Online):* ₹${completedSale.online_amount}${completedSale.due_amount > 0 ? `\n*Balance Due:* ₹${completedSale.due_amount}` : ''}\n------------------------------\nThank you for shopping at Zain Footwear! Visit again.`;
+    const msg = `*ZAIN FOOTWEAR - POS BILL RECEIPT*\n--------------------------------\n*Receipt #:* ${completedSale.receipt_number}\n*Date:* ${new Date(completedSale.created_at).toLocaleDateString('en-IN')}\n*Store:* ${activeShop?.name || 'Zain Footwear (Main Store)'}\n--------------------------------\n*Items Purchased:*\n${itemsText}\n--------------------------------\n*Subtotal:* ₹${completedSale.subtotal.toLocaleString('en-IN')}\n*Discount:* ₹${completedSale.discount.toLocaleString('en-IN')}\n*Total Paid:* ₹${completedSale.total.toLocaleString('en-IN')}\n${completedSale.due_amount > 0 ? `*Balance Due (Udhaar):* ₹${completedSale.due_amount.toLocaleString('en-IN')}\n` : ''}--------------------------------\nThank you for shopping at *Zain Footwear*!\nVisit again soon! 👟✨`;
 
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(msg)}`;
   };
+
+  // =========================================================================
+  // STEP 2: SHOE SIZE & CATEGORY CONFIGURATION (Collapsible Dropdown for Multi-Item)
+  // =========================================================================
+  if (step === 'DETAILS') {
+    return (
+      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
+        {/* Top Header */}
+        <div className="flex items-center justify-between pb-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setStep('CALCULATOR')}
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-600" />
+            <span>Back</span>
+          </button>
+          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+            Step 2 • {lineItems.length} Item{lineItems.length === 1 ? '' : 's'} Size & Cat
+          </span>
+        </div>
+
+        {/* Big Amount Summary Bar */}
+        <div className="bg-slate-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0 my-1">
+          <div>
+            <p className="text-[11px] font-semibold text-slate-400">Total Bill Amount</p>
+            <p className="text-2xl sm:text-3xl font-black text-orange-400 font-mono">
+              ₹{activeSubtotal.toLocaleString('en-IN')}
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-slate-200 font-bold">
+              {lineItems.length} Footwear Item{lineItems.length === 1 ? '' : 's'}
+            </span>
+          </div>
+        </div>
+
+        {/* Scrollable Center Content with Collapsible Accordion Cards */}
+        <div className="flex-1 flex flex-col space-y-2.5 overflow-y-auto no-scrollbar py-1">
+          {/* ITEMS CONFIGURATION LIST */}
+          <div className="space-y-2.5">
+            {lineItems.map((item, idx) => {
+              const isExpanded = lineItems.length === 1 || expandedItemId === item.id;
+
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all"
+                >
+                  {/* Collapsible Header (Click to minimize / maximize) */}
+                  <div
+                    onClick={() => {
+                      if (lineItems.length > 1) {
+                        setExpandedItemId(expandedItemId === item.id ? null : item.id);
+                      }
+                    }}
+                    className={`p-3 flex items-center justify-between transition-colors ${
+                      lineItems.length > 1 ? 'cursor-pointer hover:bg-slate-50' : ''
+                    } ${isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : ''}`}
+                  >
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 font-black text-xs flex items-center justify-center flex-shrink-0 border border-orange-200">
+                        #{idx + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs sm:text-sm font-black text-slate-900 font-mono">
+                            ₹{item.unit_price.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[11px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 truncate">
+                            {item.category} • Size {item.size}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-1 flex-shrink-0">
+                      {lineItems.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveLineItem(item.id);
+                              if (lineItems.length <= 2) {
+                                setExpandedItemId(lineItems.find((it) => it.id !== item.id)?.id || null);
+                              }
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Remove item"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="p-1 text-slate-400">
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4" />}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Collapsible Body (Category & Size Selector for this specific item) */}
+                  {isExpanded && (
+                    <div className="p-3 space-y-3 bg-white">
+                      {/* 1. Category Chips */}
+                      <div>
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1.5">
+                          Select Category
+                        </span>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {FOOTWEAR_CATEGORIES.map((cat) => (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => updateItemCategory(item.id, cat.id)}
+                              className={`py-2 px-1 rounded-xl text-[11px] font-bold text-center truncate transition-all cursor-pointer ${
+                                item.category === cat.id
+                                  ? 'bg-[#ff6600] text-white shadow-xs font-black scale-102'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 2. Shoe Size Chips */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                            Shoe Size (UK/IND)
+                          </span>
+                          <span className="text-xs font-black text-orange-600">Selected Size: {item.size}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ALL_SHOE_SIZES.map((sz) => (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => updateItemSize(item.id, sz)}
+                              className={`h-9 ${
+                                sz === 'Free Size' ? 'px-2.5 text-[11px]' : 'w-9 text-xs'
+                              } rounded-xl font-black flex items-center justify-center transition-all cursor-pointer ${
+                                item.size === sz
+                                  ? 'bg-slate-900 text-white shadow-xs border-2 border-slate-900 scale-105'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                              }`}
+                            >
+                              {sz}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Customer Info Card */}
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">👤 Customer (Optional)</span>
+              <span className="text-[10px] text-slate-400 font-semibold">For WhatsApp Bill</span>
+            </div>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                placeholder="Customer Name / Mobile"
+                value={customerPhone ? `${customerName} (${customerPhone})` : customerName}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomerName(val);
+                  setCustomerPhone(val.replace(/\D/g, '').length === 10 ? val.replace(/\D/g, '') : '');
+                }}
+                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomerName('Walk-in Customer');
+                  setCustomerPhone('');
+                }}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Walk-in
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Action */}
+        <div className="pt-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={handleProceedToPayment}
+            className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer"
+          >
+            <span>Proceed to Payment (₹{activeSubtotal.toLocaleString('en-IN')})</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // =========================================================================
   // STEP 4: SALE COMPLETED SCREEN (Fast WhatsApp, Print, and Next Sale)
@@ -495,7 +617,7 @@ export const CalculatorPOSPage: React.FC = () => {
           {/* Quick Action Buttons */}
           <div className="space-y-3">
             <button
-              onClick={handleResetSale}
+              onClick={handleResetForNextSale}
               className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl font-black text-lg shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer"
             >
               <RefreshCw className="w-5 h-5" />
@@ -556,7 +678,7 @@ export const CalculatorPOSPage: React.FC = () => {
               </div>
 
               <div className="space-y-1.5 text-xs">
-                {completedSale.items.map((item, idx) => (
+                {completedSale.items.map((item: any, idx: number) => (
                   <div key={idx} className="flex justify-between">
                     <span className="text-slate-700">
                       {item.item_name} {item.size ? `[Size ${item.size}]` : ''}
@@ -588,142 +710,6 @@ export const CalculatorPOSPage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
-    );
-  }
-
-  // =========================================================================
-  // STEP 2: ULTRA-SIMPLE SHOE SIZE & CUSTOMER SCREEN (Fast 1-Tap)
-  // =========================================================================
-  if (step === 'DETAILS') {
-    return (
-      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
-        {/* Top Header */}
-        <div className="flex items-center justify-between pb-1 flex-shrink-0">
-          <button
-            onClick={() => setStep('CALCULATOR')}
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4 text-slate-600" />
-            <span>Back</span>
-          </button>
-          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-            Step 2 • Size & Details
-          </span>
-        </div>
-
-        {/* Big Amount Summary Bar */}
-        <div className="bg-slate-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0 my-1">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400">Total Bill Amount</p>
-            <p className="text-2xl sm:text-3xl font-black text-orange-400 font-mono">
-              ₹{activeSubtotal.toLocaleString('en-IN')}
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-slate-200 font-bold">
-              {shoeCategory} • Size {shoeSize}
-            </span>
-          </div>
-        </div>
-
-        {/* Scrollable Center Content with Compact Height */}
-        <div className="flex-1 flex flex-col justify-center space-y-3 overflow-y-auto no-scrollbar py-1">
-          {/* 1. Shoe Size Selector (Clean Round Chips) */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">👟 Select Size (UK/IND)</span>
-              <span className="text-xs font-bold text-orange-600">Size {shoeSize}</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {['6', '7', '8', '9', '10', '11', '12', 'Free Size'].map((sz) => (
-                <button
-                  key={sz}
-                  type="button"
-                  onClick={() => setShoeSize(sz)}
-                  className={`h-10 ${sz === 'Free Size' ? 'px-3 text-xs' : 'w-10 text-sm'} rounded-xl font-black flex items-center justify-center transition-all cursor-pointer ${
-                    shoeSize === sz
-                      ? 'bg-[#ff6600] text-white shadow-md shadow-orange-500/25 scale-105 border-2 border-orange-500'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                  }`}
-                >
-                  {sz}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 2. Footwear Category (6 Quick Chips) */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
-            <span className="text-xs font-black text-slate-900 uppercase tracking-wider block">🏷️ Category</span>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { id: 'Sneakers', label: '👟 Sneakers' },
-                { id: 'Formal', label: '👞 Formal' },
-                { id: 'Casual', label: '🥿 Casual' },
-                { id: 'Slippers', label: '🩴 Slippers' },
-                { id: 'Sandals', label: '👡 Sandals' },
-                { id: 'Other', label: '📦 Other' },
-              ].map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setShoeCategory(cat.id)}
-                  className={`py-2 px-2 rounded-xl text-xs font-bold text-center truncate transition-all cursor-pointer ${
-                    shoeCategory === cat.id
-                      ? 'bg-orange-500 text-white shadow-sm font-black'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. Customer Info (Optional 1-Tap Field) */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">👤 Customer (Optional)</span>
-              <span className="text-[10px] text-slate-400 font-semibold">For WhatsApp Bill</span>
-            </div>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder="Customer Name / Mobile"
-                value={customerPhone ? `${customerName} (${customerPhone})` : customerName}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setCustomerName(val);
-                  setCustomerPhone(val.replace(/\D/g, '').length === 10 ? val.replace(/\D/g, '') : '');
-                }}
-                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomerName('Walk-in Customer');
-                  setCustomerPhone('');
-                }}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                Walk-in
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Action */}
-        <div className="pt-2 flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleProceedToPayment}
-            className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer"
-          >
-            <span>Proceed to Payment (₹{activeSubtotal.toLocaleString('en-IN')})</span>
-            <ArrowRight className="w-5 h-5" />
-          </button>
-        </div>
       </div>
     );
   }
@@ -963,7 +949,7 @@ export const CalculatorPOSPage: React.FC = () => {
         <div className="pt-2 flex-shrink-0">
           <button
             type="button"
-            onClick={handleFinalizeSale}
+            onClick={handleCompleteSale}
             disabled={isDueCustomerMissing}
             className={`w-full py-4 rounded-full font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
               isDueCustomerMissing
@@ -1204,26 +1190,22 @@ export const CalculatorPOSPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Action Footer Bar (Material You Pill Action) */}
-      <div className="space-y-2 pt-1 pb-1 flex-shrink-0">
-        {currentCalcValue > 0 && (
-          <button
-            type="button"
-            onClick={handleAddCurrentItem}
-            className="w-full py-2 bg-[#282a2d] hover:bg-[#34373c] text-slate-200 rounded-full text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer border border-white/5"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#ff7b00]" />
-            <span>+ Add item (₹{Math.round(currentCalcValue)}) & Continue</span>
-          </button>
-        )}
-
+      {/* Action Footer Bar - Single Clean Continue Button */}
+      <div className="pt-2 pb-1 flex-shrink-0">
         <button
           type="button"
           onClick={handleProceedToDetails}
           disabled={activeSubtotal <= 0 && currentCalcValue <= 0}
-          className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+          className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
         >
-          <span>Next: Size & Customer (₹{(activeSubtotal || currentCalcValue).toLocaleString('en-IN')})</span>
+          <span>
+            Continue ({lineItems.length + (currentCalcValue > 0 ? 1 : 0)} Items • ₹
+            {(
+              lineItems.reduce((sum, it) => sum + it.unit_price, 0) +
+              (currentCalcValue > 0 ? Math.round(currentCalcValue) : 0)
+            ).toLocaleString('en-IN')}
+            )
+          </span>
           <ArrowRight className="w-5 h-5" />
         </button>
       </div>
