@@ -8,8 +8,8 @@ export const LoginPage: React.FC = () => {
   const { loginUser } = useShop();
   const navigate = useNavigate();
 
-  const [identifierInput, setIdentifierInput] = useState<string>('admin');
-  const [passwordInput, setPasswordInput] = useState<string>('1234');
+  const [identifierInput, setIdentifierInput] = useState<string>('saif@admin.com');
+  const [passwordInput, setPasswordInput] = useState<string>('Saif@Zain');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -19,12 +19,12 @@ export const LoginPage: React.FC = () => {
     setErrorMsg('');
 
     if (!identifierInput.trim()) {
-      setErrorMsg('Please enter your username or email');
+      setErrorMsg('Please enter your email or username (saif@admin.com)');
       return;
     }
 
     if (!passwordInput.trim()) {
-      setErrorMsg('Please enter your PIN or password');
+      setErrorMsg('Please enter your password (Saif@Zain)');
       return;
     }
 
@@ -37,7 +37,7 @@ export const LoginPage: React.FC = () => {
       if (res.success) {
         navigate('/app/dashboard');
       } else {
-        setErrorMsg(res.message || 'Invalid username or PIN.');
+        setErrorMsg(res.message || 'Invalid email or password.');
       }
     }, 150);
   };
@@ -50,8 +50,8 @@ export const LoginPage: React.FC = () => {
           <div className="inline-flex items-center justify-center p-2.5 bg-orange-50 rounded-2xl border border-orange-100 mb-1">
             <ZainLogo size="md" showText={true} />
           </div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Sign In</h1>
-          <p className="text-xs text-slate-500 font-medium">Footwear POS & CRM</p>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Admin Sign In</h1>
+          <p className="text-xs text-slate-500 font-medium">Zain Footwear POS & CRM</p>
         </div>
 
         {/* Error Alert */}
@@ -66,7 +66,7 @@ export const LoginPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-              Username
+              Email / Username
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -74,7 +74,7 @@ export const LoginPage: React.FC = () => {
                 type="text"
                 value={identifierInput}
                 onChange={(e) => setIdentifierInput(e.target.value)}
-                placeholder="admin / cashier / manager"
+                placeholder="saif@admin.com"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-colors"
                 autoComplete="username"
               />
@@ -83,7 +83,7 @@ export const LoginPage: React.FC = () => {
 
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-              PIN / Password
+              Password
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -91,7 +91,7 @@ export const LoginPage: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="PIN (e.g. 1234)"
+                placeholder="Saif@Zain"
                 className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-colors"
                 autoComplete="current-password"
               />
@@ -108,16 +108,17 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white font-black rounded-2xl text-sm shadow-xs flex items-center justify-center space-x-2 transition-all mt-2 disabled:opacity-50"
+            className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white font-black rounded-2xl text-sm shadow-xs flex items-center justify-center space-x-2 transition-all mt-2 disabled:opacity-50 cursor-pointer"
           >
-            <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
+            <span>{isSubmitting ? 'Signing In...' : 'Sign In as Admin'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* Quick Role Hint */}
-        <div className="pt-2 text-center text-[11px] text-slate-400 border-t border-slate-100 flex items-center justify-center space-x-1.5 font-medium">
-          <span>PIN: <strong className="text-slate-600">1234</strong> (Admin) • <strong className="text-slate-600">1111</strong> (Cashier)</span>
+        {/* Credentials Info */}
+        <div className="pt-2 text-center text-[11px] text-slate-400 border-t border-slate-100 space-y-0.5 font-medium">
+          <p>Admin Login: <strong className="text-slate-700">saif@admin.com</strong></p>
+          <p>Password: <strong className="text-slate-700 font-mono">Saif@Zain</strong></p>
         </div>
       </div>
     </div>

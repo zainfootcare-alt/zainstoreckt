@@ -1,102 +1,13 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
-  DailyShopSummary,
   ReportSchedule,
   ReportRun,
   AppNotification,
 } from '../types/database.types';
 
-export const INITIAL_REPORT_SCHEDULES: ReportSchedule[] = [
-  {
-    id: 'sched-1',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    name: 'Daily Footwear Store Closing Executive Summary',
-    frequency: 'DAILY',
-    cron_expression: '30 21 * * *', // 9:30 PM IST
-    recipient_email: 'owner@solecraft.in',
-    test_mode: true,
-    allowlist_email: 'owner.test@solecraft.in',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'sched-2',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    name: 'Weekly Monday Morning Footwear Sales Digest (Mon-Sun)',
-    frequency: 'WEEKLY',
-    cron_expression: '0 8 * * 1', // Monday 8:00 AM
-    recipient_email: 'owner@solecraft.in',
-    test_mode: true,
-    allowlist_email: 'owner.test@solecraft.in',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'sched-3',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    name: 'Monthly Day 1 P&L Treasury & Tax Statement',
-    frequency: 'MONTHLY',
-    cron_expression: '0 8 1 * *', // Day 1 8:00 AM
-    recipient_email: 'accounts@solecraft.in',
-    test_mode: true,
-    allowlist_email: 'owner.test@solecraft.in',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'sched-4',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    name: 'Footwear Vendor Dues & Overdue Payables Alert',
-    frequency: 'VENDOR_DUE_ALERT',
-    cron_expression: '0 9 * * 1', // Monday 9:00 AM
-    recipient_email: 'accounts@solecraft.in',
-    test_mode: true,
-    allowlist_email: 'owner.test@solecraft.in',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-];
-
-export const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif-1',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    title: 'Daily Closing Summary Dispatched via Resend',
-    message: 'Sent to owner.test@solecraft.in (Test Mode). Period: 2026-08-09',
-    type: 'EMAIL_LOG',
-    is_read: false,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'notif-2',
-    organization_id: 'org-footwear-101',
-    shop_id: 'shop-mumbai-01',
-    title: 'Footwear POS Cash Register Closed',
-    message: 'Reconciled opening cash ₹5,000.00 with expected cash drawer float.',
-    type: 'INFO',
-    is_read: true,
-    created_at: new Date().toISOString(),
-  },
-];
-
-export const INITIAL_REPORT_RUNS: ReportRun[] = [
-  {
-    id: 'run-101',
-    organization_id: 'org-footwear-101',
-    schedule_id: 'sched-1',
-    period_key: '2026-08-09',
-    recipient_email: 'owner.test@solecraft.in',
-    idempotency_key: 'sched-1_2026-08-09_owner.test@solecraft.in',
-    status: 'SENT',
-    resend_email_id: 'resend_msg_882910',
-    sent_at: new Date().toISOString(),
-  },
-];
+export const INITIAL_REPORT_SCHEDULES: ReportSchedule[] = [];
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [];
+export const INITIAL_REPORT_RUNS: ReportRun[] = [];
 
 export const reportsService = {
   async getSchedules(): Promise<ReportSchedule[]> {
@@ -122,7 +33,7 @@ export const reportsService = {
         const { data, error } = await supabase.rpc('rpc_send_automated_email', { p_payload: payload });
         if (!error && data) return data;
       } catch (err) {
-        console.warn('RPC send_automated_email failed, using local engine:', err);
+        console.warn('RPC send_automated_email failed:', err);
       }
     }
 
@@ -135,7 +46,7 @@ export const reportsService = {
       return {
         success: true,
         status: 'SKIPPED_DUPLICATE',
-        message: `Email already dispatched for period ${payload.period_key}. Repeated cron trigger suppressed duplicate.`,
+        message: `Email already dispatched for period ${payload.period_key}.`,
       };
     }
 

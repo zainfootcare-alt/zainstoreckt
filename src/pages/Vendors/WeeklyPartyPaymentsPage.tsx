@@ -41,9 +41,12 @@ export const WeeklyPartyPaymentsPage: React.FC = () => {
       reference_notes: `Weekly ${selectedDay} Payment Plan`,
     });
 
+    const prevBal = v.current_balance || 0;
+    const remainingBal = Math.max(0, prevBal - amtToPay);
+
     // Auto share WhatsApp statement
     const text = encodeURIComponent(
-      `Dear ${v.name},\n\nThis is to confirm that we have made a payment of ₹${receipt.amount_paid.toLocaleString('en-IN')} against our outstanding balance.\n\nPrevious Balance: ₹${receipt.previous_outstanding.toLocaleString('en-IN')}\nPayment Made: ₹${receipt.amount_paid.toLocaleString('en-IN')}\nRemaining Balance: ₹${receipt.remaining_outstanding.toLocaleString('en-IN')}\n\nThank you.\nRegards,\nZain Footwear`
+      `Dear ${v.name},\n\nThis is to confirm that we have made a payment of ₹${amtToPay.toLocaleString('en-IN')} against our outstanding balance.\n\nPrevious Balance: ₹${prevBal.toLocaleString('en-IN')}\nPayment Made: ₹${amtToPay.toLocaleString('en-IN')}\nRemaining Balance: ₹${remainingBal.toLocaleString('en-IN')}\n\nThank you.\nRegards,\nZain Footwear`
     );
 
     window.open(`https://wa.me/?text=${text}`, '_blank');

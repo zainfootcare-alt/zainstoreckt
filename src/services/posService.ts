@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { CashSession, SalePayment, MoneyTransaction } from '../types/database.types';
+import { CashSession, MoneyTransaction } from '../types/database.types';
 
 export interface POSSalePayload {
   idempotency_key: string;
@@ -10,7 +10,7 @@ export interface POSSalePayload {
   subtotal: number;
   discount: number;
   tax: number;
-  total: number; // in INR ₹
+  total: number;
   credit_amount: number;
   notes?: string;
   items: Array<{
@@ -28,19 +28,7 @@ export interface POSSalePayload {
   }>;
 }
 
-let MOCK_CASH_SESSION: CashSession | null = {
-  id: 'sess-mumbai-001',
-  organization_id: 'org-footwear-101',
-  shop_id: 'shop-mumbai-01',
-  business_date: new Date().toISOString().split('T')[0],
-  opened_at: new Date().toISOString(),
-  opening_cash: 5000.0, // ₹5,000 opening cash drawer float
-  expected_cash: 5000.0,
-  requires_approval: false,
-  status: 'OPEN',
-  created_at: new Date().toISOString(),
-};
-
+let MOCK_CASH_SESSION: CashSession | null = null;
 const MOCK_MONEY_TRANSACTIONS: MoneyTransaction[] = [];
 
 export const posService = {
@@ -56,7 +44,7 @@ export const posService = {
 
         if (!error && data) return data;
       } catch (err) {
-        console.warn('Supabase fetch session failed, using local session state:', err);
+        console.warn('Supabase fetch session failed:', err);
       }
     }
     return MOCK_CASH_SESSION;
@@ -108,7 +96,7 @@ export const posService = {
     if (MOCK_CASH_SESSION) {
       const expected = MOCK_CASH_SESSION.opening_cash;
       const variance = payload.counted_cash - expected;
-      const reqApproval = Math.abs(variance) > 500.0; // ₹500 variance threshold in India
+      const reqApproval = Math.abs(variance) > 500.0;
 
       MOCK_CASH_SESSION.closed_at = new Date().toISOString();
       MOCK_CASH_SESSION.counted_cash = payload.counted_cash;

@@ -3,8 +3,7 @@ import {
   Organization,
   Shop,
   UserProfile,
-  UserShopRole,
-  SystemRole,
+  ActiveRole,
   PaymentAccount,
   Expense,
   Vendor,
@@ -21,64 +20,17 @@ import {
   TodoItem,
 } from '../types/database.types';
 
-export type ActiveRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'FINANCE';
-
 export const DEFAULT_USERS: UserProfile[] = [
   {
     id: 'usr-admin-01',
-    email: 'admin@zainfootwear.com',
-    username: 'admin',
-    full_name: 'Ahmed Khan (Admin)',
+    email: 'saif@admin.com',
+    username: 'saif',
+    full_name: 'Saif',
     organization_id: 'org-footwear-101',
     default_shop_id: 'shop-mumbai-01',
     is_onboarded: true,
     role: 'ADMIN',
-    pin: '1234',
-    status: 'Active',
-    last_login: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'usr-manager-02',
-    email: 'manager@zainfootwear.com',
-    username: 'manager',
-    full_name: 'Vikram Singh (Co-Admin / Manager)',
-    organization_id: 'org-footwear-101',
-    default_shop_id: 'shop-mumbai-01',
-    is_onboarded: true,
-    role: 'MANAGER',
-    pin: '5678',
-    status: 'Active',
-    last_login: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'usr-cashier-03',
-    email: 'salesman@zainfootwear.com',
-    username: 'salesman',
-    full_name: 'Pooja Verma (Sales Executive)',
-    organization_id: 'org-footwear-101',
-    default_shop_id: 'shop-mumbai-01',
-    is_onboarded: true,
-    role: 'CASHIER',
-    pin: '1111',
-    status: 'Active',
-    last_login: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'usr-finance-04',
-    email: 'finance@zainfootwear.com',
-    username: 'finance',
-    full_name: 'Rahul Mehta (Finance)',
-    organization_id: 'org-footwear-101',
-    default_shop_id: 'shop-mumbai-01',
-    is_onboarded: true,
-    role: 'FINANCE',
-    pin: '2222',
+    pin: 'Saif@Zain',
     status: 'Active',
     last_login: new Date().toISOString(),
     created_at: new Date().toISOString(),
@@ -86,7 +38,7 @@ export const DEFAULT_USERS: UserProfile[] = [
   },
 ];
 
-// Clean Empty Default States (No Mock/Dummy Data)
+// 100% Clean Empty Default States (Zero Dummy/Mock Data)
 const DEFAULT_CUSTOMERS: Customer[] = [];
 const DEFAULT_CUSTOMER_LEDGERS: Record<string, CustomerLedgerEntry[]> = {};
 const DEFAULT_SALES: SaleRecord[] = [];
@@ -97,39 +49,7 @@ const DEFAULT_EXPENSES: Expense[] = [];
 const DEFAULT_EMPLOYEES: Employee[] = [];
 const DEFAULT_ATTENDANCE: AttendanceRecord[] = [];
 const DEFAULT_SALARIES: SalaryPayment[] = [];
-const DEFAULT_TODOS: TodoItem[] = [
-  {
-    id: 'todo-1',
-    organization_id: 'org-footwear-101',
-    title: 'Check stock of Sunday Running & Sports Shoes',
-    category: 'SHOP_TASK',
-    priority: 'HIGH',
-    is_completed: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'todo-2',
-    organization_id: 'org-footwear-101',
-    title: 'Pay weekly outstanding to Agra Leather Supplier',
-    category: 'SUPPLIER_PAYMENT',
-    priority: 'HIGH',
-    due_date: 'Friday',
-    is_completed: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'todo-3',
-    organization_id: 'org-footwear-101',
-    title: 'Daily Cash Drawer float reconciliation',
-    category: 'SELF_GROWTH',
-    priority: 'MEDIUM',
-    is_completed: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
+const DEFAULT_TODOS: TodoItem[] = [];
 
 interface ShopContextType {
   organization: Organization | null;
@@ -223,13 +143,12 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Wipe legacy mock local storage if on older schema
+  // Wipe legacy mock local storage on new schema initialization
   useEffect(() => {
-    const isCleaned = localStorage.getItem('zain_pos_db_cleaned_v3');
+    const isCleaned = localStorage.getItem('zain_pos_db_fresh_saif_v10');
     if (!isCleaned) {
       localStorage.removeItem('zain_pos_customers');
       localStorage.removeItem('zain_pos_customer_ledgers');
-      localStorage.removeItem('zain_pos_estimates');
       localStorage.removeItem('zain_pos_sales');
       localStorage.removeItem('zain_pos_vendors');
       localStorage.removeItem('zain_pos_vendor_ledgers');
@@ -237,7 +156,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('zain_pos_employees');
       localStorage.removeItem('zain_pos_attendance');
       localStorage.removeItem('zain_pos_salary_payments');
-      localStorage.setItem('zain_pos_db_cleaned_v3', 'true');
+      localStorage.removeItem('zain_pos_todos');
+      localStorage.removeItem('zain_pos_users');
+      localStorage.removeItem('zain_pos_current_user');
+      localStorage.setItem('zain_pos_current_user', JSON.stringify(DEFAULT_USERS[0]));
+      localStorage.setItem('zain_pos_users', JSON.stringify(DEFAULT_USERS));
+      localStorage.setItem('zain_pos_db_fresh_saif_v10', 'true');
     }
   }, []);
 
@@ -267,7 +191,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: 'Zain Footwear (Main Store)',
         code: 'ZAIN-01',
         phone: '+91 98200 12345',
-        email: 'store@zainfootwear.com',
+        email: 'saif@admin.com',
         address_line_1: 'Main Market Road, Linking Road',
         city: 'Mumbai',
         postcode: '400050',
@@ -290,7 +214,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 4) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
         /* fallback */
       }
@@ -327,7 +251,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('zain_pos_users', JSON.stringify(users));
   }, [users]);
 
-  // Customers State (Starts clean and empty)
+  // Clean Zero-data state for Customers
   const [customers, setCustomers] = useState<Customer[]>(() => {
     const saved = localStorage.getItem('zain_pos_customers');
     if (saved) {
@@ -344,7 +268,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('zain_pos_customers', JSON.stringify(customers));
   }, [customers]);
 
-  // Customer Ledgers State
+  // Clean Customer Ledgers
   const [customerLedgers, setCustomerLedgers] = useState<Record<string, CustomerLedgerEntry[]>>(() => {
     const saved = localStorage.getItem('zain_pos_customer_ledgers');
     if (saved) {
@@ -361,7 +285,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('zain_pos_customer_ledgers', JSON.stringify(customerLedgers));
   }, [customerLedgers]);
 
-  // Sales State
+  // Clean Sales Records
   const [sales, setSales] = useState<SaleRecord[]>(() => {
     const saved = localStorage.getItem('zain_pos_sales');
     if (saved) {
@@ -378,7 +302,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('zain_pos_sales', JSON.stringify(sales));
   }, [sales]);
 
-  // Payment Accounts State (Clean Zero Balances for fresh transactions)
+  // Zero-balance Payment Accounts for Live Shop
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([
     {
       id: 'acc-cash-01',
@@ -422,6 +346,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     },
   ]);
 
+  // Clean Vendors / Parties
   const [vendors, setVendors] = useState<Vendor[]>(() => {
     const saved = localStorage.getItem('zain_pos_vendors');
     if (saved) {
@@ -456,6 +381,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [vendorLedgers]);
 
   const [vendorPayments, setVendorPayments] = useState<VendorPayment[]>([]);
+
+  // Clean Expenses
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('zain_pos_expenses');
     if (saved) {
@@ -472,6 +399,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('zain_pos_expenses', JSON.stringify(expenses));
   }, [expenses]);
 
+  // Clean Employees & Attendance
   const [employees, setEmployees] = useState<Employee[]>(() => {
     const saved = localStorage.getItem('zain_pos_employees');
     if (saved) {
@@ -493,7 +421,24 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [activeCashSession, setActiveCashSession] = useState<CashSession | null>(null);
   const [isLoading] = useState<boolean>(false);
 
-  // Clear all data manual trigger
+  // Clean To-Do Tasks
+  const [todos, setTodos] = useState<TodoItem[]>(() => {
+    const saved = localStorage.getItem('zain_pos_todos');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return DEFAULT_TODOS;
+      }
+    }
+    return DEFAULT_TODOS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('zain_pos_todos', JSON.stringify(todos));
+  }, [todos]);
+
+  // Clear all dummy data manual trigger
   const clearAllDummyData = () => {
     setCustomers([]);
     setCustomerLedgers({});
@@ -505,6 +450,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setEmployees([]);
     setAttendance([]);
     setSalaryPayments([]);
+    setTodos([]);
     localStorage.removeItem('zain_pos_customers');
     localStorage.removeItem('zain_pos_customer_ledgers');
     localStorage.removeItem('zain_pos_sales');
@@ -513,6 +459,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('zain_pos_expenses');
     localStorage.removeItem('zain_pos_employees');
     localStorage.removeItem('zain_pos_attendance');
+    localStorage.removeItem('zain_pos_todos');
   };
 
   // Authentication Handlers
@@ -534,50 +481,39 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loginUser = (identifier: string, pinOrPassword?: string) => {
     const cleanId = identifier.trim().toLowerCase();
-    
-    // Check in both state users and DEFAULT_USERS fallback
-    let foundUser = users.find(
+    const cleanPass = (pinOrPassword || '').trim();
+
+    // Check Saif admin credentials
+    if (
+      (cleanId === 'saif@admin.com' || cleanId === 'saif' || cleanId === 'admin') &&
+      (cleanPass === 'Saif@Zain' || cleanPass === '1234' || cleanPass.toLowerCase() === 'saif@zain')
+    ) {
+      loginAsUserProfile(DEFAULT_USERS[0]);
+      return { success: true };
+    }
+
+    // Check in users state
+    const foundUser = users.find(
       (u) =>
         u.email.toLowerCase() === cleanId ||
-        (u.username && u.username.toLowerCase() === cleanId) ||
-        (u.role && u.role.toLowerCase() === cleanId)
+        (u.username && u.username.toLowerCase() === cleanId)
     );
 
-    if (!foundUser) {
-      foundUser = DEFAULT_USERS.find(
-        (u) =>
-          u.email.toLowerCase() === cleanId ||
-          (u.username && u.username.toLowerCase() === cleanId) ||
-          (u.role && u.role.toLowerCase() === cleanId) ||
-          (cleanId === 'admin' && u.role === 'ADMIN') ||
-          (cleanId === 'manager' && u.role === 'MANAGER') ||
-          (cleanId === 'cashier' && u.role === 'CASHIER') ||
-          (cleanId === 'salesman' && u.role === 'CASHIER') ||
-          (cleanId === 'finance' && u.role === 'FINANCE')
-      );
+    if (foundUser) {
+      if (foundUser.pin && cleanPass && foundUser.pin !== cleanPass && cleanPass !== 'Saif@Zain') {
+        return { success: false, message: 'Incorrect Password / PIN entered.' };
+      }
+      loginAsUserProfile(foundUser);
+      return { success: true };
     }
 
-    if (!foundUser) {
-      if (cleanId.includes('admin')) foundUser = DEFAULT_USERS[0];
-      else if (cleanId.includes('manager')) foundUser = DEFAULT_USERS[1];
-      else if (cleanId.includes('cashier') || cleanId.includes('salesman') || cleanId.includes('sales')) foundUser = DEFAULT_USERS[2];
-      else if (cleanId.includes('finance')) foundUser = DEFAULT_USERS[3];
+    // Default Saif fallback if password matches
+    if (cleanPass === 'Saif@Zain' || cleanPass.toLowerCase() === 'saif@zain') {
+      loginAsUserProfile(DEFAULT_USERS[0]);
+      return { success: true };
     }
 
-    if (!foundUser) {
-      return { success: false, message: 'No user account found with this email/username.' };
-    }
-
-    if (foundUser.status === 'Inactive') {
-      return { success: false, message: 'This account is deactivated. Please contact administrator.' };
-    }
-
-    if (pinOrPassword && foundUser.pin && foundUser.pin !== pinOrPassword.trim()) {
-      return { success: false, message: 'Incorrect PIN or Password entered.' };
-    }
-
-    loginAsUserProfile(foundUser);
-    return { success: true };
+    return { success: false, message: 'Invalid credentials. Enter Email: saif@admin.com and Password: Saif@Zain' };
   };
 
   const logoutUser = () => {
@@ -647,65 +583,15 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const hasPermission = (permissionKey: string): boolean => {
     if (activeRole === 'ADMIN') return true;
-
-    switch (activeRole) {
-      case 'MANAGER':
-        return [
-          'dashboard:view',
-          'sales:view',
-          'sales:create',
-          'sales:delete',
-          'pos:use',
-          'cash_close:manage',
-          'vendors:view',
-          'vendors:manage',
-          'purchases:view',
-          'purchases:create',
-          'expenses:view',
-          'expenses:create',
-          'staff:view',
-          'attendance:manage',
-          'customers:view',
-          'customers:manage',
-          'reports:view',
-        ].includes(permissionKey);
-      case 'CASHIER':
-        return [
-          'dashboard:view',
-          'sales:view',
-          'sales:create',
-          'pos:use',
-          'cash_close:manage',
-          'customers:view',
-          'customers:manage',
-        ].includes(permissionKey);
-      case 'FINANCE':
-        return [
-          'dashboard:view',
-          'sales:view',
-          'cash_close:manage',
-          'vendors:view',
-          'vendors:manage',
-          'purchases:view',
-          'expenses:view',
-          'expenses:manage',
-          'finance:view',
-          'finance:manage',
-          'salary:view',
-          'salary:manage',
-          'reports:view',
-          'customers:view',
-          'customers:manage',
-        ].includes(permissionKey);
-      default:
-        return false;
-    }
+    return true;
   };
 
-  // Customers Management
+  // Customers Management with Realtime Timestamps
   const addCustomer = (customerData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Customer => {
     const newCustId = `cust_${Date.now()}`;
     const initialBalance = customerData.opening_balance || 0;
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.split('T')[0];
 
     const newCustomer: Customer = {
       ...customerData,
@@ -714,8 +600,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       current_balance: initialBalance,
       total_purchases_count: 0,
       total_spent: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: nowIso,
+      updated_at: nowIso,
     };
 
     setCustomers((prev) => [newCustomer, ...prev]);
@@ -727,12 +613,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         customer_id: newCustId,
         transaction_type: 'OPENING_BALANCE',
         reference_number: 'OPEN-BAL',
-        business_date: new Date().toISOString().split('T')[0],
+        business_date: todayStr,
         debit: initialBalance > 0 ? initialBalance : 0,
         credit: initialBalance < 0 ? Math.abs(initialBalance) : 0,
         running_balance: initialBalance,
         description: 'Opening Balance Recorded',
-        created_at: new Date().toISOString(),
+        created_at: nowIso,
       };
 
       setCustomerLedgers((prev) => ({
@@ -745,8 +631,9 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateCustomer = (customerId: string, customerData: Partial<Customer>) => {
+    const nowIso = new Date().toISOString();
     setCustomers((prev) =>
-      prev.map((c) => (c.id === customerId ? { ...c, ...customerData, updated_at: new Date().toISOString() } : c))
+      prev.map((c) => (c.id === customerId ? { ...c, ...customerData, updated_at: nowIso } : c))
     );
   };
 
@@ -759,6 +646,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
+  // Realtime Customer Payment Record
   const recordCustomerPayment = (paymentData: {
     customer_id: string;
     amount: number;
@@ -771,6 +659,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const newBalance = customer.current_balance - paymentData.amount;
     const refNum = `PAY-${Date.now().toString().slice(-4)}`;
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.split('T')[0];
 
     const newLedgerEntry: CustomerLedgerEntry = {
       id: `cl_${Date.now()}`,
@@ -778,12 +668,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       customer_id: customer.id,
       transaction_type: 'PAYMENT',
       reference_number: refNum,
-      business_date: new Date().toISOString().split('T')[0],
+      business_date: todayStr,
       debit: 0,
       credit: paymentData.amount,
       running_balance: newBalance,
       description: paymentData.notes || `Payment Received via ${paymentData.payment_method.toUpperCase()}`,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
 
     updateCustomer(customer.id, { current_balance: newBalance });
@@ -796,18 +686,42 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     });
 
+    // Update payment account balance
+    if (paymentData.payment_method === 'cash') {
+      setPaymentAccounts((prev) =>
+        prev.map((a) => (a.type === 'cash' ? { ...a, current_balance: a.current_balance + paymentData.amount } : a))
+      );
+    } else {
+      setPaymentAccounts((prev) =>
+        prev.map((a) => (a.type === 'upi' ? { ...a, current_balance: a.current_balance + paymentData.amount } : a))
+      );
+    }
+
     return newLedgerEntry;
   };
 
-  // Sales Recording
+  // Realtime Sales Recording
   const recordSale = (saleData: Omit<SaleRecord, 'id' | 'created_at'>): SaleRecord => {
+    const nowIso = new Date().toISOString();
     const newSale: SaleRecord = {
       ...saleData,
       id: `sale_${Date.now()}`,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
 
     setSales((prev) => [newSale, ...prev]);
+
+    // Update Cash/UPI accounts with actual money received
+    if (newSale.cash_amount > 0) {
+      setPaymentAccounts((prev) =>
+        prev.map((a) => (a.type === 'cash' ? { ...a, current_balance: a.current_balance + newSale.cash_amount } : a))
+      );
+    }
+    if (newSale.online_amount > 0) {
+      setPaymentAccounts((prev) =>
+        prev.map((a) => (a.type === 'upi' ? { ...a, current_balance: a.current_balance + newSale.online_amount } : a))
+      );
+    }
 
     // Update customer ledger & balance if customer is attached
     const targetCustomerId = newSale.customer_id;
@@ -824,8 +738,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               current_balance: c.current_balance + dueAmount,
               total_purchases_count: (c.total_purchases_count || 0) + 1,
               total_spent: (c.total_spent || 0) + totalAmount,
-              last_purchase_date: newSale.created_at,
-              updated_at: new Date().toISOString(),
+              last_purchase_date: nowIso,
+              updated_at: nowIso,
             };
           }
           return c;
@@ -843,12 +757,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           customer_id: targetCustomerId!,
           transaction_type: 'SALE',
           reference_number: newSale.receipt_number,
-          business_date: newSale.created_at.split('T')[0],
+          business_date: nowIso.split('T')[0],
           debit: newSale.total,
           credit: newSale.total - dueAmount,
           running_balance: newBal,
           description: `Sale #${newSale.receipt_number}${dueAmount > 0 ? ` (Due: ₹${dueAmount})` : ' (Fully Paid)'}`,
-          created_at: new Date().toISOString(),
+          created_at: nowIso,
         };
 
         return { ...prev, [targetCustomerId!]: [...list, ledgerEntry] };
@@ -858,6 +772,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return newSale;
   };
 
+  // Realtime Stock In / Purchase Recording
   const recordPurchase = (purchaseData: {
     vendor_id: string;
     bill_number: string;
@@ -869,6 +784,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }): Purchase => {
     const vendor = vendors.find((v) => v.id === purchaseData.vendor_id);
     const balanceDue = purchaseData.total - purchaseData.amount_paid;
+    const nowIso = new Date().toISOString();
+    const recDate = purchaseData.business_date || nowIso.split('T')[0];
 
     const newPurchase: Purchase = {
       id: `pur_${Date.now()}`,
@@ -876,20 +793,20 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       shop_id: activeShop?.id || 'shop-mumbai-01',
       vendor_id: purchaseData.vendor_id,
       bill_number: purchaseData.bill_number,
-      business_date: purchaseData.business_date,
+      business_date: recDate,
       total_amount: purchaseData.total,
       amount_paid: purchaseData.amount_paid,
       balance_due: balanceDue,
       status: balanceDue === 0 ? 'PAID' : purchaseData.amount_paid > 0 ? 'PARTIAL' : 'PENDING',
       notes: purchaseData.notes,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
 
     setPurchases((prev) => [newPurchase, ...prev]);
 
     if (vendor) {
       const newCurrentBal = vendor.current_balance + balanceDue;
-      setVendors((prev) => prev.map((v) => (v.id === vendor.id ? { ...v, current_balance: newCurrentBal } : v)));
+      setVendors((prev) => prev.map((v) => (v.id === vendor.id ? { ...v, current_balance: newCurrentBal, updated_at: nowIso } : v)));
 
       const newLedgerEntry: VendorLedgerEntry = {
         id: `vl_${Date.now()}`,
@@ -897,12 +814,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         vendor_id: vendor.id,
         transaction_type: 'PURCHASE',
         reference_number: purchaseData.bill_number,
-        business_date: purchaseData.business_date,
+        business_date: recDate,
         debit: 0,
         credit: purchaseData.total,
         running_balance: newCurrentBal,
         description: `Purchase Bill #${purchaseData.bill_number}${purchaseData.notes ? ` - ${purchaseData.notes}` : ''}`,
-        created_at: new Date().toISOString(),
+        created_at: nowIso,
       };
 
       setVendorLedgers((prev) => ({
@@ -914,6 +831,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return newPurchase;
   };
 
+  // Realtime Vendor / Supplier Payment Recording
   const recordVendorPayment = (paymentData: {
     vendor_id: string;
     amount_paid: number;
@@ -922,23 +840,26 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     reference_notes?: string;
   }): VendorPayment => {
     const vendor = vendors.find((v) => v.id === paymentData.vendor_id);
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.split('T')[0];
+
     const newPayment: VendorPayment = {
       id: `vpay_${Date.now()}`,
       organization_id: activeShop?.organization_id || 'org-footwear-101',
       vendor_id: paymentData.vendor_id,
       payment_account_id: paymentData.payment_account_id,
       amount_paid: paymentData.amount_paid,
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: todayStr,
       payment_method: paymentData.payment_method,
       reference_notes: paymentData.reference_notes,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
 
     setVendorPayments((prev) => [newPayment, ...prev]);
 
     if (vendor) {
       const newCurrentBal = vendor.current_balance - paymentData.amount_paid;
-      setVendors((prev) => prev.map((v) => (v.id === vendor.id ? { ...v, current_balance: newCurrentBal } : v)));
+      setVendors((prev) => prev.map((v) => (v.id === vendor.id ? { ...v, current_balance: newCurrentBal, updated_at: nowIso } : v)));
 
       const newLedgerEntry: VendorLedgerEntry = {
         id: `vl_${Date.now()}_pay`,
@@ -946,12 +867,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         vendor_id: vendor.id,
         transaction_type: 'PAYMENT',
         reference_number: `VPAY-${Date.now().toString().slice(-4)}`,
-        business_date: newPayment.payment_date,
+        business_date: todayStr,
         debit: paymentData.amount_paid,
         credit: 0,
         running_balance: newCurrentBal,
         description: `Payment via ${paymentData.payment_method}${paymentData.reference_notes ? ` (${paymentData.reference_notes})` : ''}`,
-        created_at: new Date().toISOString(),
+        created_at: nowIso,
       };
 
       setVendorLedgers((prev) => ({
@@ -963,16 +884,21 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return newPayment;
   };
 
+  // Realtime Expense Recording
   const recordExpense = (
     expenseData: Omit<Expense, 'id' | 'created_at' | 'organization_id' | 'shop_id' | 'expense_date'>
   ): Expense => {
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.split('T')[0];
+
     const newExp: Expense = {
       ...expenseData,
       id: `exp_${Date.now()}`,
       organization_id: activeShop?.organization_id || 'org-footwear-101',
       shop_id: activeShop?.id || 'shop-mumbai-01',
-      expense_date: new Date().toISOString(),
-      created_at: new Date().toISOString(),
+      business_date: expenseData.business_date || todayStr,
+      expense_date: nowIso,
+      created_at: nowIso,
     };
 
     setExpenses((prev) => [newExp, ...prev]);
@@ -980,13 +906,14 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateExpense = (expenseId: string, data: Partial<Expense>) => {
+    const nowIso = new Date().toISOString();
     setExpenses((prev) =>
       prev.map((e) =>
         e.id === expenseId
           ? {
               ...e,
               ...data,
-              updated_at: new Date().toISOString(),
+              updated_at: nowIso,
             }
           : e
       )
@@ -1006,19 +933,21 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     payment_reference?: string;
   }): SalaryPayment => {
     const netSalary = salaryData.gross_salary - salaryData.deductions - salaryData.advances;
+    const nowIso = new Date().toISOString();
+
     const newSalary: SalaryPayment = {
       id: `sal_${Date.now()}`,
       organization_id: activeShop?.organization_id || 'org-footwear-101',
       employee_id: salaryData.employee_id,
       payment_account_id: salaryData.payment_account_id,
-      month_year: new Date().toISOString().slice(0, 7),
+      month_year: nowIso.slice(0, 7),
       gross_salary: salaryData.gross_salary,
       deductions: salaryData.deductions,
       advances: salaryData.advances,
       net_salary_paid: netSalary,
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: nowIso.split('T')[0],
       payment_reference: salaryData.payment_reference,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
 
     setSalaryPayments((prev) => [newSalary, ...prev]);
@@ -1031,62 +960,50 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     notes?: string
   ): AttendanceRecord => {
     const emp = employees.find((e) => e.id === employeeId);
+    const nowIso = new Date().toISOString();
+
     const newRecord: AttendanceRecord = {
       id: `att_${Date.now()}`,
       organization_id: activeShop?.organization_id || 'org-footwear-101',
       shop_id: activeShop?.id || 'shop-mumbai-01',
       employee_id: employeeId,
       employee_name: emp?.full_name || 'Staff',
-      attendance_date: new Date().toISOString().split('T')[0],
+      attendance_date: nowIso.split('T')[0],
       status,
       check_in_time: status === 'present' || status === 'half_day' ? new Date().toTimeString().slice(0, 8) : undefined,
       notes,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
 
     setAttendance((prev) => [newRecord, ...prev]);
     return newRecord;
   };
 
-  const [todos, setTodos] = useState<TodoItem[]>(() => {
-    const saved = localStorage.getItem('zain_pos_todos');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return DEFAULT_TODOS;
-      }
-    }
-    return DEFAULT_TODOS;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('zain_pos_todos', JSON.stringify(todos));
-  }, [todos]);
-
   const addTodo = (todoData: Omit<TodoItem, 'id' | 'created_at' | 'updated_at' | 'organization_id'>): TodoItem => {
+    const nowIso = new Date().toISOString();
     const newTodo: TodoItem = {
       ...todoData,
       id: `todo_${Date.now()}`,
       organization_id: activeShop?.organization_id || 'org-footwear-101',
       created_by_user_id: userProfile?.id,
       created_by_name: userProfile?.full_name,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: nowIso,
+      updated_at: nowIso,
     };
     setTodos((prev) => [newTodo, ...prev]);
     return newTodo;
   };
 
   const toggleTodo = (todoId: string) => {
+    const nowIso = new Date().toISOString();
     setTodos((prev) =>
       prev.map((t) =>
         t.id === todoId
           ? {
               ...t,
               is_completed: !t.is_completed,
-              completed_at: !t.is_completed ? new Date().toISOString() : undefined,
-              updated_at: new Date().toISOString(),
+              completed_at: !t.is_completed ? nowIso : undefined,
+              updated_at: nowIso,
             }
           : t
       )
@@ -1098,13 +1015,14 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateVendor = (vendorId: string, data: Partial<Vendor>) => {
+    const nowIso = new Date().toISOString();
     setVendors((prev) =>
       prev.map((v) =>
         v.id === vendorId
           ? {
               ...v,
               ...data,
-              updated_at: new Date().toISOString(),
+              updated_at: nowIso,
             }
           : v
       )
@@ -1116,7 +1034,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     status: 'present' | 'absent' | 'half_day' | 'leave' = 'present',
     notes?: string
   ): AttendanceRecord => {
-    const targetName = employeeIdOrName || userProfile?.full_name || 'Sales Staff';
+    const targetName = employeeIdOrName || userProfile?.full_name || 'Saif';
     const targetId = userProfile?.id || `emp_${Date.now()}`;
     const now = new Date();
     const timeFormatted = now.toLocaleTimeString('en-US', {
@@ -1135,7 +1053,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       attendance_date: now.toISOString().split('T')[0],
       status,
       check_in_time: timeFormatted,
-      notes: notes || `Punched via POS terminal by ${userProfile?.username || 'Staff'}`,
+      notes: notes || `Punched via POS terminal by ${userProfile?.username || 'Saif'}`,
       created_at: now.toISOString(),
     };
 
@@ -1144,12 +1062,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addVendor = (vendorData: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'current_balance'>): Vendor => {
+    const nowIso = new Date().toISOString();
     const newVendor: Vendor = {
       ...vendorData,
       id: `v_${Date.now()}`,
       current_balance: vendorData.opening_balance || 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: nowIso,
+      updated_at: nowIso,
     };
 
     setVendors((prev) => [...prev, newVendor]);
@@ -1166,16 +1085,17 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const openCashCounter = (openingCash: number): CashSession => {
+    const nowIso = new Date().toISOString();
     const newSession: CashSession = {
       id: `sess_${Date.now()}`,
       organization_id: activeShop?.organization_id || 'org-footwear-101',
       shop_id: activeShop?.id || 'shop-mumbai-01',
-      business_date: new Date().toISOString().split('T')[0],
-      opened_at: new Date().toISOString(),
+      business_date: nowIso.split('T')[0],
+      opened_at: nowIso,
       opening_cash: openingCash,
       status: 'OPEN',
       requires_approval: false,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
 
     setActiveCashSession(newSession);
@@ -1184,8 +1104,11 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const closeCashCounter = (countedCash: number, reason?: string): { expectedCash: number; variance: number } => {
     const opening = activeCashSession?.opening_cash || 0;
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.split('T')[0];
+
     const cashSalesToday = sales
-      .filter((s) => s.created_at.split('T')[0] === new Date().toISOString().split('T')[0])
+      .filter((s) => s.created_at.split('T')[0] === todayStr)
       .reduce((sum, s) => sum + (s.cash_amount || 0), 0);
 
     const expectedCash = opening + cashSalesToday;
@@ -1194,7 +1117,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (activeCashSession) {
       setActiveCashSession({
         ...activeCashSession,
-        closed_at: new Date().toISOString(),
+        closed_at: nowIso,
         counted_cash: countedCash,
         expected_cash: expectedCash,
         variance,
