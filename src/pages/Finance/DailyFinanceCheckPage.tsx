@@ -35,7 +35,26 @@ export const DailyFinanceCheckPage: React.FC = () => {
   const netMovement = totalSales - totalOutflow;
 
   const openingFloat = activeCashSession?.opening_cash || 5000;
-  const expectedCash = activeCashSession?.expected_cash || (openingFloat + cashReceived - (todayPartyPaymentsList.filter(p => p.payment_account_id === 'acc-cash-01').reduce((sum, p) => sum + p.amount_paid, 0)) - (todayExpensesList.filter(e => e.payment_account_id === 'acc-cash-01').reduce((sum, e) => sum + e.amount, 0)));
+  const expectedCash =
+    activeCashSession?.expected_cash ||
+    openingFloat +
+      cashReceived -
+      todayPartyPaymentsList
+        .filter(
+          (p) =>
+            p.payment_account_id === 'd4000000-0000-0000-0000-000000000001' ||
+            p.payment_account_id === 'acc-cash-01' ||
+            p.payment_method?.toLowerCase().includes('cash')
+        )
+        .reduce((sum, p) => sum + p.amount_paid, 0) -
+      todayExpensesList
+        .filter(
+          (e) =>
+            e.payment_account_id === 'd4000000-0000-0000-0000-000000000001' ||
+            e.payment_account_id === 'acc-cash-01' ||
+            e.payment_method?.toLowerCase().includes('cash')
+        )
+        .reduce((sum, e) => sum + e.amount, 0);
   const physicalCash = activeCashSession?.counted_cash !== undefined ? activeCashSession.counted_cash : expectedCash;
   const difference = physicalCash - expectedCash;
 

@@ -22,11 +22,11 @@ export const CloseCounterPage: React.FC = () => {
     .reduce((sum, s) => sum + s.cash_amount, 0);
 
   const cashExpensesToday = expenses
-    .filter((e) => e.business_date === todayStr && e.status === 'PAID' && e.payment_account_id === 'acc-cash-01')
+    .filter((e) => e.business_date === todayStr && e.status === 'PAID' && (e.payment_account_id === 'd4000000-0000-0000-0000-000000000001' || e.payment_account_id === 'acc-cash-01' || e.payment_method?.toLowerCase().includes('cash')))
     .reduce((sum, e) => sum + e.amount, 0);
 
   const cashPartyPaymentsToday = vendorPayments
-    .filter((p) => p.payment_date === todayStr && p.payment_account_id === 'acc-cash-01')
+    .filter((p) => p.payment_date === todayStr && (p.payment_account_id === 'd4000000-0000-0000-0000-000000000001' || p.payment_account_id === 'acc-cash-01' || p.payment_method?.toLowerCase().includes('cash')))
     .reduce((sum, p) => sum + p.amount_paid, 0);
 
   const openingFloat = activeCashSession?.opening_cash || 5000;

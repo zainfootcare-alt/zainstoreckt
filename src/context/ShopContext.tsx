@@ -31,6 +31,7 @@ import {
 import {
   authService,
   usersService,
+  shopsService,
   customersService,
   customerLedgerService,
   salesService,
@@ -92,8 +93,8 @@ interface ShopContextType {
   addUser: (userData: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>) => Promise<UserProfile>;
   updateUser: (userId: string, userData: Partial<UserProfile>) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
-  addShop: (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>) => Shop;
-  updateShop: (shopId: string, shopData: Partial<Shop>) => void;
+  addShop: (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>) => Promise<Shop>;
+  updateShop: (shopId: string, shopData: Partial<Shop>) => Promise<void>;
 
   sales: SaleRecord[];
   customers: Customer[];
@@ -248,7 +249,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         activeCashData,
       ] = await Promise.all([
         orgService.getOrg(),
-        orgService.getShop(),
+        shopsService.getAll(),
         usersService.getAll(),
         customersService.getAll(),
         customerLedgerService.getAll(),
@@ -267,14 +268,30 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ]);
 
       if (orgData) setOrganization(orgData);
-      if (shopData) {
-        setShops([shopData]);
-        setActiveShop(shopData);
+      if (shopData && shopData.length > 0) {
+        setShops(shopData);
+        setActiveShop(shopData[0]);
+      } else {
+        const fallbackShop: Shop = {
+          id: SHOP_ID,
+          organization_id: ORG_ID,
+          name: 'Zain Footwear (Main Store)',
+          code: 'ZAIN-01',
+          city: 'Mumbai',
+          phone: '+91 98200 12345',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setShops([fallbackShop]);
+        setActiveShop(fallbackShop);
       }
 
-      // Always ensure Saif admin is in users list
+      // Always ensure users are loaded and Saif fallback is present if needed
       const allUsers = usersData.length > 0 ? usersData : DEFAULT_USERS;
-      setUsers(allUsers);
+      const hasSaif = allUsers.some((u) => u.email?.toLowerCase() === 'saif@admin.com');
+      const finalUsers = hasSaif ? allUsers : [...DEFAULT_USERS, ...allUsers];
+      setUsers(finalUsers);
 
       setCustomers(customersData);
       setCustomerLedgers(buildCustomerLedgerMap(customerLedgersData));
@@ -367,7 +384,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addUser = async (userData: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>): Promise<UserProfile> => {
     const newUser = await usersService.create(userData);
-    setUsers((prev) => [newUser, ...prev]);
+    setUsers((prev) => [newUser, ...prev.filter((u) => u.id !== newUser.id)]);
     return newUser;
   };
 
@@ -384,29 +401,17 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUsers((prev) => prev.filter((u) => u.id !== userId));
   };
 
-  // Shop management (kept in-memory, not persisted to Supabase for now)
-  const addShop = (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Shop => {
-    const newShop: Shop = {
-      ...shopData,
-      id: `shop_${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setShops((prev) => [...prev, newShop]);
+  // Shop management persisted to Supabase
+  const addShop = async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop> => {
+    const newShop = await shopsService.create(shopData);
+    setShops((prev) => [...prev.filter((s) => s.id !== newShop.id), newShop]);
     return newShop;
   };
 
-  const updateShop = (shopId: string, shopData: Partial<Shop>) => {
-    setShops((prev) =>
-      prev.map((s) => {
-        if (s.id === shopId) {
-          const updated = { ...s, ...shopData, updated_at: new Date().toISOString() };
-          if (activeShop?.id === shopId) setActiveShop(updated);
-          return updated;
-        }
-        return s;
-      })
-    );
+  const updateShop = async (shopId: string, shopData: Partial<Shop>): Promise<void> => {
+    const updated = await shopsService.update(shopId, shopData);
+    setShops((prev) => prev.map((s) => (s.id === shopId ? updated : s)));
+    if (activeShop?.id === shopId) setActiveShop(updated);
   };
 
   const hasPermission = (_permissionKey: string): boolean => {

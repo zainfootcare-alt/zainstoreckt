@@ -39,6 +39,7 @@ export const PartiesListPage: React.FC = () => {
     addCustomer,
     updateCustomer,
     deleteCustomer,
+    paymentAccounts,
     userProfile,
     activeRole,
   } = useShop();
@@ -308,7 +309,7 @@ export const PartiesListPage: React.FC = () => {
     recordVendorPayment({
       vendor_id: selectedVendorForPayment.id,
       amount_paid: amt,
-      payment_account_id: 'acc-bank-04',
+      payment_account_id: paymentAccounts[0]?.id || 'd4000000-0000-0000-0000-000000000004',
       payment_method: paymentMethod,
       reference_notes: paymentNote || `Weekly payment on ${new Date().toLocaleDateString('en-IN')}`,
     });

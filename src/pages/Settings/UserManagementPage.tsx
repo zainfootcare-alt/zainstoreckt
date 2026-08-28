@@ -23,6 +23,8 @@ import {
   Store,
   MapPin,
   Phone,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 export const UserManagementPage: React.FC = () => {
@@ -30,6 +32,9 @@ export const UserManagementPage: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Add User Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -69,7 +74,7 @@ export const UserManagementPage: React.FC = () => {
   const filteredUsers = users.filter((u) => {
     const matchesQuery =
       u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
@@ -77,28 +82,55 @@ export const UserManagementPage: React.FC = () => {
     return matchesQuery && matchesRole;
   });
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToastMsg({ type, text });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameInput || !emailInput) return;
+    setModalError(null);
 
-    addUser({
-      full_name: nameInput,
-      email: emailInput,
-      username: usernameInput || emailInput.split('@')[0],
-      role: roleInput,
-      pin: pinInput || '1234',
-      default_shop_id: shopIdInput,
-      status: statusInput,
-      organization_id: 'org-footwear-101',
-      is_onboarded: true,
-    });
+    const cleanName = nameInput.trim();
+    const cleanEmail = emailInput.trim().toLowerCase();
+    const cleanPin = pinInput.trim() || '1234';
+    const cleanUsername = (usernameInput.trim() || cleanEmail.split('@')[0]).toLowerCase();
 
-    // Reset Form
-    setNameInput('');
-    setEmailInput('');
-    setUsernameInput('');
-    setPinInput('');
-    setIsAddModalOpen(false);
+    if (!cleanName || !cleanEmail) {
+      setModalError('Please provide both Full Name and a valid Email Address.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await addUser({
+        full_name: cleanName,
+        email: cleanEmail,
+        username: cleanUsername,
+        role: roleInput,
+        pin: cleanPin,
+        default_shop_id: shopIdInput || shops[0]?.id || undefined,
+        status: statusInput,
+      });
+
+      // Reset Form
+      setNameInput('');
+      setEmailInput('');
+      setUsernameInput('');
+      setPinInput('');
+      setIsAddModalOpen(false);
+      showToast('success', `User account for "${cleanName}" created and saved to database!`);
+    } catch (err: any) {
+      console.error('Failed to create user:', err);
+      const errMsg = err?.message || err?.details || 'Failed to create user in database.';
+      if (errMsg.includes('unique') || errMsg.includes('duplicate') || errMsg.includes('already exists')) {
+        setModalError(`A user with email "${cleanEmail}" already exists. Please use a different email.`);
+      } else {
+        setModalError(`Error creating user: ${errMsg}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOpenEditModal = (user: UserProfile) => {
@@ -107,40 +139,72 @@ export const UserManagementPage: React.FC = () => {
     setEditRole(user.role || 'CASHIER');
     setEditPin(user.pin || '1234');
     setEditStatus(user.status || 'Active');
+    setModalError(null);
   };
 
-  const handleSaveUserEdits = () => {
+  const handleSaveUserEdits = async () => {
     if (!editingUser) return;
-    updateUser(editingUser.id, {
-      full_name: editName,
-      role: editRole,
-      pin: editPin,
-      status: editStatus,
-    });
-    setEditingUser(null);
+    try {
+      setIsSubmitting(true);
+      await updateUser(editingUser.id, {
+        full_name: editName.trim(),
+        role: editRole,
+        pin: editPin.trim(),
+        status: editStatus,
+      });
+      setEditingUser(null);
+      showToast('success', 'User account details updated successfully!');
+    } catch (err: any) {
+      console.error('Failed to update user:', err);
+      alert(`Failed to update user: ${err?.message || 'Unknown database error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: UserProfile) => {
+    if (!window.confirm(`Are you sure you want to delete user account "${user.full_name || user.email}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteUser(user.id);
+      showToast('success', `User account "${user.full_name || user.email}" deleted successfully.`);
+    } catch (err: any) {
+      console.error('Failed to delete user:', err);
+      showToast('error', `Failed to delete user: ${err?.message || 'Database error'}`);
+    }
   };
 
   // Shop Outlets Actions
-  const handleCreateShop = (e: React.FormEvent) => {
+  const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newShopName) return;
+    if (!newShopName.trim()) return;
 
-    addShop({
-      organization_id: 'org-footwear-101',
-      name: newShopName,
-      code: newShopCode || `ZAIN-0${shops.length + 1}`,
-      city: newShopCity,
-      phone: newShopPhone,
-      address_line_1: newShopAddress,
-      gstin: newShopGstin,
-      is_active: true,
-    });
+    try {
+      setIsSubmitting(true);
+      await addShop({
+        organization_id: 'a1000000-0000-0000-0000-000000000001',
+        name: newShopName.trim(),
+        code: newShopCode.trim() || `ZAIN-0${shops.length + 1}`,
+        city: newShopCity.trim(),
+        phone: newShopPhone.trim(),
+        address_line_1: newShopAddress.trim(),
+        gstin: newShopGstin.trim(),
+        is_active: true,
+      });
 
-    setIsAddShopModalOpen(false);
-    setNewShopName('');
-    setNewShopCode('');
-    setNewShopPhone('');
-    setNewShopAddress('');
+      setIsAddShopModalOpen(false);
+      setNewShopName('');
+      setNewShopCode('');
+      setNewShopPhone('');
+      setNewShopAddress('');
+      showToast('success', `Store outlet "${newShopName.trim()}" created successfully!`);
+    } catch (err: any) {
+      console.error('Failed to create shop:', err);
+      showToast('error', `Failed to create store outlet: ${err?.message || 'Database error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOpenEditShopModal = (shop: Shop) => {
@@ -153,17 +217,26 @@ export const UserManagementPage: React.FC = () => {
     setEditShopGstin(shop.gstin || '27AAACZ9999F1Z5');
   };
 
-  const handleSaveShopEdits = () => {
+  const handleSaveShopEdits = async () => {
     if (!editingShop) return;
-    updateShop(editingShop.id, {
-      name: editShopName,
-      code: editShopCode,
-      city: editShopCity,
-      phone: editShopPhone,
-      address_line_1: editShopAddress,
-      gstin: editShopGstin,
-    });
-    setEditingShop(null);
+    try {
+      setIsSubmitting(true);
+      await updateShop(editingShop.id, {
+        name: editShopName.trim(),
+        code: editShopCode.trim(),
+        city: editShopCity.trim(),
+        phone: editShopPhone.trim(),
+        address_line_1: editShopAddress.trim(),
+        gstin: editShopGstin.trim(),
+      });
+      setEditingShop(null);
+      showToast('success', `Store details for "${editShopName.trim()}" updated successfully!`);
+    } catch (err: any) {
+      console.error('Failed to update shop:', err);
+      showToast('error', `Failed to update store: ${err?.message || 'Database error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getRoleBadgeStyle = (role?: string) => {
@@ -184,6 +257,32 @@ export const UserManagementPage: React.FC = () => {
   return (
     <PermissionGuard requiredPermission="settings:manage">
       <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
+        {/* TOAST NOTIFICATION */}
+        {toastMsg && (
+          <div
+            className={`p-4 rounded-2xl flex items-center justify-between shadow-lg animate-in slide-in-from-top-2 duration-200 border ${
+              toastMsg.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border-rose-200'
+            }`}
+          >
+            <div className="flex items-center space-x-2 text-xs font-bold">
+              {toastMsg.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              )}
+              <span>{toastMsg.text}</span>
+            </div>
+            <button
+              onClick={() => setToastMsg(null)}
+              className="text-xs font-black opacity-60 hover:opacity-100 transition-opacity ml-4"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* HEADER BAR */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs">
           <div>
@@ -403,7 +502,7 @@ export const UserManagementPage: React.FC = () => {
 
                       {user.role !== 'ADMIN' && (
                         <button
-                          onClick={() => deleteUser(user.id)}
+                          onClick={() => handleDeleteUser(user)}
                           className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition-colors inline-flex items-center gap-1 border border-rose-200"
                         >
                           <Trash2 className="w-3 h-3" /> Delete
@@ -444,6 +543,14 @@ export const UserManagementPage: React.FC = () => {
                     >
                       Edit
                     </button>
+                    {user.role !== 'ADMIN' && (
+                      <button
+                        onClick={() => handleDeleteUser(user)}
+                        className="px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded-lg text-[11px]"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -515,6 +622,7 @@ export const UserManagementPage: React.FC = () => {
                 <h3 className="font-black text-slate-900 text-lg">Create System User Account</h3>
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={() => setIsAddModalOpen(false)}
                   className="text-slate-400 hover:text-slate-600 text-lg font-bold"
                 >
@@ -522,16 +630,24 @@ export const UserManagementPage: React.FC = () => {
                 </button>
               </div>
 
+              {modalError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-bold flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                  <span>{modalError}</span>
+                </div>
+              )}
+
               <div className="space-y-4 text-xs font-semibold text-slate-700">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
+                    disabled={isSubmitting}
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                     placeholder="e.g. Ramesh Kumar"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500 transition-colors"
                   />
                 </div>
 
@@ -541,10 +657,11 @@ export const UserManagementPage: React.FC = () => {
                     <input
                       type="email"
                       required
+                      disabled={isSubmitting}
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
                       placeholder="ramesh@zainfootwear.com"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500 transition-colors"
                     />
                   </div>
 
@@ -553,10 +670,11 @@ export const UserManagementPage: React.FC = () => {
                     <input
                       type="text"
                       maxLength={6}
+                      disabled={isSubmitting}
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value)}
                       placeholder="e.g. 1234"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 text-center"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 text-center focus:outline-none focus:border-orange-500 transition-colors"
                     />
                   </div>
                 </div>
@@ -566,8 +684,9 @@ export const UserManagementPage: React.FC = () => {
                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">System Role *</label>
                     <select
                       value={roleInput}
+                      disabled={isSubmitting}
                       onChange={(e) => setRoleInput(e.target.value as SystemRole)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500 transition-colors"
                     >
                       <option value="ADMIN">ADMIN (Full Access)</option>
                       <option value="MANAGER">MANAGER (Ops & Staff)</option>
@@ -580,8 +699,9 @@ export const UserManagementPage: React.FC = () => {
                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Account Status</label>
                     <select
                       value={statusInput}
+                      disabled={isSubmitting}
                       onChange={(e) => setStatusInput(e.target.value as 'Active' | 'Inactive')}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500 transition-colors"
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Deactivated</option>
@@ -592,9 +712,17 @@ export const UserManagementPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 text-white font-black rounded-2xl text-xs shadow-md transition-all mt-2"
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 disabled:opacity-50 text-white font-black rounded-2xl text-xs shadow-md transition-all mt-2 flex items-center justify-center space-x-2"
               >
-                Create Account & Assign Role
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving User to Database...</span>
+                  </>
+                ) : (
+                  <span>Create Account & Assign Role</span>
+                )}
               </button>
             </form>
           </div>
@@ -661,10 +789,18 @@ export const UserManagementPage: React.FC = () => {
 
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={handleSaveUserEdits}
-                className="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-extrabold rounded-2xl text-xs shadow-md transition-all"
+                className="w-full py-3.5 bg-slate-900 hover:bg-black disabled:opacity-50 text-white font-extrabold rounded-2xl text-xs shadow-md transition-all flex items-center justify-center space-x-2"
               >
-                Save Changes
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving Changes...</span>
+                  </>
+                ) : (
+                  <span>Save Changes</span>
+                )}
               </button>
             </div>
           </div>

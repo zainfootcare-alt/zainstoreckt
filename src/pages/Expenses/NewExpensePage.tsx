@@ -9,14 +9,14 @@ import { ShieldCheck, IndianRupee } from 'lucide-react';
 
 export const NewExpensePage: React.FC = () => {
   const navigate = useNavigate();
-  const { activeShop, organization, recordExpense } = useShop();
+  const { activeShop, organization, recordExpense, paymentAccounts } = useShop();
 
   const [categoryName, setCategoryName] = useState<string>(PREDEFINED_CATEGORIES[0]);
   const [title, setTitle] = useState<string>('');
   const [amount, setAmount] = useState<number>(0.0);
   const [businessDate, setBusinessDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [status, setStatus] = useState<'PAID' | 'UNPAID'>('PAID');
-  const [paymentAccountId, setPaymentAccountId] = useState<string>('acc-bank-04');
+  const [paymentAccountId, setPaymentAccountId] = useState<string>(paymentAccounts[0]?.id || 'd4000000-0000-0000-0000-000000000004');
   const [receiptPath, setReceiptPath] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
@@ -126,12 +126,22 @@ export const NewExpensePage: React.FC = () => {
                 <select
                   value={paymentAccountId}
                   onChange={(e) => setPaymentAccountId(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900"
                 >
-                  <option value="acc-bank-04">HDFC Bank Main Business Account</option>
-                  <option value="acc-cash-01">Main Cash Register Drawer</option>
-                  <option value="acc-upi-02">UPI QR Merchant (PhonePe)</option>
-                  <option value="acc-card-03">HDFC Card POS Swipe Machine</option>
+                  {paymentAccounts.length > 0 ? (
+                    paymentAccounts.map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.name} ({acc.type.toUpperCase()})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="d4000000-0000-0000-0000-000000000004">Main Bank Account (BANK)</option>
+                      <option value="d4000000-0000-0000-0000-000000000001">Cash Counter Register (CASH)</option>
+                      <option value="d4000000-0000-0000-0000-000000000002">UPI / QR (PhonePe/GPay)</option>
+                      <option value="d4000000-0000-0000-0000-000000000003">Card POS Machine</option>
+                    </>
+                  )}
                 </select>
               </div>
             )}
