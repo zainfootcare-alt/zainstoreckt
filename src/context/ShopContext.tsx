@@ -414,9 +414,73 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (activeShop?.id === shopId) setActiveShop(updated);
   };
 
-  const hasPermission = (_permissionKey: string): boolean => {
+  // Role-Based Permissions Matrix
+  const ROLE_PERMISSIONS: Record<ActiveRole, string[]> = {
+    ADMIN: ['*'],
+    MANAGER: [
+      'dashboard:view',
+      'pos:create',
+      'pos:view',
+      'sales:view',
+      'parties:view',
+      'customers:view',
+      'customers:manage',
+      'vendors:view',
+      'vendors:manage',
+      'inventory:view',
+      'inventory:manage',
+      'expenses:view',
+      'expenses:manage',
+      'cash_close:manage',
+      'counter:manage',
+      'staff:view',
+      'reports:view',
+      'todos:view',
+      'todos:manage',
+      'my_attendance:view',
+      'my_attendance:punch',
+    ],
+    CASHIER: [
+      'dashboard:view',
+      'pos:create',
+      'pos:view',
+      'sales:view',
+      'parties:view',
+      'customers:view',
+      'customers:manage',
+      'cash_close:manage',
+      'counter:manage',
+      'my_attendance:view',
+      'my_attendance:punch',
+      'todos:view',
+      'todos:manage',
+    ],
+    FINANCE: [
+      'dashboard:view',
+      'sales:view',
+      'parties:view',
+      'customers:view',
+      'vendors:view',
+      'vendors:manage',
+      'finance:view',
+      'finance:manage',
+      'expenses:view',
+      'expenses:manage',
+      'reports:view',
+      'cash_close:manage',
+      'counter:manage',
+      'todos:view',
+      'todos:manage',
+      'my_attendance:view',
+      'my_attendance:punch',
+    ],
+  };
+
+  const hasPermission = (permissionKey: string): boolean => {
     if (activeRole === 'ADMIN') return true;
-    return true;
+    const allowed = ROLE_PERMISSIONS[activeRole] || [];
+    if (allowed.includes('*')) return true;
+    return allowed.includes(permissionKey);
   };
 
   // ============================================================================

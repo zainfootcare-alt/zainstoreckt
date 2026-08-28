@@ -118,7 +118,7 @@ export const StaffManagementPage: React.FC = () => {
               Attendance Log
             </button>
 
-            {activeRole !== 'CASHIER' && (
+            {activeRole === 'ADMIN' && (
               <button
                 onClick={() => setActiveTab('salary')}
                 className={`px-3.5 py-2 text-xs font-extrabold rounded-xl transition-all ${
@@ -354,7 +354,7 @@ export const StaffManagementPage: React.FC = () => {
         )}
 
         {/* TAB 3: SALARY & PAYROLL */}
-        {activeTab === 'salary' && activeRole !== 'CASHIER' && (
+        {activeTab === 'salary' && activeRole === 'ADMIN' && (
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>

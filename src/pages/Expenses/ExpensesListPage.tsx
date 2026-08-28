@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { Expense } from '../../types/database.types';
+import { PermissionGuard } from '../../components/auth/PermissionGuard';
 
 export const ExpensesListPage: React.FC = () => {
   const { expenses, recordExpense, updateExpense, deleteExpense, activeRole, userProfile } = useShop();
@@ -139,7 +140,8 @@ export const ExpensesListPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
+    <PermissionGuard requiredPermission="expenses:view">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
       {/* 1. TOP HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-2xs">
         <div>
@@ -500,5 +502,6 @@ export const ExpensesListPage: React.FC = () => {
         </div>
       )}
     </div>
+    </PermissionGuard>
   );
 };

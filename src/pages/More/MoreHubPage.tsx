@@ -21,7 +21,7 @@ import {
 import { useShop } from '../../context/ShopContext';
 
 export const MoreHubPage: React.FC = () => {
-  const { activeShop, userProfile, activeRole, logoutUser } = useShop();
+  const { activeShop, userProfile, activeRole, hasPermission, logoutUser } = useShop();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -39,13 +39,15 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/todos',
           icon: CheckSquare,
           color: 'text-orange-600 bg-orange-50',
+          permission: 'todos:view',
         },
         {
-          label: 'Parties & Suppliers (Agra / Kanpur)',
-          desc: 'Wholesale footwear vendors, stock-in & weekly dues',
+          label: activeRole === 'CASHIER' ? 'Customer Udhaar & Khata' : 'Parties & Suppliers (Agra / Kanpur)',
+          desc: activeRole === 'CASHIER' ? 'Customer credit ledger & balance settlements' : 'Wholesale footwear vendors, stock-in & weekly dues',
           path: '/app/parties',
           icon: Truck,
           color: 'text-blue-600 bg-blue-50',
+          permission: 'parties:view',
         },
         {
           label: 'Staff Attendance & Punch Log',
@@ -53,6 +55,7 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/my-attendance',
           icon: Users,
           color: 'text-purple-600 bg-purple-50',
+          permission: 'my_attendance:view',
         },
         {
           label: 'Expenses & Petty Cash',
@@ -60,6 +63,7 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/expenses',
           icon: Receipt,
           color: 'text-amber-600 bg-amber-50',
+          permission: 'expenses:view',
         },
         {
           label: 'Cash Drawer & Shifts',
@@ -67,6 +71,7 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/counter',
           icon: Coins,
           color: 'text-emerald-600 bg-emerald-50',
+          permission: 'cash_close:manage',
         },
       ],
     },
@@ -79,6 +84,7 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/sales',
           icon: History,
           color: 'text-orange-600 bg-orange-50',
+          permission: 'sales:view',
         },
         {
           label: 'Finance & Profit / Loss',
@@ -86,6 +92,7 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/finance',
           icon: DollarSign,
           color: 'text-indigo-600 bg-indigo-50',
+          permission: 'finance:view',
         },
         {
           label: 'Reports & Tax Summary',
@@ -93,6 +100,7 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/reports',
           icon: BarChart3,
           color: 'text-cyan-600 bg-cyan-50',
+          permission: 'reports:view',
         },
       ],
     },
@@ -105,6 +113,7 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/settings',
           icon: Settings,
           color: 'text-slate-600 bg-slate-100',
+          permission: 'settings:manage',
         },
         {
           label: 'Alerts & Notifications',
@@ -112,10 +121,19 @@ export const MoreHubPage: React.FC = () => {
           path: '/app/notifications',
           icon: Bell,
           color: 'text-rose-600 bg-rose-50',
+          permission: 'dashboard:view',
         },
       ],
     },
   ];
+
+  // Filter sections and items based on role permissions
+  const filteredSections = sections
+    .map((sec) => ({
+      ...sec,
+      items: sec.items.filter((item) => !item.permission || hasPermission(item.permission)),
+    }))
+    .filter((sec) => sec.items.length > 0);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-6">
@@ -153,7 +171,7 @@ export const MoreHubPage: React.FC = () => {
 
       {/* Menu Categorized Sections */}
       <div className="space-y-6">
-        {sections.map((sec) => (
+        {filteredSections.map((sec) => (
           <div key={sec.title} className="space-y-2.5">
             <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-1">
               {sec.title}

@@ -42,13 +42,22 @@ export const PartiesListPage: React.FC = () => {
     paymentAccounts,
     userProfile,
     activeRole,
+    hasPermission,
   } = useShop();
 
   const navigate = useNavigate();
   const isAdmin = activeRole === 'ADMIN' || activeRole === 'MANAGER';
+  const canViewVendors = hasPermission('vendors:view');
 
   // Active Sub-tab: 'SUPPLIERS' (Maal Kharid) or 'CUSTOMERS' (Grahak Udhaar)
-  const [activeTab, setActiveTab] = useState<'SUPPLIERS' | 'CUSTOMERS'>('SUPPLIERS');
+  const [activeTab, setActiveTab] = useState<'SUPPLIERS' | 'CUSTOMERS'>(canViewVendors ? 'SUPPLIERS' : 'CUSTOMERS');
+
+  React.useEffect(() => {
+    if (!canViewVendors && activeTab === 'SUPPLIERS') {
+      setActiveTab('CUSTOMERS');
+    }
+  }, [canViewVendors, activeTab]);
+
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modals
@@ -355,7 +364,7 @@ export const PartiesListPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          {activeTab === 'SUPPLIERS' ? (
+          {activeTab === 'SUPPLIERS' && hasPermission('vendors:manage') ? (
             <>
               <button
                 type="button"
@@ -387,31 +396,39 @@ export const PartiesListPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. DUAL SEGMENT TOGGLE TABS (Clean & Minimal) */}
-      <div className="flex bg-slate-100 p-1 rounded-2xl w-full sm:max-w-md border border-slate-200/80">
-        <button
-          type="button"
-          onClick={() => setActiveTab('SUPPLIERS')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'SUPPLIERS'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
-              : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          <Building2 className={`w-4 h-4 flex-shrink-0 ${activeTab === 'SUPPLIERS' ? 'text-orange-600' : 'text-slate-400'}`} />
-          <span className="truncate">Suppliers / Maal Kharid ({vendors.length})</span>
-        </button>
+      {/* 2. DUAL SEGMENT TOGGLE TABS (Clean, Responsive & Perfectly Balanced) */}
+      <div className={`grid ${canViewVendors ? 'grid-cols-2' : 'grid-cols-1'} bg-slate-100 p-1 rounded-2xl w-full sm:max-w-md border border-slate-200/80 gap-1`}>
+        {canViewVendors && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('SUPPLIERS')}
+            className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-w-0 ${
+              activeTab === 'SUPPLIERS'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Building2 className={`w-4 h-4 flex-shrink-0 ${activeTab === 'SUPPLIERS' ? 'text-orange-600' : 'text-slate-400'}`} />
+            <span className="truncate">
+              <span className="sm:hidden">Suppliers ({vendors.length})</span>
+              <span className="hidden sm:inline">Suppliers / Maal Kharid ({vendors.length})</span>
+            </span>
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setActiveTab('CUSTOMERS')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-w-0 ${
             activeTab === 'CUSTOMERS'
               ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           <Users className={`w-4 h-4 flex-shrink-0 ${activeTab === 'CUSTOMERS' ? 'text-indigo-600' : 'text-slate-400'}`} />
-          <span className="truncate">Customer Udhaar ({customers.length})</span>
+          <span className="truncate">
+            <span className="sm:hidden">Customer Udhaar ({customers.length})</span>
+            <span className="hidden sm:inline">Customer Udhaar ({customers.length})</span>
+          </span>
         </button>
       </div>
 

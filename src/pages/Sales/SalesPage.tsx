@@ -157,22 +157,29 @@ export const SalesPage: React.FC = () => {
 
           {/* TAB BUTTONS & CTA */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+            <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto gap-1">
               <button
                 onClick={() => setActiveTab('sales')}
-                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all ${
+                className={`py-2 px-3 text-xs font-extrabold rounded-xl transition-all min-w-0 text-center cursor-pointer ${
                   activeTab === 'sales' ? 'bg-white text-[#ff6600] shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Sales Receipts ({sales.length})
+                <span className="truncate">
+                  <span className="sm:hidden">Sales ({sales.length})</span>
+                  <span className="hidden sm:inline">Sales Receipts ({sales.length})</span>
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab('crm')}
-                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-1.5 ${
+                className={`py-2 px-3 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 min-w-0 cursor-pointer ${
                   activeTab === 'crm' ? 'bg-white text-[#ff6600] shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Users className="w-3.5 h-3.5" /> Customer Database ({customers.length})
+                <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">
+                  <span className="sm:hidden">CRM ({customers.length})</span>
+                  <span className="hidden sm:inline">Customer CRM ({customers.length})</span>
+                </span>
               </button>
             </div>
 

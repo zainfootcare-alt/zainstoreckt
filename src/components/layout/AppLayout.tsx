@@ -16,7 +16,7 @@ import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../common/ZainLogo';
 
 export const AppLayout: React.FC = () => {
-  const { activeShop, userProfile, activeRole, logoutUser } = useShop();
+  const { activeShop, userProfile, activeRole, hasPermission, logoutUser } = useShop();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -193,17 +193,31 @@ export const AppLayout: React.FC = () => {
                       <p className="text-xs font-black text-slate-900 truncate">{userProfile?.full_name || 'Saif'}</p>
                       <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{activeRole}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsUserDropdownOpen(false);
-                        navigate('/app/settings');
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer transition-colors"
-                    >
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Settings & Users</span>
-                    </button>
+                    {hasPermission('settings:manage') ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          navigate('/app/settings');
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer transition-colors"
+                      >
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Settings & Users</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          navigate('/app/my-attendance');
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer transition-colors"
+                      >
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span>My Attendance Punch</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleLogout}
