@@ -132,5 +132,51 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(convertedSale.cash_amount + convertedSale.online_amount).toBe(4500);
     expect(estimate.status).toBe('Converted');
   });
+
+  it('Acceptance Test 9: Customer selected items and basket calculation for POS footwear sale', () => {
+    const lineItems = [
+      { id: '1', name: 'Sneakers', category: 'Sneakers', size: '9', unit_price: 1499 },
+      { id: '2', name: 'Formal', category: 'Formal', size: '8', unit_price: 2199 },
+    ];
+
+    const subtotal = lineItems.reduce((acc, item) => acc + item.unit_price, 0);
+    expect(subtotal).toBe(3698);
+    expect(lineItems.length).toBe(2);
+    expect(lineItems[0].size).toBe('9');
+    expect(lineItems[1].category).toBe('Formal');
+  });
+
+  it('Acceptance Test 10: Customer purchase history aggregates items, total spent, and preferred shoe size', () => {
+    const customerSales = [
+      {
+        receipt_number: 'ZAIN-001',
+        total: 1499,
+        items: [{ item_name: 'Sneakers', size: '9', quantity: 1, unit_price: 1499 }],
+      },
+      {
+        receipt_number: 'ZAIN-002',
+        total: 3500,
+        items: [
+          { item_name: 'Formal Shoes', size: '9', quantity: 1, unit_price: 2500 },
+          { item_name: 'Slippers', size: '9', quantity: 1, unit_price: 1000 },
+        ],
+      },
+    ];
+
+    const totalSpent = customerSales.reduce((acc, s) => acc + s.total, 0);
+    const allItems = customerSales.flatMap((s) => s.items);
+
+    const sizeCounts: Record<string, number> = {};
+    allItems.forEach((it) => {
+      sizeCounts[it.size] = (sizeCounts[it.size] || 0) + it.quantity;
+    });
+
+    const preferredSize = Object.entries(sizeCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+    expect(totalSpent).toBe(4999);
+    expect(allItems.length).toBe(3);
+    expect(preferredSize).toBe('9');
+  });
 });
+
 

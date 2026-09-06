@@ -63,7 +63,9 @@ Instead of overwhelming shop owners with enterprise ERP dashboards and complex c
 ---
 
 ### 2. 🧮 Fullscreen Calculator POS (`/app/pos`)
-* **Optional Customer Quick-Select**: 1-tap dropdown to pick from registered Parties or enter customer name/phone.
+* **Customer Selection & Search**: Search registered Parties by name/phone or 1-tap `[ + Quick Add Customer ]` directly inside POS.
+* **Live Selected Items (Cart Breakdown)**: Clearly see what items are currently selected (Sneakers, Formal, Casuals, Slippers, Boots, Kids), configure UK shoe sizes (6-12, Free Size), duplicate or remove items.
+* **Customer Purchase History & Insights**: Instant visibility into what the customer bought previously (*past receipts, shoe sizes, dates, repeat items*) and their preferred shoe size.
 * **Large Digital Amount Display**: Shows active mathematical expression (e.g. `499 + 799 + 599`) and computed live total (`₹1,897`).
 * **Tactile High-Contrast Keypad**:
   * `[ 7 ] [ 8 ] [ 9 ] [ ÷ ]`
@@ -101,17 +103,13 @@ Instead of overwhelming shop owners with enterprise ERP dashboards and complex c
 * **Receivable / Payable Summary Ribbon**:
   * **You will receive**: `₹5,500` (green)
   * **You will give**: `₹1,500` (slate/rose)
-* **Search Bar**: Prominent search by customer name or phone number.
-* **Party Row Statuses**:
-  * *Rahul Sharma* → `You will receive ₹2,000`
-  * *Amit Patel* → `You will give ₹1,500`
-  * *Neha Verma* → `Settled`
+* **Customer List with Items Summary**: Shows total bills, lifetime spend, and last purchased footwear item (e.g. *Last: Sneakers (Size 9)*) with 1-tap `[ + Sale ]` button.
 * **Party Detail View (`/app/parties/:customerId`)**:
-  * Net Balance card with plain-language status.
-  * Primary Actions: `[ + New Sale ]` & `[ + Receive Payment ]`.
-  * Chronological transaction timeline (`Sale +₹3,000`, `Payment -₹1,000`, `Balance ₹2,000`).
-  * Direct 1-tap WhatsApp balance reminder button.
-  * Receive Payment modal that updates customer balance, creates ledger entry, and credits cash/UPI accounts.
+  * **Net Balance & Insights**: Plain-language balance (*"You will receive ₹2,000"*), total pairs bought, favorite shoe size, and lifetime spend.
+  * **Footwear Purchases Tab**: Itemized history of all shoes bought (Sneakers, Formals, Casuals, Sizes, Prices, Dates, and Invoices).
+  * **Khata Ledger Tab**: Chronological debit/credit running balance entries.
+  * **Primary Actions**: `[ + New Sale for Customer ]` (opens POS with customer pre-selected) & `[ + Receive Payment ]`.
+  * **Receipt View & WhatsApp Reminder**: 1-tap WhatsApp balance reminders and full receipt thermal preview.
 
 ---
 

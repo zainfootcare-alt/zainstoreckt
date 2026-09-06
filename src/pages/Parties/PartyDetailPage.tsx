@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -12,21 +12,29 @@ import {
   Calculator,
   X,
   FileText,
+  ShoppingBag,
+  Footprints,
+  Printer,
+  Sparkles,
+  Tag,
+  Clock,
+  Banknote,
+  Smartphone,
+  ChevronRight,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { SaleRecord } from '../../types/database.types';
 
 export const PartyDetailPage: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
-  const { customers, customerLedgers, recordCustomerPayment } = useShop();
+  const { activeShop, customers, customerLedgers, sales, recordCustomerPayment } = useShop();
   const navigate = useNavigate();
 
   const customer = customers.find((c) => c.id === customerId);
   const ledgerEntries = (customerId && customerLedgers[customerId]) || [];
 
-  // Sort entries descending by date
-  const sortedLedger = [...ledgerEntries].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  // Active Tab: 'PURCHASES' (Footwear Items) vs 'LEDGER' (Khata Entries)
+  const [activeTab, setActiveTab] = useState<'PURCHASES' | 'LEDGER'>('PURCHASES');
 
   // Receive Payment Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
@@ -34,13 +42,71 @@ export const PartyDetailPage: React.FC = () => {
   const [paymentMode, setPaymentMode] = useState<'cash' | 'upi' | 'card' | 'bank'>('cash');
   const [paymentNotes, setPaymentNotes] = useState<string>('');
 
+  // Selected Receipt Modal State
+  const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
+
+  // Sort entries descending by date
+  const sortedLedger = useMemo(() => {
+    return [...ledgerEntries].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [ledgerEntries]);
+
+  // All sales belonging to this customer
+  const customerSales = useMemo(() => {
+    if (!customer) return [];
+    return sales
+      .filter((s) => {
+        if (s.customer_id === customer.id) return true;
+        if (customer.phone && customer.phone !== 'N/A' && s.customer_phone === customer.phone) return true;
+        if (s.customer_name && customer.name && s.customer_name.toLowerCase() === customer.name.toLowerCase()) return true;
+        return false;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [customer, sales]);
+
+  // All individual items ever purchased by this customer
+  const allPurchasedItems = useMemo(() => {
+    return customerSales.flatMap((s) =>
+      (s.items || []).map((it) => ({
+        ...it,
+        receipt_number: s.receipt_number,
+        sale_date: s.created_at,
+        sale_id: s.id,
+      }))
+    );
+  }, [customerSales]);
+
+  // Preferred Shoe Size calculation
+  const preferredSize = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allPurchasedItems.forEach((it) => {
+      if (it.size) {
+        counts[it.size] = (counts[it.size] || 0) + (it.quantity || 1);
+      }
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted.length > 0 ? sorted[0][0] : '8';
+  }, [allPurchasedItems]);
+
+  // Top Footwear Category calculation
+  const topCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allPurchasedItems.forEach((it) => {
+      const name = it.item_name || 'Footwear';
+      counts[name] = (counts[name] || 0) + (it.quantity || 1);
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted.length > 0 ? sorted[0][0] : 'Footwear';
+  }, [allPurchasedItems]);
+
   if (!customer) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center space-y-4">
         <p className="text-sm font-bold text-slate-800">Customer not found</p>
         <button
           onClick={() => navigate('/app/parties')}
-          className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold"
+          className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
         >
           Back to Parties
         </button>
@@ -75,7 +141,21 @@ export const PartyDetailPage: React.FC = () => {
   const getWhatsAppReminderUrl = () => {
     const cleanPhone = (customer.phone || '').replace(/\D/g, '');
     const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const msg = `Dear ${customer.name},\nYour current outstanding balance with Zain Footwear is ₹${currentBalance}.\nPlease make the payment at your earliest convenience.\n\nThank you!`;
+    const msg = `Dear ${customer.name},\nYour current outstanding balance with Zain Footwear is ₹${currentBalance}.\nPlease make the payment at your earliest convenience.\n\nThank you! 👟✨`;
+    return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(msg)}`;
+  };
+
+  // WhatsApp Single Bill Share Link
+  const getWhatsAppBillUrl = (sale: SaleRecord) => {
+    const cleanPhone = (customer.phone || '').replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+    const itemsText = (sale.items || [])
+      .map((it: any, idx: number) => `${idx + 1}. ${it.item_name} - ₹${it.unit_price}`)
+      .join('\n');
+
+    const msg = `*ZAIN FOOTWEAR - BILL RECEIPT*\n--------------------------------\n*Receipt #:* ${sale.receipt_number}\n*Date:* ${new Date(sale.created_at).toLocaleDateString('en-IN')}\n*Store:* ${activeShop?.name || 'Zain Footwear'}\n--------------------------------\n*Items:*\n${itemsText}\n--------------------------------\n*Total Amount:* ₹${sale.total.toLocaleString('en-IN')}\n${sale.due_amount && sale.due_amount > 0 ? `*Balance Due:* ₹${sale.due_amount.toLocaleString('en-IN')}\n` : ''}Thank you for shopping with us! 👟`;
+
     return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -85,7 +165,7 @@ export const PartyDetailPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/app/parties')}
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-2xs"
+          className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-2xs cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>All Parties</span>
@@ -99,7 +179,7 @@ export const PartyDetailPage: React.FC = () => {
             className="flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl shadow-2xs"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span>Send Reminder</span>
+            <span>Send Udhaar Reminder</span>
           </a>
         )}
       </div>
@@ -127,7 +207,7 @@ export const PartyDetailPage: React.FC = () => {
                 <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-0.5">
                   ₹{currentBalance.toLocaleString('en-IN')}
                 </p>
-                <span className="text-xs font-bold text-emerald-600">You will receive</span>
+                <span className="text-xs font-bold text-emerald-600">You will receive (Udhaar)</span>
               </div>
             )}
             {isPayable && (
@@ -147,15 +227,33 @@ export const PartyDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. TWO PRIMARY ACTIONS: + Sale / Give Due vs + Payment / Receive Money */}
+        {/* Footwear Purchase Insights Metric Ribbon */}
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+          <div className="bg-slate-50 p-2.5 rounded-2xl text-center">
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Total Pairs</p>
+            <p className="text-base font-black text-slate-900">{allPurchasedItems.length} Shoes</p>
+          </div>
+          <div className="bg-slate-50 p-2.5 rounded-2xl text-center">
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Fav Size</p>
+            <p className="text-base font-black text-orange-600">UK {preferredSize}</p>
+          </div>
+          <div className="bg-slate-50 p-2.5 rounded-2xl text-center">
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Lifetime Spend</p>
+            <p className="text-base font-black text-emerald-700">
+              ₹{(customer.total_spent || 0).toLocaleString('en-IN')}
+            </p>
+          </div>
+        </div>
+
+        {/* 3. TWO PRIMARY ACTIONS: + New Sale for this Customer vs + Receive Payment */}
         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-          {/* Action 1: New Sale (Give Credit / Sale) */}
+          {/* Action 1: New Sale (Opens POS with this customer pre-selected) */}
           <button
-            onClick={() => navigate('/app/pos')}
-            className="py-3 px-4 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-2xs flex items-center justify-center space-x-2 transition-all"
+            onClick={() => navigate(`/app/pos?customerId=${customer.id}`)}
+            className="py-3 px-4 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-2xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
           >
             <Calculator className="w-4 h-4 text-orange-400" />
-            <span>+ New Sale</span>
+            <span>+ New Sale for {customer.name.split(' ')[0]}</span>
           </button>
 
           {/* Action 2: Record Payment (Receive Money) */}
@@ -164,7 +262,7 @@ export const PartyDetailPage: React.FC = () => {
               if (isReceivable) setPaymentAmount(currentBalance.toString());
               setIsPaymentModalOpen(true);
             }}
-            className="py-3 px-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center space-x-2 transition-all"
+            className="py-3 px-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
           >
             <CreditCard className="w-4 h-4" />
             <span>+ Receive Payment</span>
@@ -172,68 +270,228 @@ export const PartyDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. CHRONOLOGICAL TRANSACTION TIMELINE */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Transaction History</h2>
-          <span className="text-xs text-slate-500 font-semibold">{sortedLedger.length} Entries</span>
-        </div>
+      {/* 4. SUB-TABS: KHAREEDE GAYE ITEMS (PURCHASES) vs KHATA LEDGER */}
+      <div className="flex bg-slate-200/70 p-1 rounded-2xl">
+        <button
+          onClick={() => setActiveTab('PURCHASES')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+            activeTab === 'PURCHASES'
+              ? 'bg-white text-slate-900 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <ShoppingBag className="w-3.5 h-3.5 text-orange-600" />
+          <span>Purchased Footwear & Items ({customerSales.length} Bills • {allPurchasedItems.length} Shoes)</span>
+        </button>
 
-        {sortedLedger.length === 0 ? (
-          <div className="text-center py-10 text-slate-400 text-xs space-y-1">
-            <p className="font-bold text-slate-600">No ledger entries yet</p>
-            <p>Make a sale or receive a payment to start recording history.</p>
+        <button
+          onClick={() => setActiveTab('LEDGER')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+            activeTab === 'LEDGER'
+              ? 'bg-white text-slate-900 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5 text-slate-600" />
+          <span>Khata & Payments ({sortedLedger.length})</span>
+        </button>
+      </div>
+
+      {/* TAB 1: ITEM-BY-ITEM PURCHASE HISTORY */}
+      {activeTab === 'PURCHASES' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+              Footwear Items Purchased by {customer.name}
+            </h2>
+            <span className="text-xs text-slate-500 font-semibold">
+              {customerSales.length} Total Invoices
+            </span>
           </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {sortedLedger.map((entry) => {
-              const isSale = entry.transaction_type === 'SALE' || entry.debit > 0;
-              const isPayment = entry.transaction_type === 'PAYMENT' || entry.credit > 0;
 
-              return (
-                <div key={entry.id} className="py-3.5 flex items-center justify-between first:pt-0 last:pb-0">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs ${
-                        isPayment ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
-                      }`}
-                    >
-                      {isPayment ? '↓' : '↑'}
-                    </div>
+          {customerSales.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 text-xs space-y-2">
+              <ShoppingBag className="w-8 h-8 mx-auto text-slate-300" />
+              <p className="font-bold text-slate-700">No footwear purchases recorded yet</p>
+              <p>Click below to make the first sale for this customer!</p>
+              <button
+                onClick={() => navigate(`/app/pos?customerId=${customer.id}`)}
+                className="mt-2 px-4 py-2 bg-[#ff6600] text-white rounded-xl font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                <span>+ Make Sale Now</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4 divide-y divide-slate-100">
+              {customerSales.map((sale) => (
+                <div key={sale.id} className="pt-4 first:pt-0 space-y-2.5">
+                  <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center space-x-2">
-                        <p className="text-xs font-bold text-slate-900">
-                          {entry.description || (isPayment ? 'Payment Received' : 'Sale on Credit')}
-                        </p>
+                        <span className="font-mono font-black text-sm text-slate-900">
+                          #{sale.receipt_number}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {new Date(sale.created_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        {entry.business_date || entry.created_at.split('T')[0]}
-                        {entry.reference_number ? ` • #${entry.reference_number}` : ''}
-                      </p>
+                      <p className="text-[10px] text-slate-500">Billed by {sale.created_by_name}</p>
+                    </div>
+
+                    <div className="text-right flex items-center space-x-3">
+                      <div>
+                        <p className="text-base font-black text-slate-900 font-mono">
+                          ₹{sale.total.toLocaleString('en-IN')}
+                        </p>
+                        {sale.due_amount && sale.due_amount > 0 ? (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                            ₹{sale.due_amount} Due
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            Paid in Full
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setSelectedReceipt(sale)}
+                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
+                        title="View Full Receipt"
+                      >
+                        <Receipt className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    {isSale && (
-                      <p className="text-xs sm:text-sm font-black text-orange-600">
-                        +₹{entry.debit.toLocaleString('en-IN')}
-                      </p>
+                  {/* Itemized Footwear List in this Bill */}
+                  <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-200/60 space-y-1.5">
+                    {(sale.items || []).map((it: any, itIdx: number) => (
+                      <div
+                        key={itIdx}
+                        className="flex items-center justify-between text-xs font-medium text-slate-800"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Footprints className="w-3.5 h-3.5 text-orange-600" />
+                          <span className="font-bold text-slate-900">
+                            {it.item_name}
+                          </span>
+                          {it.size && (
+                            <span className="px-2 py-0.5 bg-slate-200/80 rounded-md text-[10px] font-black text-slate-800">
+                              Size {it.size}
+                            </span>
+                          )}
+                          {it.quantity > 1 && (
+                            <span className="text-[10px] text-slate-500 font-bold">
+                              × {it.quantity}
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="font-mono font-bold text-slate-900">
+                          ₹{(it.unit_price * (it.quantity || 1)).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* WhatsApp Quick Share & Payment Modes */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <div className="flex items-center space-x-2 text-[11px] text-slate-500">
+                      {sale.cash_amount > 0 && <span>💵 Cash: ₹{sale.cash_amount}</span>}
+                      {sale.online_amount > 0 && <span>📱 Online: ₹{sale.online_amount}</span>}
+                    </div>
+
+                    {customer.phone && customer.phone !== 'N/A' && (
+                      <a
+                        href={getWhatsAppBillUrl(sale)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+                      >
+                        <Share2 className="w-3 h-3" />
+                        <span>Share Receipt</span>
+                      </a>
                     )}
-                    {isPayment && (
-                      <p className="text-xs sm:text-sm font-black text-emerald-600">
-                        -₹{entry.credit.toLocaleString('en-IN')}
-                      </p>
-                    )}
-                    <span className="text-[10px] text-slate-400 font-semibold block">
-                      Bal: ₹{entry.running_balance.toLocaleString('en-IN')}
-                    </span>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: CHRONOLOGICAL TRANSACTION LEDGER */}
+      {activeTab === 'LEDGER' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+              Khata / Ledger History
+            </h2>
+            <span className="text-xs text-slate-500 font-semibold">{sortedLedger.length} Entries</span>
           </div>
-        )}
-      </div>
+
+          {sortedLedger.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 text-xs space-y-1">
+              <p className="font-bold text-slate-600">No ledger entries yet</p>
+              <p>Make a sale or receive a payment to start recording history.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {sortedLedger.map((entry) => {
+                const isSale = entry.transaction_type === 'SALE' || entry.debit > 0;
+                const isPayment = entry.transaction_type === 'PAYMENT' || entry.credit > 0;
+
+                return (
+                  <div key={entry.id} className="py-3.5 flex items-center justify-between first:pt-0 last:pb-0">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs ${
+                          isPayment ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+                        }`}
+                      >
+                        {isPayment ? '↓' : '↑'}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-xs font-bold text-slate-900">
+                            {entry.description || (isPayment ? 'Payment Received' : 'Sale on Credit')}
+                          </p>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                          {entry.business_date || entry.created_at.split('T')[0]}
+                          {entry.reference_number ? ` • #${entry.reference_number}` : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      {isSale && (
+                        <p className="text-xs sm:text-sm font-black text-orange-600">
+                          +₹{entry.debit.toLocaleString('en-IN')}
+                        </p>
+                      )}
+                      {isPayment && (
+                        <p className="text-xs sm:text-sm font-black text-emerald-600">
+                          -₹{entry.credit.toLocaleString('en-IN')}
+                        </p>
+                      )}
+                      <span className="text-[10px] text-slate-400 font-semibold block">
+                        Bal: ₹{entry.running_balance.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 5. RECEIVE PAYMENT MODAL */}
       {isPaymentModalOpen && (
@@ -246,7 +504,7 @@ export const PartyDetailPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsPaymentModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -280,7 +538,7 @@ export const PartyDetailPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setPaymentMode('cash')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors ${
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                       paymentMode === 'cash'
                         ? 'bg-slate-900 text-white border-slate-900'
                         : 'bg-white text-slate-700 border-slate-200'
@@ -291,7 +549,7 @@ export const PartyDetailPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setPaymentMode('upi')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors ${
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                       paymentMode === 'upi'
                         ? 'bg-slate-900 text-white border-slate-900'
                         : 'bg-white text-slate-700 border-slate-200'
@@ -319,18 +577,84 @@ export const PartyDetailPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
-                  className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600"
+                  className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs"
+                  className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
                 >
                   Save Payment
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. FULL RECEIPT DETAILS MODAL */}
+      {selectedReceipt && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-black text-base text-slate-900">Receipt Details</h3>
+                <p className="text-[11px] text-slate-500 font-mono">#{selectedReceipt.receipt_number}</p>
+              </div>
+              <button
+                onClick={() => setSelectedReceipt(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between text-slate-600">
+                <span>Date:</span>
+                <span className="font-bold text-slate-900">
+                  {new Date(selectedReceipt.created_at).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              {/* Items */}
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-1.5">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                  Purchased Items
+                </p>
+                {(selectedReceipt.items || []).map((it, idx) => (
+                  <div key={idx} className="flex justify-between font-semibold text-slate-800">
+                    <span>
+                      {it.item_name} {it.size ? `[Size ${it.size}]` : ''}
+                    </span>
+                    <span className="font-mono font-bold">₹{it.unit_price}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Split */}
+              <div className="pt-2 border-t border-slate-100 flex justify-between font-black text-sm text-slate-900">
+                <span>Total Amount:</span>
+                <span className="font-mono text-[#ff6600]">₹{selectedReceipt.total}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex space-x-2">
+              <button
+                onClick={() => window.print()}
+                className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print</span>
+              </button>
+              <button
+                onClick={() => setSelectedReceipt(null)}
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

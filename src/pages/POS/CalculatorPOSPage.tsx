@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import {
   Plus,
@@ -18,6 +18,18 @@ import {
   ChevronUp,
   Trash2,
   Layers,
+  Search,
+  User,
+  UserPlus,
+  History,
+  ShoppingBag,
+  Tag,
+  Phone,
+  CheckCircle2,
+  X,
+  Footprints,
+  AlertCircle,
+  Copy,
 } from 'lucide-react';
 
 interface PosLineItem {
@@ -29,7 +41,8 @@ interface PosLineItem {
 }
 
 export const CalculatorPOSPage: React.FC = () => {
-  const { activeShop, userProfile, customers, recordSale } = useShop();
+  const { activeShop, userProfile, customers, addCustomer, sales, recordSale } = useShop();
+  const [searchParams] = useSearchParams();
 
   // Wizard Step: 'CALCULATOR' (Step 1) -> 'DETAILS' (Step 2) -> 'PAYMENT' (Step 3) -> 'COMPLETED' (Step 4)
   const [step, setStep] = useState<'CALCULATOR' | 'DETAILS' | 'PAYMENT' | 'COMPLETED'>('CALCULATOR');
@@ -44,6 +57,15 @@ export const CalculatorPOSPage: React.FC = () => {
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
 
+  // CUSTOMER PICKER & HISTORY MODALS
+  const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState<boolean>(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>('');
+  const [isQuickAddCustomerOpen, setIsQuickAddCustomerOpen] = useState<boolean>(false);
+  const [newCustNameInput, setNewCustNameInput] = useState<string>('');
+  const [newCustPhoneInput, setNewCustPhoneInput] = useState<string>('');
+  const [newCustOpeningDueInput, setNewCustOpeningDueInput] = useState<string>('0');
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
+
   // STEP 3: PAYMENT & DISCOUNT STATE
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'ONLINE' | 'SPLIT' | 'CREDIT'>('CASH');
@@ -51,13 +73,25 @@ export const CalculatorPOSPage: React.FC = () => {
   const [onlinePaid, setOnlinePaid] = useState<string>('');
   const [dueAmount, setDueAmount] = useState<string>('');
   const [onlineType, setOnlineType] = useState<'upi' | 'card' | 'bank'>('upi');
-  const [cashTendered, setCashTendered] = useState<string>(''); 
+  const [cashTendered, setCashTendered] = useState<string>('');
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
 
   // STEP 4: COMPLETED SALE STATE
   const [completedSale, setCompletedSale] = useState<any>(null);
-
   const [showThermalPreview, setShowThermalPreview] = useState<boolean>(false);
+
+  // Pre-select customer if customerId or customer_id is provided in URL
+  useEffect(() => {
+    const custIdFromUrl = searchParams.get('customerId') || searchParams.get('customer_id');
+    if (custIdFromUrl) {
+      const matched = customers.find((c) => c.id === custIdFromUrl);
+      if (matched) {
+        setSelectedCustomerId(matched.id);
+        setCustomerName(matched.name);
+        setCustomerPhone(matched.phone || '');
+      }
+    }
+  }, [searchParams, customers]);
 
   // Footwear Categories
   const FOOTWEAR_CATEGORIES = [
@@ -95,7 +129,109 @@ export const CalculatorPOSPage: React.FC = () => {
   const unpaidDifference = Math.max(0, activeSubtotal - totalPaidSoFar);
 
   const shoeCategory = lineItems[0]?.category || 'Footwear';
-  const shoeSize = lineItems.length > 1 ? `${lineItems[0]?.size || '8'} (+${lineItems.length - 1})` : (lineItems[0]?.size || '8');
+  const shoeSize =
+    lineItems.length > 1
+      ? `${lineItems[0]?.size || '8'} (+${lineItems.length - 1})`
+      : lineItems[0]?.size || '8';
+
+  // Find active customer object
+  const activeCustomer = useMemo(() => {
+    if (selectedCustomerId) {
+      return customers.find((c) => c.id === selectedCustomerId) || null;
+    }
+    if (customerPhone && customerPhone.length >= 10) {
+      return customers.find((c) => c.phone.includes(customerPhone.slice(-10))) || null;
+    }
+    if (customerName && customerName.trim() !== '' && customerName !== 'Walk-in Customer') {
+      return customers.find((c) => c.name.toLowerCase() === customerName.trim().toLowerCase()) || null;
+    }
+    return null;
+  }, [selectedCustomerId, customerPhone, customerName, customers]);
+
+  // Customer Sales & Purchase Items History
+  const customerPastSales = useMemo(() => {
+    if (!activeCustomer && !customerPhone) return [];
+    return sales.filter((s) => {
+      if (activeCustomer && s.customer_id === activeCustomer.id) return true;
+      if (activeCustomer && activeCustomer.phone && s.customer_phone === activeCustomer.phone) return true;
+      if (customerPhone && s.customer_phone === customerPhone) return true;
+      return false;
+    });
+  }, [activeCustomer, customerPhone, sales]);
+
+  // Extract all individual items purchased by this customer in past
+  const customerPastItems = useMemo(() => {
+    return customerPastSales.flatMap((s) =>
+      (s.items || []).map((it) => ({
+        ...it,
+        receipt_number: s.receipt_number,
+        sale_date: s.created_at,
+      }))
+    );
+  }, [customerPastSales]);
+
+  // Favorite / Preferred Shoe Size
+  const preferredSize = useMemo(() => {
+    const counts: Record<string, number> = {};
+    customerPastItems.forEach((it) => {
+      if (it.size) {
+        counts[it.size] = (counts[it.size] || 0) + (it.quantity || 1);
+      }
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted.length > 0 ? sorted[0][0] : null;
+  }, [customerPastItems]);
+
+  // Filtered customer list for modal
+  const filteredCustomers = useMemo(() => {
+    const q = customerSearchQuery.toLowerCase().trim();
+    if (!q) return customers.slice(0, 15);
+    return customers.filter((c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)));
+  }, [customerSearchQuery, customers]);
+
+  // Select a customer from picker
+  const handleSelectCustomer = (c: any) => {
+    setSelectedCustomerId(c.id);
+    setCustomerName(c.name);
+    setCustomerPhone(c.phone || '');
+    setIsCustomerPickerOpen(false);
+  };
+
+  // Quick Add Customer directly from POS
+  const handleQuickAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustNameInput.trim()) return;
+
+    try {
+      const created = await addCustomer({
+        organization_id: activeShop?.organization_id || 'org-footwear-101',
+        shop_id: activeShop?.id || 'shop-mumbai-01',
+        name: newCustNameInput.trim(),
+        phone: newCustPhoneInput.trim() || 'N/A',
+        opening_balance: parseFloat(newCustOpeningDueInput) || 0,
+        total_purchases_count: 0,
+        total_spent: 0,
+      });
+
+      setSelectedCustomerId(created.id);
+      setCustomerName(created.name);
+      setCustomerPhone(created.phone || '');
+      setIsQuickAddCustomerOpen(false);
+      setIsCustomerPickerOpen(false);
+      setNewCustNameInput('');
+      setNewCustPhoneInput('');
+      setNewCustOpeningDueInput('0');
+    } catch (err) {
+      console.error('Failed to quick add customer:', err);
+    }
+  };
+
+  // Clear selected customer (revert to Walk-in)
+  const handleClearCustomer = () => {
+    setSelectedCustomerId('');
+    setCustomerName('');
+    setCustomerPhone('');
+  };
 
   const handleSelectFullCash = () => {
     setPaymentMode('CASH');
@@ -165,7 +301,7 @@ export const CalculatorPOSPage: React.FC = () => {
           id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
           name: `Item #${itemIndex}`,
           category: 'Sneakers',
-          size: '8',
+          size: preferredSize || '8',
           unit_price: val,
         };
         setLineItems((prev) => [...prev, newItem]);
@@ -208,6 +344,16 @@ export const CalculatorPOSPage: React.FC = () => {
     setLineItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // Duplicate Line Item
+  const handleDuplicateLineItem = (item: PosLineItem) => {
+    const newItem: PosLineItem = {
+      ...item,
+      id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      name: `Item #${lineItems.length + 1}`,
+    };
+    setLineItems((prev) => [...prev, newItem]);
+  };
+
   // Update Category for specific item
   const updateItemCategory = (itemId: string, newCategory: string) => {
     setLineItems((prev) =>
@@ -234,7 +380,7 @@ export const CalculatorPOSPage: React.FC = () => {
         id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         name: `Item #${itemIndex}`,
         category: 'Sneakers',
-        size: '8',
+        size: preferredSize || '8',
         unit_price: currentVal,
       };
       items.push(newItem);
@@ -274,29 +420,6 @@ export const CalculatorPOSPage: React.FC = () => {
     setStep('PAYMENT');
   };
 
-  // Auto calculate remaining when changing Online input in Split mode
-  const handleOnlineChangeInSplit = (val: string) => {
-    setOnlinePaid(val);
-  };
-
-  // Quick Cash Tender Suggestions
-  const roundToNextHundred = (num: number) => Math.ceil(num / 100) * 100;
-  const roundToNextFiveHundred = (num: number) => Math.ceil(num / 500) * 500;
-
-  const cashSuggestions = Array.from(
-    new Set([
-      netPayable,
-      roundToNextHundred(netPayable),
-      roundToNextFiveHundred(netPayable),
-      2000,
-    ])
-  )
-    .filter((amt) => amt >= netPayable)
-    .slice(0, 4);
-
-  const tenderedVal = parseFloat(cashTendered) || 0;
-  const changeToReturn = tenderedVal >= netPayable ? tenderedVal - netPayable : 0;
-
   // Complete Sale & Store Transaction
   const handleCompleteSale = async () => {
     if (activeSubtotal <= 0) return;
@@ -304,6 +427,26 @@ export const CalculatorPOSPage: React.FC = () => {
     const cashNum = parseFloat(cashPaid) || 0;
     const onlineNum = parseFloat(onlinePaid) || 0;
     const dueNum = parseFloat(dueAmount) || 0;
+
+    let finalCustId = selectedCustomerId;
+
+    // Auto-create customer if typed manually and does not exist yet
+    if (!finalCustId && customerName.trim() && customerName !== 'Walk-in Customer') {
+      try {
+        const created = await addCustomer({
+          organization_id: activeShop?.organization_id || 'org-footwear-101',
+          shop_id: activeShop?.id || 'shop-mumbai-01',
+          name: customerName.trim(),
+          phone: customerPhone.trim() || 'N/A',
+          opening_balance: 0,
+          total_purchases_count: 0,
+          total_spent: 0,
+        });
+        finalCustId = created.id;
+      } catch (err) {
+        console.error('Auto customer creation error:', err);
+      }
+    }
 
     const itemsPayload = lineItems.map((it: any) => ({
       item_name: `${it.category} (Size ${it.size})`,
@@ -320,9 +463,9 @@ export const CalculatorPOSPage: React.FC = () => {
         receipt_number: `ZAIN-${Date.now().toString().slice(-6)}`,
         created_by_user_id: userProfile?.id || '',
         created_by_name: userProfile?.full_name || 'POS Cashier',
-        customer_id: selectedCustomerId || undefined,
-        customer_name: customerName.trim() || undefined,
-        customer_phone: customerPhone.trim() || undefined,
+        customer_id: finalCustId || undefined,
+        customer_name: customerName.trim() || (finalCustId ? activeCustomer?.name : 'Walk-in Customer'),
+        customer_phone: customerPhone.trim() || (finalCustId ? activeCustomer?.phone : undefined),
         subtotal: activeSubtotal,
         discount: discountAmount,
         tax: 0,
@@ -390,7 +533,7 @@ export const CalculatorPOSPage: React.FC = () => {
   };
 
   // =========================================================================
-  // STEP 2: SHOE SIZE & CATEGORY CONFIGURATION (Collapsible Dropdown for Multi-Item)
+  // STEP 2: SHOE SIZE, ITEMS & CUSTOMER STATE (Collapsible Dropdown for Multi-Item)
   // =========================================================================
   if (step === 'DETAILS') {
     return (
@@ -406,7 +549,7 @@ export const CalculatorPOSPage: React.FC = () => {
             <span>Back</span>
           </button>
           <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-            Step 2 • {lineItems.length} Item{lineItems.length === 1 ? '' : 's'} Size & Cat
+            Step 2 • {lineItems.length} Selected Item{lineItems.length === 1 ? '' : 's'} & Customer
           </span>
         </div>
 
@@ -425,10 +568,136 @@ export const CalculatorPOSPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Scrollable Center Content with Collapsible Accordion Cards */}
+        {/* Scrollable Center Content with Selected Items & Customer Profile */}
         <div className="flex-1 flex flex-col space-y-2.5 overflow-y-auto no-scrollbar py-1">
-          {/* ITEMS CONFIGURATION LIST */}
-          <div className="space-y-2.5">
+          {/* CUSTOMER SELECTION & PURCHASE HISTORY PANEL */}
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2.5">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-orange-600" />
+                <span>Customer / Party</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsCustomerPickerOpen(true)}
+                className="text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Search className="w-3 h-3" />
+                <span>{activeCustomer ? 'Change Customer' : 'Select Customer'}</span>
+              </button>
+            </div>
+
+            {/* If Customer is selected */}
+            {activeCustomer ? (
+              <div className="bg-gradient-to-br from-orange-50/60 to-amber-50/40 rounded-xl p-3 border border-orange-200/80 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-extrabold text-sm text-slate-900">{activeCustomer.name}</h4>
+                      {activeCustomer.current_balance !== undefined && activeCustomer.current_balance > 0 ? (
+                        <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
+                          ₹{activeCustomer.current_balance.toLocaleString('en-IN')} Due
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full">
+                          Settled
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-600 flex items-center gap-1 mt-0.5">
+                      <Phone className="w-3 h-3 text-slate-400" />
+                      <span>{activeCustomer.phone || 'No phone'}</span>
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleClearCustomer}
+                    className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                    title="Remove Customer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Customer Purchase Insights & History Quick Summary */}
+                <div className="pt-2 border-t border-orange-200/60 flex items-center justify-between text-[11px]">
+                  <div className="text-slate-700">
+                    <span className="font-bold text-slate-900">{customerPastSales.length}</span> Past Bills •{' '}
+                    <span className="font-bold text-emerald-700">₹{(activeCustomer.total_spent || 0).toLocaleString('en-IN')}</span> Total Spent
+                    {preferredSize && (
+                      <span className="block text-[10px] font-semibold text-orange-700">
+                        👟 Preferred Shoe Size: UK {preferredSize}
+                      </span>
+                    )}
+                  </div>
+
+                  {customerPastSales.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsHistoryModalOpen(true)}
+                      className="px-2.5 py-1 bg-white hover:bg-orange-100 text-orange-800 border border-orange-300 rounded-lg text-[10px] font-bold shadow-2xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <History className="w-3 h-3" />
+                      <span>Past Items ({customerPastItems.length})</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* If no customer selected yet */
+              <div className="space-y-2">
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Customer Name / Mobile (or type to add)"
+                    value={customerPhone ? `${customerName} (${customerPhone})` : customerName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCustomerName(val);
+                      const digits = val.replace(/\D/g, '');
+                      setCustomerPhone(digits.length === 10 ? digits : '');
+                    }}
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomerPickerOpen(true)}
+                    className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <Search className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Search</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                  <span>New or Walk-in customer will be saved automatically</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddCustomerOpen(true)}
+                    className="text-orange-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    <span>+ New Party</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION: SELECTED ITEMS BEING PURCHASED (ABHI KYA KHAREED RAHE HAIN) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <ShoppingBag className="w-3.5 h-3.5 text-slate-600" />
+                <span>Selected Items to Purchase ({lineItems.length})</span>
+              </span>
+              <span className="text-[11px] font-mono font-bold text-orange-600">
+                ₹{calculatedItemsTotal.toLocaleString('en-IN')}
+              </span>
+            </div>
+
+            {/* List of Cart Items */}
             {lineItems.map((item, idx) => {
               const isExpanded = lineItems.length === 1 || expandedItemId === item.id;
 
@@ -437,7 +706,7 @@ export const CalculatorPOSPage: React.FC = () => {
                   key={item.id}
                   className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all"
                 >
-                  {/* Collapsible Header (Click to minimize / maximize) */}
+                  {/* Collapsible Header */}
                   <div
                     onClick={() => {
                       if (lineItems.length > 1) {
@@ -448,55 +717,71 @@ export const CalculatorPOSPage: React.FC = () => {
                       lineItems.length > 1 ? 'cursor-pointer hover:bg-slate-50' : ''
                     } ${isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : ''}`}
                   >
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 font-black text-xs flex items-center justify-center flex-shrink-0 border border-orange-200">
-                        #{idx + 1}
-                      </div>
+                    <div className="flex items-center space-x-2.5 min-w-0">
+                      <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 text-[11px] font-black flex items-center justify-center flex-shrink-0">
+                        {idx + 1}
+                      </span>
                       <div className="min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs sm:text-sm font-black text-slate-900 font-mono">
-                            ₹{item.unit_price.toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-[11px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 truncate">
-                            {item.category} • Size {item.size}
-                          </span>
-                        </div>
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          {item.category} • Size {item.size}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          Footwear #{idx + 1}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-1 flex-shrink-0">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-black text-slate-900 font-mono">
+                        ₹{item.unit_price.toLocaleString('en-IN')}
+                      </span>
+
+                      {/* Duplicate & Delete Buttons */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateLineItem(item);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                        title="Duplicate Item"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+
                       {lineItems.length > 1 && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveLineItem(item.id);
-                              if (lineItems.length <= 2) {
-                                setExpandedItemId(lineItems.find((it) => it.id !== item.id)?.id || null);
-                              }
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Remove item"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          <div className="p-1 text-slate-400">
-                            {isExpanded ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4" />}
-                          </div>
-                        </>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveLineItem(item.id);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Remove Item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {lineItems.length > 1 && (
+                        <div className="text-slate-400">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Collapsible Body (Category & Size Selector for this specific item) */}
+                  {/* Expanded Body: Categories & Sizes */}
                   {isExpanded && (
-                    <div className="p-3 space-y-3 bg-white">
+                    <div className="p-3.5 space-y-3 bg-white animate-in fade-in duration-100">
                       {/* 1. Category Chips */}
                       <div>
-                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1.5">
-                          Select Category
-                        </span>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                            Footwear Type
+                          </span>
+                          <span className="text-xs font-black text-orange-600">{item.category}</span>
+                        </div>
                         <div className="grid grid-cols-4 gap-1.5">
                           {FOOTWEAR_CATEGORIES.map((cat) => (
                             <button
@@ -548,37 +833,6 @@ export const CalculatorPOSPage: React.FC = () => {
               );
             })}
           </div>
-
-          {/* Customer Info Card */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">👤 Customer (Optional)</span>
-              <span className="text-[10px] text-slate-400 font-semibold">For WhatsApp Bill</span>
-            </div>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder="Customer Name / Mobile"
-                value={customerPhone ? `${customerName} (${customerPhone})` : customerName}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setCustomerName(val);
-                  setCustomerPhone(val.replace(/\D/g, '').length === 10 ? val.replace(/\D/g, '') : '');
-                }}
-                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomerName('Walk-in Customer');
-                  setCustomerPhone('');
-                }}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                Walk-in
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Bottom Action */}
@@ -592,6 +846,250 @@ export const CalculatorPOSPage: React.FC = () => {
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>
+
+        {/* MODAL: CUSTOMER SELECTOR PICKER */}
+        {isCustomerPickerOpen && (
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-orange-600" />
+                  <span>Select Customer / Party</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerPickerOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search by name or phone..."
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              {/* Customer List */}
+              <div className="flex-1 overflow-y-auto space-y-1.5 no-scrollbar divide-y divide-slate-100">
+                {filteredCustomers.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-xs">
+                    <p>No customer found matching "{customerSearchQuery}"</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewCustNameInput(customerSearchQuery);
+                        setIsQuickAddCustomerOpen(true);
+                      }}
+                      className="mt-2 text-orange-600 font-bold hover:underline"
+                    >
+                      + Create "{customerSearchQuery}" as New Customer
+                    </button>
+                  </div>
+                ) : (
+                  filteredCustomers.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => handleSelectCustomer(c)}
+                      className="p-2.5 flex items-center justify-between rounded-xl hover:bg-orange-50/70 transition-colors cursor-pointer"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">{c.name}</p>
+                        <p className="text-[11px] font-mono text-slate-500">{c.phone || 'No phone'}</p>
+                      </div>
+                      <div className="text-right">
+                        {c.current_balance !== undefined && c.current_balance > 0 ? (
+                          <span className="text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full block">
+                            ₹{c.current_balance} Due
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black text-emerald-700">Settled</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Bottom Quick Add Action */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClearCustomer();
+                    setIsCustomerPickerOpen(false);
+                  }}
+                  className="text-xs font-bold text-slate-600 hover:text-slate-900"
+                >
+                  Walk-in (No Party)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAddCustomerOpen(true)}
+                  className="px-3 py-2 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Quick Add Customer</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: QUICK ADD CUSTOMER */}
+        {isQuickAddCustomerOpen && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <form
+              onSubmit={handleQuickAddCustomer}
+              className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3.5 shadow-2xl"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-[#ff6600]" />
+                  <span>Add New Customer Party</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAddCustomerOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Imran Khan"
+                  value={newCustNameInput}
+                  onChange={(e) => setNewCustNameInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
+                  10-Digit Mobile / WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 9876543210"
+                  value={newCustPhoneInput}
+                  onChange={(e) => setNewCustPhoneInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
+                  Previous Due / Opening Balance (₹)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={newCustOpeningDueInput}
+                  onChange={(e) => setNewCustOpeningDueInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="pt-2 flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAddCustomerOpen(false)}
+                  className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs"
+                >
+                  Save & Select
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* MODAL: CUSTOMER PAST PURCHASE HISTORY */}
+        {isHistoryModalOpen && activeCustomer && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="font-black text-base text-slate-900">{activeCustomer.name}'s Purchase History</h3>
+                  <p className="text-[11px] text-slate-500">
+                    {customerPastSales.length} Total Bills • {customerPastItems.length} Footwear Items
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Items List */}
+              <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
+                {customerPastSales.map((sale) => (
+                  <div key={sale.id} className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-200">
+                      <div>
+                        <span className="font-mono font-black text-slate-900">#{sale.receipt_number}</span>
+                        <span className="text-[10px] text-slate-500 ml-2">
+                          {new Date(sale.created_at).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                      <span className="font-black text-orange-600 font-mono">
+                        ₹{sale.total.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    {/* Individual Items */}
+                    <div className="space-y-1">
+                      {(sale.items || []).map((it, itIdx) => (
+                        <div key={itIdx} className="flex justify-between items-center text-xs font-semibold text-slate-700">
+                          <span className="truncate pr-2">
+                            • {it.item_name} {it.size ? `[Size ${it.size}]` : ''}
+                          </span>
+                          <span className="font-mono text-slate-900">₹{it.unit_price}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800"
+              >
+                Close History
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -801,7 +1299,7 @@ export const CalculatorPOSPage: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-slate-300 font-medium">
-            {shoeCategory} (Size {shoeSize}) • {customerName || 'Walk-in'}
+            {lineItems.length} Items • {activeCustomer?.name || customerName || 'Walk-in'}
           </p>
         </div>
 
@@ -877,7 +1375,7 @@ export const CalculatorPOSPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowQrModal(true)}
-                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
                   >
                     <QrCode className="w-3 h-3" />
                     <span>Show Store QR</span>
@@ -931,7 +1429,7 @@ export const CalculatorPOSPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDiscountAmount(0)}
-                className="text-slate-400 hover:text-rose-600 text-xs font-bold underline"
+                className="text-slate-400 hover:text-rose-600 text-xs font-bold underline cursor-pointer"
               >
                 Remove
               </button>
@@ -980,16 +1478,6 @@ export const CalculatorPOSPage: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Change return banner if cash paid > payable */}
-          {parseFloat(cashPaid) > (activeSubtotal - discountAmount - (parseFloat(onlinePaid) || 0)) && (
-            <div className="bg-emerald-500 text-white px-4 py-2.5 rounded-2xl flex items-center justify-between font-black text-xs shadow-xs animate-in fade-in">
-              <span>Return Change to Customer:</span>
-              <span className="text-base font-mono">
-                ₹{parseFloat(cashPaid) - Math.max(0, (activeSubtotal - discountAmount - (parseFloat(onlinePaid) || 0)))}
-              </span>
             </div>
           )}
         </div>
@@ -1058,8 +1546,8 @@ export const CalculatorPOSPage: React.FC = () => {
   // =========================================================================
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-[#131417] text-white flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
-      {/* Top Header Bar with Exit Sale & Clear buttons */}
-      <div className="flex items-center justify-between pt-1 pb-2 flex-shrink-0">
+      {/* Top Header Bar with Customer Pill & Exit Sale */}
+      <div className="flex items-center justify-between pt-1 pb-1 flex-shrink-0">
         <Link
           to="/app/dashboard"
           className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
@@ -1068,27 +1556,53 @@ export const CalculatorPOSPage: React.FC = () => {
           <span>Exit Sale</span>
         </Link>
 
-        <div className="flex items-center space-x-2">
-          {lineItems.length > 0 && (
-            <span className="text-[11px] font-bold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full border border-orange-500/20">
-              {lineItems.length} Footwear (₹{calculatedItemsTotal})
-            </span>
+        {/* CUSTOMER SELECTION PILL AT TOP */}
+        <div className="flex items-center space-x-1.5">
+          {activeCustomer ? (
+            <button
+              type="button"
+              onClick={() => setIsCustomerPickerOpen(true)}
+              className="flex items-center space-x-1.5 text-[11px] font-extrabold bg-orange-500/20 text-orange-400 border border-orange-500/40 px-3 py-1.5 rounded-full hover:bg-orange-500/30 transition-all cursor-pointer"
+            >
+              <User className="w-3.5 h-3.5 text-orange-400" />
+              <span className="max-w-[110px] truncate">{activeCustomer.name}</span>
+              {activeCustomer.current_balance !== undefined && activeCustomer.current_balance > 0 && (
+                <span className="text-[9px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-mono">
+                  ₹{activeCustomer.current_balance} Due
+                </span>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCustomerPickerOpen(true)}
+              className="flex items-center space-x-1 text-[11px] font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] border border-white/10 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-orange-400" />
+              <span>+ Customer</span>
+            </button>
           )}
+
           <button
             type="button"
             onClick={() => handleKeypadPress('AC')}
-            className="text-xs font-bold text-slate-400 hover:text-rose-400 px-3 py-1.5 rounded-full bg-[#282a2d] hover:bg-rose-950/40 border border-white/5 transition-colors cursor-pointer"
+            className="text-xs font-bold text-slate-400 hover:text-rose-400 px-2.5 py-1.5 rounded-full bg-[#282a2d] hover:bg-rose-950/40 border border-white/5 transition-colors cursor-pointer"
           >
-            Clear All
+            AC
           </button>
         </div>
       </div>
 
       {/* Android Big Display Screen */}
-      <div className="flex-1 flex flex-col justify-end text-right px-3 py-2 space-y-1 relative overflow-hidden flex-shrink-0">
-        <p className="text-xs sm:text-sm font-mono text-slate-400 tracking-wider min-h-[1.25rem] truncate">
-          {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} item(s) in bill` : ''}
-        </p>
+      <div className="flex-1 flex flex-col justify-end text-right px-3 py-1 space-y-1 relative overflow-hidden flex-shrink-0">
+        <div className="flex items-center justify-between text-xs sm:text-sm font-mono text-slate-400">
+          <span className="text-[11px] font-bold text-slate-500">
+            {activeCustomer ? `Customer: ${activeCustomer.name}` : 'Walk-in'}
+          </span>
+          <p className="tracking-wider truncate">
+            {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} item(s) selected` : '0'}
+          </p>
+        </div>
 
         <div className="flex items-baseline justify-end space-x-2">
           <span className="text-2xl sm:text-3xl font-bold text-[#ff7b00]">₹</span>
@@ -1097,7 +1611,7 @@ export const CalculatorPOSPage: React.FC = () => {
           </span>
         </div>
 
-        {/* Itemized Mini Badges (Chips) */}
+        {/* Selected Items Mini Badges (Chips) */}
         {lineItems.length > 0 && (
           <div className="flex items-center justify-end space-x-1.5 overflow-x-auto py-1 no-scrollbar">
             {lineItems.map((it, idx) => (
@@ -1105,7 +1619,7 @@ export const CalculatorPOSPage: React.FC = () => {
                 key={it.id}
                 className="flex items-center space-x-1 bg-[#282a2d] border border-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-200 flex-shrink-0"
               >
-                <span>#{idx + 1} ₹{it.unit_price}</span>
+                <span>#{idx + 1} {it.category} (Size {it.size}) ₹{it.unit_price}</span>
                 <button
                   type="button"
                   onClick={() => handleRemoveLineItem(it.id)}
@@ -1258,6 +1772,184 @@ export const CalculatorPOSPage: React.FC = () => {
           <ArrowRight className="w-5 h-5" />
         </button>
       </div>
+
+      {/* MODAL: CUSTOMER SELECTOR PICKER (FROM STEP 1) */}
+      {isCustomerPickerOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
+                <User className="w-4 h-4 text-orange-600" />
+                <span>Select Customer / Party</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCustomerPickerOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="Search by name or phone..."
+                value={customerSearchQuery}
+                onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            {/* Customer List */}
+            <div className="flex-1 overflow-y-auto space-y-1.5 no-scrollbar divide-y divide-slate-100">
+              {filteredCustomers.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-xs">
+                  <p>No customer found matching "{customerSearchQuery}"</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCustNameInput(customerSearchQuery);
+                      setIsQuickAddCustomerOpen(true);
+                    }}
+                    className="mt-2 text-orange-600 font-bold hover:underline"
+                  >
+                    + Create "{customerSearchQuery}" as New Customer
+                  </button>
+                </div>
+              ) : (
+                filteredCustomers.map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => handleSelectCustomer(c)}
+                    className="p-2.5 flex items-center justify-between rounded-xl hover:bg-orange-50/70 transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">{c.name}</p>
+                      <p className="text-[11px] font-mono text-slate-500">{c.phone || 'No phone'}</p>
+                    </div>
+                    <div className="text-right">
+                      {c.current_balance !== undefined && c.current_balance > 0 ? (
+                        <span className="text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full block">
+                          ₹{c.current_balance} Due
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black text-emerald-700">Settled</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Bottom Quick Add Action */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  handleClearCustomer();
+                  setIsCustomerPickerOpen(false);
+                }}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+              >
+                Walk-in (No Party)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsQuickAddCustomerOpen(true)}
+                className="px-3 py-2 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Quick Add Customer</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: QUICK ADD CUSTOMER (FROM STEP 1) */}
+      {isQuickAddCustomerOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <form
+            onSubmit={handleQuickAddCustomer}
+            className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3.5 shadow-2xl text-slate-900"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4 text-[#ff6600]" />
+                <span>Add New Customer Party</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsQuickAddCustomerOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
+                Customer Name *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Imran Khan"
+                value={newCustNameInput}
+                onChange={(e) => setNewCustNameInput(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
+                10-Digit Mobile / WhatsApp
+              </label>
+              <input
+                type="tel"
+                placeholder="e.g. 9876543210"
+                value={newCustPhoneInput}
+                onChange={(e) => setNewCustPhoneInput(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
+                Previous Due / Opening Balance (₹)
+              </label>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={newCustOpeningDueInput}
+                onChange={(e) => setNewCustOpeningDueInput(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            <div className="pt-2 flex space-x-2">
+              <button
+                type="button"
+                onClick={() => setIsQuickAddCustomerOpen(false)}
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Save & Select
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
