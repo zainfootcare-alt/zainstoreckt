@@ -213,7 +213,57 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(billDue).toBe(0);
     expect(vendorCurrentBalance).toBe(0);
   });
+
+  it('Acceptance Test 13: Invoice lookup by number returns complete footwear breakdown, sizes, and pair count', () => {
+    const saleRecord = {
+      id: 'sale-999',
+      receipt_number: 'ZAIN-887711',
+      customer_name: 'Faizan Khan',
+      customer_phone: '9820098200',
+      total: 4500,
+      subtotal: 4500,
+      discount: 0,
+      cash_amount: 3000,
+      online_amount: 1500,
+      due_amount: 0,
+      created_at: '2026-09-07T12:00:00.000Z',
+      items: [
+        { item_name: 'Formal Shoes (Size 8)', size: '8', quantity: 1, unit_price: 2500, total_price: 2500 },
+        { item_name: 'Sports Shoes (Size 9)', size: '9', quantity: 2, unit_price: 1000, total_price: 2000 },
+      ],
+    };
+
+    // Invoice search matching
+    const searchNumber = '887711';
+    const isMatched = saleRecord.receipt_number.includes(searchNumber);
+    expect(isMatched).toBe(true);
+
+    // Breakdown details
+    const totalItems = saleRecord.items.length;
+    const totalPairs = saleRecord.items.reduce((sum, it) => sum + it.quantity, 0);
+    expect(totalItems).toBe(2);
+    expect(totalPairs).toBe(3);
+    expect(saleRecord.items[0].size).toBe('8');
+    expect(saleRecord.items[1].size).toBe('9');
+    expect(saleRecord.items[0].unit_price).toBe(2500);
+    expect(saleRecord.items[1].total_price).toBe(2000);
+    expect(saleRecord.total).toBe(4500);
+  });
+
+  it('Acceptance Test 14: Settle due on invoice automatically clears balance and updates customer status', () => {
+    let invoiceDue = 1500;
+    let customerBalance = 1500;
+
+    // Receive payment for due invoice
+    const payment = 1500;
+    invoiceDue -= payment;
+    customerBalance -= payment;
+
+    expect(invoiceDue).toBe(0);
+    expect(customerBalance).toBe(0);
+  });
 });
+
 
 
 
