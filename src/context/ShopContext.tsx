@@ -127,12 +127,29 @@ interface ShopContextType {
     vendor_id: string;
     bill_number: string;
     business_date: string;
+    due_date?: string;
     total: number;
     amount_paid: number;
     payment_account_id?: string;
     invoice_attachment_path?: string;
     notes?: string;
+    items?: Array<{
+      item_name: string;
+      category?: string;
+      size?: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>;
   }) => Promise<Purchase>;
+  payPurchaseDue: (data: {
+    purchase_id: string;
+    vendor_id: string;
+    amount: number;
+    payment_account_id?: string;
+    payment_method: string;
+    notes?: string;
+  }) => Promise<VendorPayment>;
   recordVendorPayment: (paymentData: {
     vendor_id: string;
     amount_paid: number;
@@ -670,14 +687,23 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     vendor_id: string;
     bill_number: string;
     business_date: string;
+    due_date?: string;
     total: number;
     amount_paid: number;
     payment_account_id?: string;
     invoice_attachment_path?: string;
     notes?: string;
+    items?: Array<{
+      item_name: string;
+      category?: string;
+      size?: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>;
   }): Promise<Purchase> => {
     const vendor = vendors.find((v) => v.id === purchaseData.vendor_id);
-    const balanceDue = purchaseData.total - purchaseData.amount_paid;
+    const balanceDue = Math.max(0, purchaseData.total - purchaseData.amount_paid);
     const recDate = purchaseData.business_date || new Date().toISOString().split('T')[0];
 
     const newPurchase = await purchasesService.create({
@@ -687,8 +713,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       vendor_name: vendor?.name || '',
       bill_number: purchaseData.bill_number,
       business_date: recDate,
-      due_date: recDate,
-      entry_type: 'amount_only',
+      due_date: purchaseData.due_date || recDate,
+      entry_type: purchaseData.items && purchaseData.items.length > 0 ? 'itemized' : 'amount_only',
       subtotal: purchaseData.total,
       transport_charges: 0,
       tax: 0,
@@ -704,12 +730,21 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       is_voided: false,
     });
 
-    setPurchases((prev) => [newPurchase, ...prev]);
+    const purchaseWithItems: Purchase = {
+      ...newPurchase,
+      items: purchaseData.items || [],
+    };
+
+    setPurchases((prev) => [purchaseWithItems, ...prev]);
 
     if (vendor) {
       const newCurrentBal = vendor.current_balance + balanceDue;
       await vendorsService.update(vendor.id, { current_balance: newCurrentBal });
       setVendors((prev) => prev.map((v) => (v.id === vendor.id ? { ...v, current_balance: newCurrentBal, updated_at: new Date().toISOString() } : v)));
+
+      const itemsDesc = purchaseData.items && purchaseData.items.length > 0
+        ? ` (${purchaseData.items.map(it => `${it.item_name}${it.size ? ` Size ${it.size}` : ''}`).join(', ')})`
+        : '';
 
       const entry = await vendorLedgerService.addEntry({
         organization_id: ORG_ID,
@@ -720,7 +755,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         debit: 0,
         credit: purchaseData.total,
         running_balance: newCurrentBal,
-        description: `Purchase Bill #${purchaseData.bill_number}${purchaseData.notes ? ` - ${purchaseData.notes}` : ''}`,
+        description: `Purchase Bill #${purchaseData.bill_number}${itemsDesc}${purchaseData.notes ? ` - ${purchaseData.notes}` : ''}`,
       });
 
       setVendorLedgers((prev) => ({
@@ -729,7 +764,90 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }));
     }
 
-    return newPurchase;
+    return purchaseWithItems;
+  };
+
+  const payPurchaseDue = async (data: {
+    purchase_id: string;
+    vendor_id: string;
+    amount: number;
+    payment_account_id?: string;
+    payment_method: string;
+    notes?: string;
+  }): Promise<VendorPayment> => {
+    const purchase = purchases.find((p) => p.id === data.purchase_id);
+    const vendor = vendors.find((v) => v.id === data.vendor_id);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const account = paymentAccounts.find((a) => a.id === data.payment_account_id);
+    const previousOutstanding = vendor?.current_balance || 0;
+    const remainingOutstanding = Math.max(0, previousOutstanding - data.amount);
+
+    const newPayment = await vendorPaymentsService.create({
+      organization_id: ORG_ID,
+      shop_id: SHOP_ID,
+      vendor_id: data.vendor_id,
+      vendor_name: vendor?.name || '',
+      payment_date: todayStr,
+      previous_outstanding: previousOutstanding,
+      amount_paid: data.amount,
+      remaining_outstanding: remainingOutstanding,
+      payment_account_id: data.payment_account_id || paymentAccounts[0]?.id || '',
+      payment_account_name: account?.name || 'Cash Register',
+      payment_method: data.payment_method,
+      reference_notes: data.notes || `Paid Due for Bill #${purchase?.bill_number || ''}`,
+    });
+
+    setVendorPayments((prev) => [newPayment, ...prev]);
+
+    if (purchase) {
+      const newPaid = (purchase.amount_paid || 0) + data.amount;
+      const newBalanceDue = Math.max(0, purchase.total - newPaid);
+      const newStatus = newBalanceDue === 0 ? 'PAID' : 'PARTIAL';
+
+      await purchasesService.update(purchase.id, {
+        amount_paid: newPaid,
+        balance_due: newBalanceDue,
+        payment_status: newStatus,
+      });
+
+      setPurchases((prev) =>
+        prev.map((p) =>
+          p.id === purchase.id
+            ? { ...p, amount_paid: newPaid, balance_due: newBalanceDue, payment_status: newStatus }
+            : p
+        )
+      );
+    }
+
+    if (vendor) {
+      await vendorsService.update(vendor.id, { current_balance: remainingOutstanding });
+      setVendors((prev) =>
+        prev.map((v) =>
+          v.id === vendor.id
+            ? { ...v, current_balance: remainingOutstanding, updated_at: new Date().toISOString() }
+            : v
+        )
+      );
+
+      const entry = await vendorLedgerService.addEntry({
+        organization_id: ORG_ID,
+        vendor_id: vendor.id,
+        transaction_type: 'PAYMENT',
+        reference_number: purchase?.bill_number || `PAY-${Date.now().toString().slice(-4)}`,
+        business_date: todayStr,
+        debit: data.amount,
+        credit: 0,
+        running_balance: remainingOutstanding,
+        description: data.notes || `Paid Due for Bill #${purchase?.bill_number || ''} via ${data.payment_method.toUpperCase()}`,
+      });
+
+      setVendorLedgers((prev) => ({
+        ...prev,
+        [vendor.id]: [...(prev[vendor.id] || []), entry],
+      }));
+    }
+
+    return newPayment;
   };
 
   const recordVendorPayment = async (paymentData: {
@@ -1070,6 +1188,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         recordCustomerPayment,
 
         recordPurchase,
+        payPurchaseDue,
         recordVendorPayment,
         recordExpense,
         updateExpense,

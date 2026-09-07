@@ -518,21 +518,33 @@ export const PartiesListPage: React.FC = () => {
               const due = vendor.current_balance || 0;
               const hasDue = due > 0;
 
+              const vendorPurchases = purchases.filter((p) => p.vendor_id === vendor.id);
+
               return (
                 <div
                   key={vendor.id}
                   className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors"
                 >
-                  <div className="flex items-start space-x-3.5 min-w-0">
+                  <div
+                    onClick={() => navigate(`/app/vendors/${vendor.id}`)}
+                    className="flex items-start space-x-3.5 min-w-0 cursor-pointer flex-1"
+                  >
                     <div className="w-11 h-11 rounded-2xl bg-orange-50 text-orange-700 border border-orange-200 font-black text-sm flex items-center justify-center flex-shrink-0">
                       {vendor.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center space-x-2">
-                        <p className="text-sm font-black text-slate-900 truncate">{vendor.name}</p>
+                        <p className="text-sm font-black text-slate-900 truncate hover:text-orange-600 transition-colors">
+                          {vendor.name}
+                        </p>
                         {vendor.city && (
                           <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
                             📍 {vendor.city}
+                          </span>
+                        )}
+                        {vendorPurchases.length > 0 && (
+                          <span className="text-[10px] font-bold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">
+                            {vendorPurchases.length} Invoices
                           </span>
                         )}
                       </div>
@@ -573,16 +585,27 @@ export const PartiesListPage: React.FC = () => {
 
                     <div className="flex items-center space-x-1.5">
                       <button
-                        onClick={() => {
-                          setSelectedVendorForPayment(vendor);
-                          setPaymentAmount(due > 0 ? due.toString() : '');
-                          setIsPayVendorModalOpen(true);
-                        }}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
+                        onClick={() => navigate(`/app/vendors/${vendor.id}`)}
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
+                        title="View Purchase Invoices & Items"
                       >
-                        <DollarSign className="w-3.5 h-3.5" />
-                        <span>Pay</span>
+                        <FileText className="w-3.5 h-3.5 text-orange-400" />
+                        <span>Invoices</span>
                       </button>
+
+                      {hasDue && (
+                        <button
+                          onClick={() => {
+                            setSelectedVendorForPayment(vendor);
+                            setPaymentAmount(due.toString());
+                            setIsPayVendorModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
+                        >
+                          <DollarSign className="w-3.5 h-3.5" />
+                          <span>Pay Due</span>
+                        </button>
+                      )}
 
                       {vendor.phone && (
                         <a

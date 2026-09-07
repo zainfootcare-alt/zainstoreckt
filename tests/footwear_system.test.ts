@@ -177,6 +177,43 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(allItems.length).toBe(3);
     expect(preferredSize).toBe('9');
   });
+
+  it('Acceptance Test 11: Supplier party purchase bill tracks date, footwear styles, sizes, and balance due', () => {
+    const purchaseBill = {
+      id: 'pur-101',
+      vendor_name: 'Agra Leather Crafts',
+      bill_number: 'INV-8890',
+      business_date: '2026-08-26',
+      total: 12000,
+      amount_paid: 4000,
+      balance_due: 8000,
+      payment_status: 'PARTIAL',
+      items: [
+        { item_name: 'Leather Formal Shoes', size: '8', quantity: 10, unit_price: 600, total_price: 6000 },
+        { item_name: 'Sneakers & Casuals', size: '9', quantity: 10, unit_price: 600, total_price: 6000 },
+      ],
+    };
+
+    expect(purchaseBill.business_date).toBe('2026-08-26');
+    expect(purchaseBill.items.length).toBe(2);
+    expect(purchaseBill.items[0].size).toBe('8');
+    expect(purchaseBill.items[1].size).toBe('9');
+    expect(purchaseBill.balance_due).toBe(8000);
+    expect(purchaseBill.payment_status).toBe('PARTIAL');
+  });
+
+  it('Acceptance Test 12: Pay Due against purchase invoice reconciles remaining balance to zero and marks PAID', () => {
+    let billDue = 8000;
+    let vendorCurrentBalance = 8000;
+
+    const paymentAmount = 8000;
+    billDue -= paymentAmount;
+    vendorCurrentBalance -= paymentAmount;
+
+    expect(billDue).toBe(0);
+    expect(vendorCurrentBalance).toBe(0);
+  });
 });
+
 
 

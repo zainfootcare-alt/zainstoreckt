@@ -339,6 +339,17 @@ export interface PurchaseOrder {
   vendor_name?: string;
 }
 
+export interface PurchaseItem {
+  id?: string;
+  purchase_id?: string;
+  item_name: string;
+  category?: string;
+  size?: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
 export interface Purchase {
   id: string;
   organization_id: string;
@@ -366,6 +377,7 @@ export interface Purchase {
   created_at: string;
   updated_at: string;
   vendor_name?: string;
+  items?: PurchaseItem[];
 }
 
 export interface Employee {

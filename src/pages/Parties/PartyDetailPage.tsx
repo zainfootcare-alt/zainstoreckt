@@ -343,8 +343,8 @@ export const PartyDetailPage: React.FC = () => {
                       <p className="text-[10px] text-slate-500">Billed by {sale.created_by_name}</p>
                     </div>
 
-                    <div className="text-right flex items-center space-x-3">
-                      <div>
+                    <div className="text-right flex items-center space-x-2">
+                      <div className="mr-1">
                         <p className="text-base font-black text-slate-900 font-mono">
                           ₹{sale.total.toLocaleString('en-IN')}
                         </p>
@@ -358,6 +358,20 @@ export const PartyDetailPage: React.FC = () => {
                           </span>
                         )}
                       </div>
+
+                      {sale.due_amount && sale.due_amount > 0 && (
+                        <button
+                          onClick={() => {
+                            setPaymentAmount(sale.due_amount!.toString());
+                            setPaymentNotes(`Payment for Bill #${sale.receipt_number}`);
+                            setIsPaymentModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Pay Due</span>
+                        </button>
+                      )}
 
                       <button
                         onClick={() => setSelectedReceipt(sale)}
