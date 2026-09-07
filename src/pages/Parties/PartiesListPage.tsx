@@ -1054,8 +1054,8 @@ export const PartiesListPage: React.FC = () => {
       {/* MODAL: ADMIN EDIT CUSTOMER KHATA */}
       {/* ========================================================================= */}
       {isEditCustomerModalOpen && selectedCustForEdit && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
                 <Edit className="w-5 h-5 text-indigo-500" />
@@ -1264,8 +1264,8 @@ export const PartiesListPage: React.FC = () => {
       {/* MODAL: PAY SUPPLIER & SEND WHATSAPP RECEIPT */}
       {/* ========================================================================= */}
       {isPayVendorModalOpen && selectedVendorForPayment && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-black text-base text-slate-900">Record Payment to Party</h3>
@@ -1349,8 +1349,8 @@ export const PartiesListPage: React.FC = () => {
       {/* MODAL: ADD CUSTOMER UDHAAR */}
       {/* ========================================================================= */}
       {isAddCustomerModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-base text-slate-900">Add Customer for Udhaar</h3>
               <button

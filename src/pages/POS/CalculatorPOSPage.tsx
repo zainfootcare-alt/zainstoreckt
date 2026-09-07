@@ -956,8 +956,8 @@ export const CalculatorPOSPage: React.FC = () => {
 
         {/* MODAL: CUSTOMER SELECTOR PICKER */}
         {isCustomerPickerOpen && (
-          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-sm w-full p-4 sm:p-5 space-y-4 shadow-2xl max-h-[90dvh] flex flex-col">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
                   <User className="w-4 h-4 text-orange-600" />
@@ -1053,10 +1053,10 @@ export const CalculatorPOSPage: React.FC = () => {
 
         {/* MODAL: QUICK ADD CUSTOMER */}
         {isQuickAddCustomerOpen && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
             <form
               onSubmit={handleQuickAddCustomer}
-              className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3.5 shadow-2xl"
+              className="bg-white rounded-3xl max-w-sm w-full p-4 sm:p-5 space-y-3.5 shadow-2xl max-h-[90dvh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                 <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
@@ -1134,8 +1134,8 @@ export const CalculatorPOSPage: React.FC = () => {
 
         {/* MODAL: CUSTOMER PAST PURCHASE HISTORY */}
         {isHistoryModalOpen && activeCustomer && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-5 space-y-4 shadow-2xl max-h-[90dvh] flex flex-col">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="font-black text-base text-slate-900">{activeCustomer.name}'s Purchase History</h3>
@@ -1337,8 +1337,8 @@ export const CalculatorPOSPage: React.FC = () => {
 
         {/* Thermal Print Modal */}
         {showThermalPreview && (
-          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90dvh] overflow-y-auto">
               <div className="text-center border-b border-dashed border-slate-300 pb-3">
                 <h3 className="font-black text-lg text-slate-900 tracking-tight">ZAIN FOOTWEAR</h3>
                 <p className="text-xs text-slate-600">{activeShop?.address_line_1 || 'Main Market Road, Mumbai'}</p>
@@ -1672,8 +1672,8 @@ export const CalculatorPOSPage: React.FC = () => {
 
         {/* Live PhonePe & BHIM UPI Store QR Modal */}
         {showQrModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-xs w-full p-5 space-y-3 shadow-2xl text-center">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-xs w-full p-4 sm:p-5 space-y-3 shadow-2xl text-center max-h-[90dvh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <span className="text-xs font-black text-slate-900">Scan & Pay via UPI</span>
                 <span className="text-sm font-black font-mono text-orange-600">
@@ -1975,8 +1975,8 @@ export const CalculatorPOSPage: React.FC = () => {
 
       {/* MODAL: CUSTOMER SELECTOR PICKER (FROM STEP 1) */}
       {isCustomerPickerOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-4 sm:p-5 space-y-4 shadow-2xl max-h-[90dvh] flex flex-col text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
                 <User className="w-4 h-4 text-orange-600" />
