@@ -404,6 +404,23 @@ CREATE TABLE IF NOT EXISTS public.estimates (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- CUSTOMER DEMANDS / OUT OF STOCK WISHLIST
+CREATE TABLE IF NOT EXISTS public.customer_demands (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
+    shop_id UUID REFERENCES public.shops(id) ON DELETE CASCADE,
+    item_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    size VARCHAR(50),
+    customer_name VARCHAR(255),
+    customer_phone VARCHAR(50),
+    expected_budget NUMERIC(10, 2) DEFAULT 0.00,
+    notes TEXT,
+    status VARCHAR(50) DEFAULT 'PENDING',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ============================================================================
 -- 4. ROW LEVEL SECURITY (RLS) POLICIES (Safe Drop & Create)
 -- ============================================================================
@@ -428,6 +445,7 @@ ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.salary_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.estimates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_demands ENABLE ROW LEVEL SECURITY;
 
 DO $$ 
 DECLARE
@@ -438,7 +456,7 @@ BEGIN
       'organizations', 'shops', 'user_profiles', 'payment_accounts', 'cash_sessions',
       'customers', 'customer_ledger_entries', 'sales', 'sale_items', 'sale_payments',
       'vendors', 'purchases', 'vendor_ledger_entries', 'vendor_payments', 'expenses',
-      'employees', 'attendance_records', 'salary_payments', 'todos', 'estimates'
+      'employees', 'attendance_records', 'salary_payments', 'todos', 'estimates', 'customer_demands'
     ])
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS "Allow all for anon" ON public.%I;', tbl);

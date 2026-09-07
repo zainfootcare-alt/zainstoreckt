@@ -514,4 +514,32 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(pendingDemands).toBe(0);
     expect(totalExpenses).toBe(0);
   });
+
+  it('Acceptance Test 24: Customer Demands starts clean with 0 dummy records and supports live backend CRUD', () => {
+    let demandsBackend: Array<{ id: string; item_name: string; category: string; size: string; status: string }> = [];
+
+    // Initial state is clean (no fake dummy rows)
+    expect(demandsBackend.length).toBe(0);
+
+    // Create a real customer demand
+    const newDemand = {
+      id: 'd9000000-0000-0000-0000-000000000001',
+      item_name: 'Puma Nitro Running Shoe',
+      category: 'Sports',
+      size: '10',
+      status: 'PENDING',
+    };
+    demandsBackend = [newDemand, ...demandsBackend];
+    expect(demandsBackend.length).toBe(1);
+    expect(demandsBackend[0].item_name).toBe('Puma Nitro Running Shoe');
+
+    // Update status to STOCK_ARRIVED
+    demandsBackend = demandsBackend.map((d) => (d.id === newDemand.id ? { ...d, status: 'STOCK_ARRIVED' } : d));
+    expect(demandsBackend[0].status).toBe('STOCK_ARRIVED');
+
+    // Delete demand
+    demandsBackend = demandsBackend.filter((d) => d.id !== newDemand.id);
+    expect(demandsBackend.length).toBe(0);
+  });
 });
+

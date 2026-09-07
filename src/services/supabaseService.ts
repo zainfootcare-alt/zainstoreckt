@@ -969,56 +969,8 @@ export const orgService = {
 };
 
 // ============================================================================
-// CUSTOMER DEMANDS / OUT OF STOCK WISHLIST
+// CUSTOMER DEMANDS / OUT OF STOCK WISHLIST (Connected to Supabase)
 // ============================================================================
-
-export const DEFAULT_DEMANDS: CustomerDemand[] = [
-  {
-    id: 'dem-01',
-    organization_id: ORG_ID,
-    shop_id: SHOP_ID,
-    item_name: 'Nike Dunk Low Panda (Black/White)',
-    category: 'Sneakers',
-    size: '9',
-    customer_name: 'Adnan Shaikh',
-    customer_phone: '9820098200',
-    expected_budget: 2500,
-    notes: 'Needs urgently for weekend event',
-    status: 'PENDING',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'dem-02',
-    organization_id: ORG_ID,
-    shop_id: SHOP_ID,
-    item_name: 'Tan Leather Formal Loafer',
-    category: 'Formal',
-    size: '8',
-    customer_name: 'Vikram Mehta',
-    customer_phone: '9876543210',
-    expected_budget: 1800,
-    notes: 'Prefers genuine leather sole',
-    status: 'ORDERED_FROM_SUPPLIER',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'dem-03',
-    organization_id: ORG_ID,
-    shop_id: SHOP_ID,
-    item_name: 'Nike Dunk Low Panda (Black/White)',
-    category: 'Sneakers',
-    size: '9',
-    customer_name: 'Imran Ansari',
-    customer_phone: '9811223344',
-    expected_budget: 2400,
-    notes: '2nd customer asking for same shoe today',
-    status: 'PENDING',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
 
 export const demandsService = {
   async getAll(): Promise<CustomerDemand[]> {
@@ -1028,22 +980,66 @@ export const demandsService = {
         .select('*')
         .eq('organization_id', ORG_ID)
         .order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) return data;
+
+      if (!error && data) {
+        // Keep offline cache synced with backend
+        try {
+          localStorage.setItem('zain_customer_demands', JSON.stringify(data));
+        } catch {}
+        return data;
+      }
     } catch (e) {
-      console.warn('Using local fallback for customer demands:', e);
+      console.warn('Supabase customer demands fetch fallback:', e);
     }
-    const local = localStorage.getItem('zain_customer_demands');
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch {}
-    }
-    localStorage.setItem('zain_customer_demands', JSON.stringify(DEFAULT_DEMANDS));
-    return DEFAULT_DEMANDS;
+
+    // Offline fallback cache (filter out any old dummy data if previously present)
+    try {
+      const local = localStorage.getItem('zain_customer_demands');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((d: any) => d && typeof d.id === 'string' && !d.id.startsWith('dem-0'));
+        }
+      }
+    } catch {}
+
+    return [];
   },
 
   async create(demandData: Omit<CustomerDemand, 'id' | 'created_at' | 'updated_at'>): Promise<CustomerDemand> {
-    const newDemand: CustomerDemand = {
+    const cleanDemandPayload = {
+      organization_id: ORG_ID,
+      shop_id: SHOP_ID,
+      item_name: demandData.item_name.trim(),
+      category: demandData.category.trim(),
+      size: demandData.size?.trim() || '',
+      customer_name: demandData.customer_name?.trim() || '',
+      customer_phone: demandData.customer_phone?.trim() || '',
+      expected_budget: Number(demandData.expected_budget) || 0,
+      notes: demandData.notes?.trim() || '',
+      status: demandData.status || 'PENDING',
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('customer_demands')
+        .insert(cleanDemandPayload)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const current = await this.getAll();
+        try {
+          localStorage.setItem('zain_customer_demands', JSON.stringify([data, ...current.filter((d) => d.id !== data.id)]));
+        } catch {}
+        return data;
+      }
+    } catch (err) {
+      console.warn('Supabase insert customer demand fallback to local:', err);
+    }
+
+    // Local fallback if Supabase is offline
+    const localDemand: CustomerDemand = {
       ...demandData,
       id: `dem_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       organization_id: ORG_ID,
@@ -1052,44 +1048,40 @@ export const demandsService = {
       updated_at: new Date().toISOString(),
     };
 
-    try {
-      const { data, error } = await supabase
-        .from('customer_demands')
-        .insert(newDemand)
-        .select()
-        .single();
-      if (!error && data) {
-        // sync to local
-        const current = await this.getAll();
-        localStorage.setItem('zain_customer_demands', JSON.stringify([data, ...current.filter((d) => d.id !== data.id)]));
-        return data;
-      }
-    } catch {}
-
     const current = await this.getAll();
-    const updated = [newDemand, ...current];
-    localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
-    return newDemand;
+    const updated = [localDemand, ...current];
+    try {
+      localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
+    } catch {}
+    return localDemand;
   },
 
   async update(demandId: string, updates: Partial<CustomerDemand>): Promise<void> {
     const updatedPayload = { ...updates, updated_at: new Date().toISOString() };
     try {
       await supabase.from('customer_demands').update(updatedPayload).eq('id', demandId);
-    } catch {}
+    } catch (err) {
+      console.warn('Supabase update customer demand fallback:', err);
+    }
 
-    const current = await this.getAll();
-    const updated = current.map((d) => (d.id === demandId ? { ...d, ...updatedPayload } : d));
-    localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
+    try {
+      const current = await this.getAll();
+      const updated = current.map((d) => (d.id === demandId ? { ...d, ...updatedPayload } : d));
+      localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
+    } catch {}
   },
 
   async remove(demandId: string): Promise<void> {
     try {
       await supabase.from('customer_demands').delete().eq('id', demandId);
-    } catch {}
+    } catch (err) {
+      console.warn('Supabase delete customer demand fallback:', err);
+    }
 
-    const current = await this.getAll();
-    const updated = current.filter((d) => d.id !== demandId);
-    localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
+    try {
+      const current = await this.getAll();
+      const updated = current.filter((d) => d.id !== demandId);
+      localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
+    } catch {}
   },
 };
