@@ -94,6 +94,24 @@ export interface TodoItem {
   updated_at: string;
 }
 
+export interface CustomerDemand {
+  id: string;
+  organization_id: string;
+  shop_id?: string;
+  item_name: string; // e.g. "Nike Air Jordan 1 Low", "Brown Leather Formal Loafer"
+  category: string; // "Sneakers", "Formal Shoes", "Casuals", "Slippers", "Sandals", "Boots", "Kids"
+  size?: string; // "6", "7", "8", "9", "10", "11", "12"
+  customer_name: string;
+  customer_phone: string;
+  expected_budget?: number;
+  notes?: string;
+  status: 'PENDING' | 'ORDERED_FROM_SUPPLIER' | 'STOCK_ARRIVED' | 'NOTIFIED' | 'FULFILLED' | 'CANCELLED';
+  created_by_user_id?: string;
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;

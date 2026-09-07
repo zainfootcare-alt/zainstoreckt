@@ -25,7 +25,7 @@ import { InvoiceDetailModal } from '../../components/common/InvoiceDetailModal';
 import { AdminFinanceChartCard } from '../../components/dashboard/AdminFinanceChartCard';
 
 export const DashboardPage: React.FC = () => {
-  const { sales, activeRole } = useShop();
+  const { sales, customerDemands, activeRole } = useShop();
   const navigate = useNavigate();
   const isAdmin = activeRole === 'ADMIN';
 

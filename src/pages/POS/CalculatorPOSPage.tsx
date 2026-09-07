@@ -27,12 +27,11 @@ import {
   Phone,
   CheckCircle2,
   X,
-  Footprints,
-  AlertCircle,
-  Copy,
   MapPin,
   Navigation,
+  FileQuestion,
 } from 'lucide-react';
+import { DemandLogModal } from '../../components/common/DemandLogModal';
 
 interface PosLineItem {
   id: string;
@@ -62,6 +61,7 @@ export const CalculatorPOSPage: React.FC = () => {
   const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
   const [isProcessingSale, setIsProcessingSale] = useState(false);
   const [duplicateWarningSale, setDuplicateWarningSale] = useState<any | null>(null);
+  const [isDemandModalOpen, setIsDemandModalOpen] = useState(false);
 
   // Wizard Step: 'CALCULATOR' (Step 1) -> 'DETAILS' (Step 2) -> 'PAYMENT' (Step 3) -> 'COMPLETED' (Step 4)
   const [step, setStep] = useState<'CALCULATOR' | 'DETAILS' | 'PAYMENT' | 'COMPLETED'>('CALCULATOR');
@@ -1744,8 +1744,20 @@ export const CalculatorPOSPage: React.FC = () => {
           )}
         </div>
 
-        {/* CUSTOMER SELECTION PILL AT TOP */}
+        {/* CUSTOMER SELECTION & OUT OF STOCK DEMAND PILLS AT TOP */}
         <div className="flex items-center space-x-1.5">
+          {/* Quick Out of Stock Demand Log Button */}
+          <button
+            type="button"
+            onClick={() => setIsDemandModalOpen(true)}
+            className="flex items-center space-x-1 text-[11px] font-bold text-amber-300 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-700/60 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
+            title="Customer asking for shoe not in stock? Log Demand"
+          >
+            <FileQuestion className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Out of Stock</span>
+            <span className="sm:hidden">Demand</span>
+          </button>
+
           {activeCustomer ? (
             <button
               type="button"
@@ -1753,7 +1765,7 @@ export const CalculatorPOSPage: React.FC = () => {
               className="flex items-center space-x-1.5 text-[11px] font-extrabold bg-orange-500/20 text-orange-400 border border-orange-500/40 px-3 py-1.5 rounded-full hover:bg-orange-500/30 transition-all cursor-pointer"
             >
               <User className="w-3.5 h-3.5 text-orange-400" />
-              <span className="max-w-[110px] truncate">{activeCustomer.name}</span>
+              <span className="max-w-[100px] truncate">{activeCustomer.name}</span>
               {activeCustomer.current_balance !== undefined && activeCustomer.current_balance > 0 && (
                 <span className="text-[9px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-mono">
                   ₹{activeCustomer.current_balance} Due
@@ -1767,14 +1779,14 @@ export const CalculatorPOSPage: React.FC = () => {
               className="flex items-center space-x-1 text-[11px] font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] border border-white/10 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5 text-orange-400" />
-              <span>+ Customer</span>
+              <span>+ Cust</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={() => handleKeypadPress('AC')}
-            className="text-xs font-bold text-slate-400 hover:text-rose-400 px-2.5 py-1.5 rounded-full bg-[#282a2d] hover:bg-rose-950/40 border border-white/5 transition-colors cursor-pointer"
+            className="text-xs font-bold text-slate-400 hover:text-rose-400 px-2 py-1.5 rounded-full bg-[#282a2d] hover:bg-rose-950/40 border border-white/5 transition-colors cursor-pointer"
           >
             AC
           </button>
@@ -2138,6 +2150,11 @@ export const CalculatorPOSPage: React.FC = () => {
           </form>
         </div>
       )}
+      {/* MODAL: QUICK OUT OF STOCK DEMAND LOG */}
+      <DemandLogModal
+        isOpen={isDemandModalOpen}
+        onClose={() => setIsDemandModalOpen(false)}
+      />
     </div>
   );
 };

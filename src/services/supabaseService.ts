@@ -24,6 +24,7 @@ import type {
   AttendanceRecord,
   SalaryPayment,
   TodoItem,
+  CustomerDemand,
   PaymentAccount,
   CashSession,
 } from '../types/database.types';
@@ -922,5 +923,131 @@ export const orgService = {
       .eq('id', SHOP_ID)
       .single();
     return data || null;
+  },
+};
+
+// ============================================================================
+// CUSTOMER DEMANDS / OUT OF STOCK WISHLIST
+// ============================================================================
+
+export const DEFAULT_DEMANDS: CustomerDemand[] = [
+  {
+    id: 'dem-01',
+    organization_id: ORG_ID,
+    shop_id: SHOP_ID,
+    item_name: 'Nike Dunk Low Panda (Black/White)',
+    category: 'Sneakers',
+    size: '9',
+    customer_name: 'Adnan Shaikh',
+    customer_phone: '9820098200',
+    expected_budget: 2500,
+    notes: 'Needs urgently for weekend event',
+    status: 'PENDING',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'dem-02',
+    organization_id: ORG_ID,
+    shop_id: SHOP_ID,
+    item_name: 'Tan Leather Formal Loafer',
+    category: 'Formal',
+    size: '8',
+    customer_name: 'Vikram Mehta',
+    customer_phone: '9876543210',
+    expected_budget: 1800,
+    notes: 'Prefers genuine leather sole',
+    status: 'ORDERED_FROM_SUPPLIER',
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'dem-03',
+    organization_id: ORG_ID,
+    shop_id: SHOP_ID,
+    item_name: 'Nike Dunk Low Panda (Black/White)',
+    category: 'Sneakers',
+    size: '9',
+    customer_name: 'Imran Ansari',
+    customer_phone: '9811223344',
+    expected_budget: 2400,
+    notes: '2nd customer asking for same shoe today',
+    status: 'PENDING',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+export const demandsService = {
+  async getAll(): Promise<CustomerDemand[]> {
+    try {
+      const { data, error } = await supabase
+        .from('customer_demands')
+        .select('*')
+        .eq('organization_id', ORG_ID)
+        .order('created_at', { ascending: false });
+      if (!error && data && data.length > 0) return data;
+    } catch (e) {
+      console.warn('Using local fallback for customer demands:', e);
+    }
+    const local = localStorage.getItem('zain_customer_demands');
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch {}
+    }
+    localStorage.setItem('zain_customer_demands', JSON.stringify(DEFAULT_DEMANDS));
+    return DEFAULT_DEMANDS;
+  },
+
+  async create(demandData: Omit<CustomerDemand, 'id' | 'created_at' | 'updated_at'>): Promise<CustomerDemand> {
+    const newDemand: CustomerDemand = {
+      ...demandData,
+      id: `dem_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      organization_id: ORG_ID,
+      shop_id: SHOP_ID,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('customer_demands')
+        .insert(newDemand)
+        .select()
+        .single();
+      if (!error && data) {
+        // sync to local
+        const current = await this.getAll();
+        localStorage.setItem('zain_customer_demands', JSON.stringify([data, ...current.filter((d) => d.id !== data.id)]));
+        return data;
+      }
+    } catch {}
+
+    const current = await this.getAll();
+    const updated = [newDemand, ...current];
+    localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
+    return newDemand;
+  },
+
+  async update(demandId: string, updates: Partial<CustomerDemand>): Promise<void> {
+    const updatedPayload = { ...updates, updated_at: new Date().toISOString() };
+    try {
+      await supabase.from('customer_demands').update(updatedPayload).eq('id', demandId);
+    } catch {}
+
+    const current = await this.getAll();
+    const updated = current.map((d) => (d.id === demandId ? { ...d, ...updatedPayload } : d));
+    localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
+  },
+
+  async remove(demandId: string): Promise<void> {
+    try {
+      await supabase.from('customer_demands').delete().eq('id', demandId);
+    } catch {}
+
+    const current = await this.getAll();
+    const updated = current.filter((d) => d.id !== demandId);
+    localStorage.setItem('zain_customer_demands', JSON.stringify(updated));
   },
 };

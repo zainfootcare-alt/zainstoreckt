@@ -24,9 +24,9 @@ import {
   SalaryPayment,
   SaleRecord,
   CashSession,
-  Customer,
   CustomerLedgerEntry,
   TodoItem,
+  CustomerDemand,
 } from '../types/database.types';
 import {
   authService,
@@ -44,6 +44,7 @@ import {
   attendanceService,
   salaryService,
   todosService,
+  demandsService,
   paymentAccountsService,
   cashSessionService,
   orgService,
@@ -110,7 +111,12 @@ interface ShopContextType {
   attendance: AttendanceRecord[];
   salaryPayments: SalaryPayment[];
   todos: TodoItem[];
+  customerDemands: CustomerDemand[];
   activeCashSession: CashSession | null;
+
+  addCustomerDemand: (demandData: Omit<CustomerDemand, 'id' | 'created_at' | 'updated_at'>) => Promise<CustomerDemand>;
+  updateCustomerDemand: (demandId: string, updates: Partial<CustomerDemand>) => Promise<void>;
+  deleteCustomerDemand: (demandId: string) => Promise<void>;
 
   recordSale: (saleData: Omit<SaleRecord, 'id' | 'created_at'>) => Promise<SaleRecord>;
   deleteSale: (saleId: string) => Promise<void>;
@@ -239,6 +245,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [salaryPayments, setSalaryPayments] = useState<SalaryPayment[]>([]);
   const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [customerDemands, setCustomerDemands] = useState<CustomerDemand[]>([]);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [activeCashSession, setActiveCashSession] = useState<CashSession | null>(null);
 
@@ -343,6 +350,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         attendanceData,
         salaryData,
         todosData,
+        demandsData,
         paymentAccountsData,
         activeCashData,
       ] = await Promise.all([
@@ -361,11 +369,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         attendanceService.getAll(),
         salaryService.getAll(),
         todosService.getAll(),
+        demandsService.getAll(),
         paymentAccountsService.getAll(),
         cashSessionService.getActive(),
       ]);
 
       if (orgData) setOrganization(orgData);
+      if (demandsData) setCustomerDemands(demandsData);
       if (shopData && shopData.length > 0) {
         setShops(shopData);
         setActiveShop(shopData[0]);
@@ -1318,6 +1328,26 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // ============================================================================
+  // Customer Demands & Out of Stock Wishlist
+  // ============================================================================
+
+  const addCustomerDemand = async (demandData: Omit<CustomerDemand, 'id' | 'created_at' | 'updated_at'>): Promise<CustomerDemand> => {
+    const newDemand = await demandsService.create(demandData);
+    setCustomerDemands((prev) => [newDemand, ...prev.filter((d) => d.id !== newDemand.id)]);
+    return newDemand;
+  };
+
+  const updateCustomerDemand = async (demandId: string, updates: Partial<CustomerDemand>): Promise<void> => {
+    await demandsService.update(demandId, updates);
+    setCustomerDemands((prev) => prev.map((d) => (d.id === demandId ? { ...d, ...updates, updated_at: new Date().toISOString() } : d)));
+  };
+
+  const deleteCustomerDemand = async (demandId: string): Promise<void> => {
+    await demandsService.remove(demandId);
+    setCustomerDemands((prev) => prev.filter((d) => d.id !== demandId));
+  };
+
+  // ============================================================================
   // Cash Sessions
   // ============================================================================
 
@@ -1416,7 +1446,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         attendance,
         salaryPayments,
         todos,
+        customerDemands,
         activeCashSession,
+
+        addCustomerDemand,
+        updateCustomerDemand,
+        deleteCustomerDemand,
 
         recordSale,
         deleteSale,

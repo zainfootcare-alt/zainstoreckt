@@ -23,6 +23,7 @@ import { ProfitLossPage } from './pages/Finance/ProfitLossPage';
 import { StaffManagementPage } from './pages/Staff/StaffManagementPage';
 import { MyAttendancePage } from './pages/Staff/MyAttendancePage';
 import { TodoPage } from './pages/Todo/TodoPage';
+import { CustomerDemandsPage } from './pages/Demands/CustomerDemandsPage';
 import { UserManagementPage } from './pages/Settings/UserManagementPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { NotificationsPage } from './pages/Notifications/NotificationsPage';
@@ -43,6 +44,7 @@ export const App: React.FC = () => {
             <Route path="parties/:customerId" element={<PartyDetailPage />} />
             <Route path="pos" element={<CalculatorPOSPage />} />
             <Route path="todos" element={<TodoPage />} />
+            <Route path="demands" element={<CustomerDemandsPage />} />
             <Route path="more" element={<MoreHubPage />} />
 
             {/* SECONDARY WORKING MODULES (ACCESSIBLE VIA MORE & DEEP LINKS) */}
