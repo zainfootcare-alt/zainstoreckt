@@ -211,6 +211,30 @@ export const DashboardPage: React.FC = () => {
       {/* 2.5. ADMIN COMPACT FINANCE & EXPENSE UTILIZATION TRACKER */}
       {isAdmin && <AdminFinanceChartCard />}
 
+      {/* 2.8. CUSTOMER DEMANDS / OUT OF STOCK WISHLIST BANNER */}
+      <Link
+        to="/app/demands"
+        className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white p-3.5 sm:p-4 rounded-3xl shadow-sm flex items-center justify-between gap-3 hover:brightness-105 transition-all group"
+      >
+        <div className="flex items-center space-x-3 min-w-0">
+          <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <ShoppingBag className="w-5 h-5 text-white" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-black text-white">Customer Demands & Out of Stock Book</span>
+              <span className="text-[10px] bg-white text-orange-700 font-extrabold px-2 py-0.2 rounded-full">
+                {customerDemands.filter((d) => d.status === 'PENDING').length} Waiting
+              </span>
+            </div>
+            <p className="text-[11px] text-white/90 truncate">
+              Kitne logo ne konsa saman manga jo dukan me nahi tha • Track sizes & WhatsApp numbers
+            </p>
+          </div>
+        </div>
+        <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform flex-shrink-0" />
+      </Link>
+
       {/* 3. QUICK INVOICE SEARCH & LOOKUP BAR */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-3.5 sm:p-4 shadow-xs">
         <form onSubmit={handleQuickInvoiceSubmit} className="flex items-center gap-2">

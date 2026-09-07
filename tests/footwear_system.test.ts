@@ -457,6 +457,49 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(salaryPct).toBe(23);
     expect(opsPct).toBe(8);
   });
+
+  it('Acceptance Test 22: Customer Demand Book aggregates identical out-of-stock items and counts frequency', () => {
+    const demandsList = [
+      {
+        id: 'dem-1',
+        item_name: 'Nike Dunk Low Panda',
+        category: 'Sneakers',
+        size: '9',
+        customer_name: 'Adnan Shaikh',
+        customer_phone: '9820098200',
+        status: 'PENDING',
+      },
+      {
+        id: 'dem-2',
+        item_name: 'Nike Dunk Low Panda',
+        category: 'Sneakers',
+        size: '9',
+        customer_name: 'Imran Ansari',
+        customer_phone: '9811223344',
+        status: 'PENDING',
+      },
+      {
+        id: 'dem-3',
+        item_name: 'Tan Leather Formal Loafer',
+        category: 'Formal',
+        size: '8',
+        customer_name: 'Vikram Mehta',
+        customer_phone: '9876543210',
+        status: 'ORDERED_FROM_SUPPLIER',
+      },
+    ];
+
+    // Grouping by item_name + size + category
+    const counts: Record<string, number> = {};
+    demandsList.forEach((d) => {
+      const key = `${d.item_name}_${d.size}_${d.category}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    expect(counts['Nike Dunk Low Panda_9_Sneakers']).toBe(2); // Requested twice
+    expect(counts['Tan Leather Formal Loafer_8_Formal']).toBe(1); // Requested once
+    expect(demandsList.length).toBe(3);
+  });
 });
 
 

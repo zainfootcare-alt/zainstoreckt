@@ -17,6 +17,7 @@ import {
   Bell,
   Coins,
   CheckSquare,
+  ShoppingBag,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 
@@ -33,6 +34,14 @@ export const MoreHubPage: React.FC = () => {
     {
       title: 'Operations',
       items: [
+        {
+          label: 'Customer Demands Book',
+          desc: 'Out of stock customer wishlist & demand frequency',
+          path: '/app/demands',
+          icon: ShoppingBag,
+          color: 'text-orange-600 bg-orange-50',
+          permission: 'pos:create',
+        },
         {
           label: 'Daily To-Do & Self Growth',
           desc: 'Shop priorities, supplier payout reminders & goals',
