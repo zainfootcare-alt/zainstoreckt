@@ -246,14 +246,14 @@ export const AppLayout: React.FC = () => {
         )}
 
         {/* MAIN OUTLET (Full-width / responsive container) */}
-        <main className={`flex-1 overflow-y-auto ${isPosPage ? 'p-0 pb-0' : 'pb-20 lg:pb-6'}`}>
+        <main className={`flex-1 overflow-y-auto ${isPosPage ? 'p-0 pb-0' : 'pb-28 lg:pb-8'}`}>
           <Outlet />
         </main>
       </div>
 
       {/* MOBILE / TABLET BOTTOM NAVIGATION BAR (Hidden on full-screen POS) */}
       {!isPosPage && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-1.5 z-40 flex items-center justify-around shadow-lg">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-3 py-1.5 z-40 flex items-center justify-around shadow-lg pb-[max(0.6rem,env(safe-area-inset-bottom))]">
           {primaryNavItems.map((item) => {
             const active = isCurrentActive(item);
             const Icon = item.icon;
@@ -263,12 +263,12 @@ export const AppLayout: React.FC = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="flex flex-col items-center justify-center -mt-5"
+                  className="flex flex-col items-center justify-center -mt-4 px-1"
                 >
-                  <div className="w-12 h-12 rounded-full bg-[#ff6600] text-white flex items-center justify-center shadow-lg shadow-orange-500/30 active:scale-95 transition-transform border-2 border-white">
-                    <Icon className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-2xl bg-[#ff6600] text-white flex items-center justify-center shadow-md shadow-orange-500/30 active:scale-95 transition-transform border-2 border-white">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-extrabold text-[#ff6600] mt-0.5">Sale</span>
+                  <span className="text-[10px] font-black text-[#ff6600] mt-0.5">Sale</span>
                 </Link>
               );
             }
@@ -277,12 +277,12 @@ export const AppLayout: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center justify-center py-1 px-3 rounded-lg min-w-[56px] transition-colors ${
-                  active ? 'text-[#ff6600] font-bold' : 'text-slate-500 font-medium hover:text-slate-800'
+                className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl min-w-[50px] transition-all ${
+                  active ? 'text-[#ff6600] font-black' : 'text-slate-500 font-semibold hover:text-slate-800'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${active ? 'text-[#ff6600]' : 'text-slate-500'}`} />
-                <span className="text-[10px] mt-0.5">{item.label}</span>
+                <Icon className={`w-5 h-5 ${active ? 'text-[#ff6600]' : 'text-slate-400'}`} />
+                <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
               </Link>
             );
           })}

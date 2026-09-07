@@ -575,18 +575,18 @@ export const PartiesListPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end space-x-3 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
-                    <div className="text-left sm:text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Balance Due</p>
-                      <p className={`text-base sm:text-lg font-black font-mono ${hasDue ? 'text-rose-700' : 'text-emerald-700'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
+                    <div className="flex items-center justify-between sm:block text-left sm:text-right">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase sm:block">Balance Due</span>
+                      <span className={`text-sm sm:text-base font-black font-mono ${hasDue ? 'text-rose-700' : 'text-emerald-700'}`}>
                         ₹{due.toLocaleString('en-IN')}
-                      </p>
+                      </span>
                     </div>
 
-                    <div className="flex items-center space-x-1.5">
+                    <div className="flex items-center flex-wrap gap-1.5">
                       <button
                         onClick={() => navigate(`/app/vendors/${vendor.id}`)}
-                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
+                        className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
                         title="View Purchase Invoices & Items"
                       >
                         <FileText className="w-3.5 h-3.5 text-orange-400" />
@@ -600,7 +600,7 @@ export const PartiesListPage: React.FC = () => {
                             setPaymentAmount(due.toString());
                             setIsPayVendorModalOpen(true);
                           }}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
+                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center space-x-1"
                         >
                           <DollarSign className="w-3.5 h-3.5" />
                           <span>Pay Due</span>
@@ -612,10 +612,10 @@ export const PartiesListPage: React.FC = () => {
                           href={getSupplierWhatsAppUrl(vendor)}
                           target="_blank"
                           rel="noreferrer"
-                          className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition-colors"
+                          className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition-colors flex items-center justify-center"
                           title="WhatsApp Supplier"
                         >
-                          <Send className="w-4 h-4" />
+                          <Send className="w-3.5 h-3.5" />
                         </a>
                       )}
 
@@ -624,14 +624,14 @@ export const PartiesListPage: React.FC = () => {
                         <>
                           <button
                             onClick={() => handleOpenEditVendor(vendor)}
-                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
                             title="Edit Party Details"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteVendor(vendor)}
-                            className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-colors cursor-pointer"
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-colors cursor-pointer"
                             title="Delete Party"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

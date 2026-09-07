@@ -157,71 +157,59 @@ export const CustomerDemandsPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 font-sans">
-      {/* 1. TOP HEADER & PRIMARY ACTION */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-xs">
-        <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <ShoppingBag className="w-6 h-6 text-orange-600" />
-              <span>Customer Demand Book</span>
-            </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-              Out of Stock Wishlist
-            </span>
+    <div className="max-w-4xl mx-auto px-3.5 sm:px-6 py-3.5 sm:py-6 space-y-3.5 sm:space-y-5 font-sans">
+      {/* 1. TOP HEADER */}
+      <div className="flex items-center justify-between gap-2 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
+        <div className="flex items-center space-x-2 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
+            <ShoppingBag className="w-4 h-4" />
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Track unstocked items asked by walk-in customers • Kitni baar kitne logo ne manga
-          </p>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight truncate">
+              Demand Book
+            </h1>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Out-of-Stock Wishlist</p>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => setIsLogModalOpen(true)}
-          className="flex items-center justify-center space-x-2 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white px-4 py-3 rounded-2xl font-black text-xs sm:text-sm shadow-md shadow-orange-500/25 transition-all cursor-pointer"
+          className="flex items-center justify-center space-x-1.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white px-3 py-2 rounded-xl font-bold text-xs shadow-2xs transition-all cursor-pointer flex-shrink-0"
         >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>+ Log Customer Demand</span>
+          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+          <span>+ Log Demand</span>
         </button>
       </div>
 
       {/* 2. SUMMARY COUNTER TILES */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Demands</p>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+          <p className="text-[10px] font-bold text-slate-400 uppercase">Total Items</p>
+          <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono mt-0.5">
             {customerDemands.length}
           </p>
-          <p className="text-[10px] text-slate-500 font-medium">Unique Customer Inquiries</p>
         </div>
 
-        <div className="bg-orange-50/80 p-3.5 sm:p-4 rounded-2xl border border-orange-200/80 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold text-orange-800 uppercase tracking-wider">Top In-Demand</p>
-            <Flame className="w-4 h-4 text-orange-600 animate-bounce" />
-          </div>
-          <p className="text-sm sm:text-base font-black text-orange-950 truncate">
-            {topDemand ? topDemand.item_name : 'No Demands Yet'}
-          </p>
-          <p className="text-[10px] text-orange-700 font-bold">
-            {topDemand ? `🔥 Requested ${topDemand.count} Times` : '0 requests'}
+        <div className="bg-orange-50/80 p-3 rounded-xl border border-orange-200/80 shadow-2xs">
+          <p className="text-[10px] font-bold text-orange-800 uppercase">Top Requested</p>
+          <p className="text-xs sm:text-sm font-black text-orange-950 truncate mt-0.5">
+            {topDemand ? topDemand.item_name : 'None yet'}
           </p>
         </div>
 
-        <div className="bg-amber-50/80 p-3.5 sm:p-4 rounded-2xl border border-amber-200/80 shadow-2xs space-y-1">
-          <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Pending Stock</p>
-          <p className="text-2xl sm:text-3xl font-black text-amber-950 font-mono">
+        <div className="bg-amber-50/80 p-3 rounded-xl border border-amber-200/80 shadow-2xs">
+          <p className="text-[10px] font-bold text-amber-800 uppercase">Pending Stock</p>
+          <p className="text-xl sm:text-2xl font-black text-amber-950 font-mono mt-0.5">
             {pendingCount}
           </p>
-          <p className="text-[10px] text-amber-700 font-medium">Waiting for supplier arrival</p>
         </div>
 
-        <div className="bg-emerald-50/80 p-3.5 sm:p-4 rounded-2xl border border-emerald-200/80 shadow-2xs space-y-1">
-          <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Fulfilled / Stock In</p>
-          <p className="text-2xl sm:text-3xl font-black text-emerald-950 font-mono">
+        <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200/80 shadow-2xs">
+          <p className="text-[10px] font-bold text-emerald-800 uppercase">Fulfilled</p>
+          <p className="text-xl sm:text-2xl font-black text-emerald-950 font-mono mt-0.5">
             {fulfilledCount}
           </p>
-          <p className="text-[10px] text-emerald-700 font-medium">Customers notified & sold</p>
         </div>
       </div>
 

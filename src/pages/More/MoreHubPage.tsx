@@ -35,32 +35,28 @@ export const MoreHubPage: React.FC = () => {
       title: 'Operations',
       items: [
         {
-          label: 'Customer Demands Book',
-          desc: 'Out of stock customer wishlist & demand frequency',
+          label: 'Customer Demand Book',
           path: '/app/demands',
           icon: ShoppingBag,
           color: 'text-orange-600 bg-orange-50',
           permission: 'pos:create',
         },
         {
-          label: 'Daily To-Do & Self Growth',
-          desc: 'Shop priorities, supplier payout reminders & goals',
+          label: 'Daily To-Do Tasks',
           path: '/app/todos',
           icon: CheckSquare,
-          color: 'text-orange-600 bg-orange-50',
+          color: 'text-emerald-600 bg-emerald-50',
           permission: 'todos:view',
         },
         {
-          label: activeRole === 'CASHIER' ? 'Customer Udhaar & Khata' : 'Parties & Suppliers (Agra / Kanpur)',
-          desc: activeRole === 'CASHIER' ? 'Customer credit ledger & balance settlements' : 'Wholesale footwear vendors, stock-in & weekly dues',
+          label: 'Parties & Suppliers',
           path: '/app/parties',
           icon: Truck,
           color: 'text-blue-600 bg-blue-50',
           permission: 'parties:view',
         },
         {
-          label: 'Staff Attendance & Punch Log',
-          desc: '1-tap check-in with live timestamp & monthly records',
+          label: 'Attendance Punch',
           path: '/app/my-attendance',
           icon: Users,
           color: 'text-purple-600 bg-purple-50',
@@ -68,15 +64,13 @@ export const MoreHubPage: React.FC = () => {
         },
         {
           label: 'Expenses & Petty Cash',
-          desc: 'Shop rent, tea, transport & daily bills',
           path: '/app/expenses',
           icon: Receipt,
           color: 'text-amber-600 bg-amber-50',
           permission: 'expenses:view',
         },
         {
-          label: 'Cash Drawer & Shifts',
-          desc: 'Opening float, denomination check & EOD audit',
+          label: 'Cash Drawer Shifts',
           path: '/app/counter',
           icon: Coins,
           color: 'text-emerald-600 bg-emerald-50',
@@ -85,11 +79,10 @@ export const MoreHubPage: React.FC = () => {
       ],
     },
     {
-      title: 'Business & Intelligence',
+      title: 'Business & Finance',
       items: [
         {
-          label: 'All Sales History',
-          desc: 'Search past receipts, order records & filters',
+          label: 'Sales History',
           path: '/app/sales',
           icon: History,
           color: 'text-orange-600 bg-orange-50',
@@ -97,15 +90,13 @@ export const MoreHubPage: React.FC = () => {
         },
         {
           label: 'Finance & Profit / Loss',
-          desc: 'Net operating margins, COGS & accounts',
           path: '/app/finance',
           icon: DollarSign,
           color: 'text-indigo-600 bg-indigo-50',
           permission: 'finance:view',
         },
         {
-          label: 'Reports & Tax Summary',
-          desc: 'Category sales, payment distribution & CSV export',
+          label: 'Reports & Analytics',
           path: '/app/reports',
           icon: BarChart3,
           color: 'text-cyan-600 bg-cyan-50',
@@ -114,11 +105,10 @@ export const MoreHubPage: React.FC = () => {
       ],
     },
     {
-      title: 'System & Preferences',
+      title: 'Settings',
       items: [
         {
           label: 'User Management & Roles',
-          desc: 'Admin, Manager, Cashier credentials & PINs',
           path: '/app/settings',
           icon: Settings,
           color: 'text-slate-600 bg-slate-100',
@@ -126,7 +116,6 @@ export const MoreHubPage: React.FC = () => {
         },
         {
           label: 'Alerts & Notifications',
-          desc: 'Drawer approvals & vendor due reminders',
           path: '/app/notifications',
           icon: Bell,
           color: 'text-rose-600 bg-rose-50',
@@ -194,21 +183,18 @@ export const MoreHubPage: React.FC = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className="p-3.5 sm:p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                    className="p-3 sm:p-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
                   >
-                    <div className="flex items-center space-x-3.5 min-w-0">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.color}`}>
-                        <Icon className="w-5 h-5" />
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-orange-600 transition-colors">
-                          {item.label}
-                        </p>
-                        <p className="text-[11px] text-slate-400 font-medium truncate">{item.desc}</p>
-                      </div>
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-orange-600 transition-colors truncate">
+                        {item.label}
+                      </span>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                   </Link>
                 );
               })}
