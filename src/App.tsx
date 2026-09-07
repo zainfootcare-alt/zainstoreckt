@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ShopProvider } from './context/ShopContext';
 import { AppLayout } from './components/layout/AppLayout';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CalculatorPOSPage } from './pages/POS/CalculatorPOSPage';
@@ -30,12 +31,13 @@ import { NotificationsPage } from './pages/Notifications/NotificationsPage';
 
 export const App: React.FC = () => {
   return (
-    <ShopProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
+    <ErrorBoundary>
+      <ShopProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/app" element={<AppLayout />}>
+            <Route path="/app" element={<AppLayout />}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             
             {/* PRIMARY CORE MODULES (5-TAB NAVIGATION) */}
@@ -87,6 +89,7 @@ export const App: React.FC = () => {
         </Routes>
       </BrowserRouter>
     </ShopProvider>
+  </ErrorBoundary>
   );
 };
 

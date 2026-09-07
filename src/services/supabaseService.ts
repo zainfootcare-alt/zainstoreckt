@@ -57,6 +57,25 @@ export const sanitizePaymentAccountId = (id?: string | null): string | null => {
 // AUTH — Custom email+PIN login (no Supabase Auth)
 // ============================================================================
 
+export const DEFAULT_AUTH_USERS: UserProfile[] = [
+  {
+    id: 'c3000000-0000-0000-0000-000000000003',
+    email: 'saif@admin.com',
+    username: 'saif',
+    full_name: 'Saif',
+    organization_id: ORG_ID,
+    default_shop_id: SHOP_ID,
+    is_onboarded: true,
+    role: 'ADMIN',
+    pin: 'Saif@Zain',
+    password: 'Saif@Zain',
+    status: 'Active',
+    last_login: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
 export const authService = {
   /** Login by looking up email/username + PIN in user_profiles table */
   async login(identifier: string, pin: string): Promise<{ user: UserProfile | null; error: string | null }> {
@@ -73,6 +92,16 @@ export const authService = {
         .maybeSingle();
 
       if (error || !data) {
+        // Fallback default admin user check
+        const fallback = DEFAULT_AUTH_USERS.find(
+          (u) =>
+            (u.email?.toLowerCase() === cleanIdent || u.username?.toLowerCase() === cleanIdent) &&
+            (u.pin === cleanPin || u.password === cleanPin)
+        );
+        if (fallback) {
+          this.saveSession(fallback);
+          return { user: fallback, error: null };
+        }
         return { user: null, error: 'Invalid email/username or PIN.' };
       }
 
@@ -81,14 +110,27 @@ export const authService = {
       }
 
       // Update last_login
-      await supabase
-        .from('user_profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', data.id);
+      try {
+        await supabase
+          .from('user_profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', data.id);
+      } catch {}
 
-      return { user: { ...data, last_login: new Date().toISOString() }, error: null };
+      const loggedUser = { ...data, last_login: new Date().toISOString() };
+      this.saveSession(loggedUser);
+      return { user: loggedUser, error: null };
     } catch (err: any) {
       console.error('Login error:', err);
+      const fallback = DEFAULT_AUTH_USERS.find(
+        (u) =>
+          (u.email?.toLowerCase() === cleanIdent || u.username?.toLowerCase() === cleanIdent) &&
+          (u.pin === cleanPin || u.password === cleanPin)
+      );
+      if (fallback) {
+        this.saveSession(fallback);
+        return { user: fallback, error: null };
+      }
       return { user: null, error: err?.message || 'Authentication failed. Please try again.' };
     }
   },

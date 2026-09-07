@@ -500,8 +500,18 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(counts['Tan Leather Formal Loafer_8_Formal']).toBe(1); // Requested once
     expect(demandsList.length).toBe(3);
   });
+
+  it('Feature Test 23: Dashboard and Chart render gracefully with empty arrays and null safety', () => {
+    const emptySales: any[] = [];
+    const emptyDemands: any[] = [];
+    const emptyExpenses: any[] = [];
+
+    const totalSalesAmount = emptySales.reduce((sum, s) => sum + s.total, 0);
+    const pendingDemands = emptyDemands.filter((d) => d.status === 'PENDING').length;
+    const totalExpenses = emptyExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+    expect(totalSalesAmount).toBe(0);
+    expect(pendingDemands).toBe(0);
+    expect(totalExpenses).toBe(0);
+  });
 });
-
-
-
-

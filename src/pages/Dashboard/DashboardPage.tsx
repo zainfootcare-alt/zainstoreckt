@@ -12,6 +12,7 @@ import {
   FileText,
   Eye,
   Sparkles,
+  ShoppingBag,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { SaleRecord } from '../../types/database.types';
