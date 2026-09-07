@@ -68,6 +68,10 @@ export interface Shop {
   city?: string; // 'Mumbai', 'Delhi', 'Agra', 'Kanpur', 'Bengaluru'
   postcode?: string;
   gstin?: string;
+  latitude?: number; // Store GPS Latitude e.g. 18.9696
+  longitude?: number; // Store GPS Longitude e.g. 72.8193
+  geofence_radius_meters?: number; // Allowed distance in meters e.g. 500m
+  require_location_for_sales?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -654,6 +658,19 @@ export interface SaleRecord {
   online_amount: number;
   due_amount?: number;
   created_at: string;
+  status?: 'COMPLETED' | 'RETURNED' | 'PARTIALLY_RETURNED' | 'VOIDED';
+  returned_at?: string;
+  returned_by_name?: string;
+  return_reason?: string;
+  refund_amount?: number;
+  refund_method?: 'cash' | 'upi' | 'credit';
+  return_items?: Array<{
+    item_name: string;
+    size?: string;
+    quantity: number;
+    unit_price: number;
+    total_refund: number;
+  }>;
   items: Array<{
     item_name: string;
     size?: string;
@@ -665,6 +682,31 @@ export interface SaleRecord {
     payment_type: 'cash' | 'upi' | 'card' | 'bank' | 'credit';
     amount: number;
   }>;
+}
+
+export interface SaleReturn {
+  id: string;
+  organization_id: string;
+  shop_id: string;
+  sale_id: string;
+  receipt_number: string;
+  return_receipt_number: string;
+  customer_id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  refund_amount: number;
+  refund_method: 'cash' | 'upi' | 'credit';
+  return_reason: string;
+  returned_by_user_id: string;
+  returned_by_name: string;
+  items: Array<{
+    item_name: string;
+    size?: string;
+    quantity: number;
+    unit_price: number;
+    total_refund: number;
+  }>;
+  created_at: string;
 }
 
 export interface VendorLedgerEntry {

@@ -54,11 +54,12 @@ Instead of overwhelming shop owners with enterprise ERP dashboards and complex c
   * **Today's Sales**: Large readable amount (e.g. `₹12,500`).
   * **3-Way Payment Split**: Compact cards for `Cash: ₹7,000`, `Online: ₹5,500`, and `Due: ₹0`.
 * **4 Large Quick Action Buttons**:
-  * `[ + New Sale ]` (Prominent orange highlight, opens Fullscreen Calculator)
-  * `[ Estimate ]` (Create and share quotations)
-  * `[ + Payment ]` (Quick modal to receive customer money and update party ledger)
-  * `[ Parties ]` (Open customer ledger list)
-* **Recent Activity**: Clean list showing only the latest 5 transactions with customer name, payment mode badge, timestamp, amount, and a `View All` link.
+  * `[ POS Sale ]` (Prominent orange highlight, opens Fullscreen Calculator)
+  * `[ Parties ]` (Open customer & supplier ledger list)
+  * `[ To-Do ]` (Daily store tasks & goal tracking)
+  * `[ History ]` (Sales records & receipts directory)
+* **Quick Invoice Lookup & Search**: Search any invoice number (e.g. `ZAIN-1025`) or customer name with instant 1-click popup preview.
+* **Recent Activity (Interactive Orders)**: Click on **ANY** recent transaction row to instantly open the full **Invoice Breakdown Modal** displaying all purchased footwear items, shoe sizes (`UK 6-12`), pairs count, payment split, thermal print, and WhatsApp share.
 
 ---
 
@@ -131,7 +132,7 @@ Cleanly groups all secondary store operations without cluttering everyday sales:
   * 👥 **Staff, Attendance & Payroll** (`/app/staff`): Employee directory, 1-click daily attendance punch (Present, Half Day, Absent, Leave), salary advances, and payroll calculation.
   * 🪙 **Cash Drawer & Shifts** (`/app/counter`): Opening shift float, physical currency denomination counter (₹500 down to ₹1 coins), and variance reconciliation.
 * **Business & Intelligence**:
-  * 📜 **All Sales History** (`/app/sales`): Searchable receipt history and customer directory.
+  * 📜 **All Sales & Invoices History** (`/app/sales`): Searchable receipt register with instant Enter-to-open invoice lookup, clickable table rows, itemized footwear breakdowns (`UK 6-12` sizes, quantity of pairs, rates), payment splits, and customer directory.
   * 📈 **Finance & Profit / Loss** (`/app/finance`): P&L statements, Gross Margins, Operating Expenses, and Net Operating Margins.
   * 📊 **Reports & Tax Summary** (`/app/reports`): Category breakdown, payment mode distribution, and CSV export.
 * **System**:

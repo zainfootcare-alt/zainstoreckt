@@ -30,6 +30,8 @@ import {
   Footprints,
   AlertCircle,
   Copy,
+  MapPin,
+  Navigation,
 } from 'lucide-react';
 
 interface PosLineItem {
@@ -41,8 +43,25 @@ interface PosLineItem {
 }
 
 export const CalculatorPOSPage: React.FC = () => {
-  const { activeShop, userProfile, customers, addCustomer, sales, recordSale } = useShop();
+  const {
+    activeShop,
+    userProfile,
+    activeRole,
+    customers,
+    addCustomer,
+    sales,
+    recordSale,
+    deleteSale,
+    isLocationVerified,
+    locationError,
+    verifyStoreLocation,
+    bypassLocationVerification,
+  } = useShop();
+  const isAdmin = activeRole === 'ADMIN';
   const [searchParams] = useSearchParams();
+  const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
+  const [isProcessingSale, setIsProcessingSale] = useState(false);
+  const [duplicateWarningSale, setDuplicateWarningSale] = useState<any | null>(null);
 
   // Wizard Step: 'CALCULATOR' (Step 1) -> 'DETAILS' (Step 2) -> 'PAYMENT' (Step 3) -> 'COMPLETED' (Step 4)
   const [step, setStep] = useState<'CALCULATOR' | 'DETAILS' | 'PAYMENT' | 'COMPLETED'>('CALCULATOR');
@@ -368,8 +387,34 @@ export const CalculatorPOSPage: React.FC = () => {
     );
   };
 
+  // Handle salesperson GPS Geofence Verification
+  const handleVerifyGPS = async () => {
+    setIsVerifyingLocation(true);
+    try {
+      const res = await verifyStoreLocation();
+      if (!res.success) {
+        alert(res.message || 'Outside store location perimeter. Store presence required.');
+      }
+    } catch (err: any) {
+      alert('GPS location error: ' + (err.message || 'Failed'));
+    } finally {
+      setIsVerifyingLocation(false);
+    }
+  };
+
   // Go to Step 2 (Shoe Size & Category Configuration)
-  const handleProceedToDetails = () => {
+  const handleProceedToDetails = async () => {
+    // Check salesperson store location if required
+    if (!isAdmin && activeShop?.require_location_for_sales && !isLocationVerified) {
+      setIsVerifyingLocation(true);
+      const loc = await verifyStoreLocation();
+      setIsVerifyingLocation(false);
+      if (!loc.success) {
+        alert(`📍 Store Location Required: Salespersons must be present at the shop to bill orders.\n${locationError || loc.message}`);
+        return;
+      }
+    }
+
     const currentVal = Math.round(evaluateCalc(calcDisplay));
     let items = [...lineItems];
 
@@ -420,9 +465,27 @@ export const CalculatorPOSPage: React.FC = () => {
     setStep('PAYMENT');
   };
 
-  // Complete Sale & Store Transaction
-  const handleCompleteSale = async () => {
+  // Complete Sale & Store Transaction with Duplicate Detection
+  const handleCompleteSale = async (bypassDuplicateCheck = false) => {
+    if (isProcessingSale) return;
     if (activeSubtotal <= 0) return;
+
+    // Duplicate Order Protection: Check if an identical sale with exact same amount was created within last 45s
+    if (!bypassDuplicateCheck) {
+      const recentMatchingSale = sales.find((s) => {
+        const saleTime = new Date(s.created_at).getTime();
+        const timeDiffSec = (Date.now() - saleTime) / 1000;
+        return s.total === netPayable && timeDiffSec <= 45;
+      });
+
+      if (recentMatchingSale) {
+        setDuplicateWarningSale(recentMatchingSale);
+        return;
+      }
+    }
+
+    setDuplicateWarningSale(null);
+    setIsProcessingSale(true);
 
     const cashNum = parseFloat(cashPaid) || 0;
     const onlineNum = parseFloat(onlinePaid) || 0;
@@ -496,6 +559,30 @@ export const CalculatorPOSPage: React.FC = () => {
     } catch (err) {
       console.error('Sale recording failed:', err);
       alert('Sale could not be saved. Please check your connection.');
+    } finally {
+      setIsProcessingSale(false);
+    }
+  };
+
+  // Delete Completed Sale (Admin Only Authority)
+  const handleDeleteCompletedSale = async () => {
+    if (!completedSale) return;
+    if (!isAdmin) {
+      alert('Unauthorized: Only Admins can delete sales orders.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `⚠️ Are you sure you want to permanently delete order #${completedSale.receipt_number}?\nThis will reverse the payment of ₹${completedSale.total.toLocaleString('en-IN')}.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteSale(completedSale.id);
+      alert(`Order #${completedSale.receipt_number} deleted successfully.`);
+      handleResetForNextSale();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete order.');
     }
   };
 
@@ -548,9 +635,29 @@ export const CalculatorPOSPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4 text-slate-600" />
             <span>Back</span>
           </button>
-          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-            Step 2 • {lineItems.length} Selected Item{lineItems.length === 1 ? '' : 's'} & Customer
-          </span>
+
+          {/* Location Status Pill */}
+          <div className="flex items-center space-x-1.5">
+            {isLocationVerified ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                <MapPin className="w-3 h-3 text-emerald-600" />
+                <span>Store OK</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleVerifyGPS}
+                disabled={isVerifyingLocation}
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full hover:bg-amber-100 cursor-pointer"
+              >
+                <Navigation className={`w-3 h-3 ${isVerifyingLocation ? 'animate-spin' : ''}`} />
+                <span>{isVerifyingLocation ? 'Checking GPS...' : 'Verify GPS'}</span>
+              </button>
+            )}
+            <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+              Step 2 • {lineItems.length} Item{lineItems.length === 1 ? '' : 's'}
+            </span>
+          </div>
         </div>
 
         {/* Big Amount Summary Bar */}
@@ -1211,6 +1318,20 @@ export const CalculatorPOSPage: React.FC = () => {
                 <span>Print Bill</span>
               </button>
             </div>
+
+            {/* Admin-only Delete Sale Option on Completed Screen */}
+            {isAdmin && (
+              <div className="pt-1 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={handleDeleteCompletedSale}
+                  className="w-full py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Delete Order (Admin Authority Only)</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1486,22 +1607,68 @@ export const CalculatorPOSPage: React.FC = () => {
         <div className="pt-2 flex-shrink-0">
           <button
             type="button"
-            onClick={handleCompleteSale}
-            disabled={isDueCustomerMissing}
+            onClick={() => handleCompleteSale(false)}
+            disabled={isDueCustomerMissing || isProcessingSale}
             className={`w-full py-4 rounded-full font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-              isDueCustomerMissing
+              isDueCustomerMissing || isProcessingSale
                 ? 'bg-amber-400 text-amber-950 opacity-60 cursor-not-allowed'
                 : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-emerald-600/30'
             }`}
           >
             <Check className="w-6 h-6 stroke-[3]" />
             <span>
-              {isDueCustomerMissing
+              {isProcessingSale
+                ? 'Processing Sale...'
+                : isDueCustomerMissing
                 ? '⚠️ Enter Customer Name & Phone for Udhaar'
                 : `Complete Sale (₹${(activeSubtotal - discountAmount).toLocaleString('en-IN')})`}
             </span>
           </button>
         </div>
+
+        {/* POPUP MODAL: DUPLICATE ORDER WARNING (Same Amount / Double-Click) */}
+        {duplicateWarningSale && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl border-2 border-amber-400 text-slate-900">
+              <div className="flex items-center space-x-2 text-amber-600">
+                <AlertCircle className="w-6 h-6 text-amber-500 flex-shrink-0 animate-pulse" />
+                <h3 className="text-base font-black text-slate-900">Duplicate Order Warning</h3>
+              </div>
+
+              <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 text-xs space-y-1.5">
+                <p className="font-bold text-amber-950">
+                  An order with the exact same amount (<span className="text-sm font-black text-amber-900">₹{netPayable.toLocaleString('en-IN')}</span>) was just created {Math.max(1, Math.round((Date.now() - new Date(duplicateWarningSale.created_at).getTime()) / 1000))}s ago.
+                </p>
+                <p className="text-[11px] text-amber-800">
+                  Receipt: <b>#{duplicateWarningSale.receipt_number}</b> • Customer: <b>{duplicateWarningSale.customer_name || 'Walk-in'}</b>
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-600 font-medium">
+                Are you sure you want to add this order again? (Avoid accidental double-tap).
+              </p>
+
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCompleteSale(true)}
+                  disabled={isProcessingSale}
+                  className="w-full py-3 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md shadow-orange-500/25 flex items-center justify-center gap-1.5"
+                >
+                  <span>{isProcessingSale ? 'Creating Order...' : 'Yes, Add Duplicate Order'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDuplicateWarningSale(null)}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel Duplicate
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Live PhonePe & BHIM UPI Store QR Modal */}
         {showQrModal && (
@@ -1546,15 +1713,36 @@ export const CalculatorPOSPage: React.FC = () => {
   // =========================================================================
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-[#131417] text-white flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
-      {/* Top Header Bar with Customer Pill & Exit Sale */}
+      {/* Top Header Bar with Customer Pill, Location & Exit Sale */}
       <div className="flex items-center justify-between pt-1 pb-1 flex-shrink-0">
-        <Link
-          to="/app/dashboard"
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
-        >
-          <ArrowLeft className="w-4 h-4 text-orange-400" />
-          <span>Exit Sale</span>
-        </Link>
+        <div className="flex items-center space-x-1.5">
+          <Link
+            to="/app/dashboard"
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4 text-orange-400" />
+            <span>Exit</span>
+          </Link>
+
+          {/* GPS Store Geofence Pill */}
+          {isLocationVerified ? (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-1.5 rounded-full">
+              <MapPin className="w-3 h-3 text-emerald-400" />
+              <span>Store OK</span>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleVerifyGPS}
+              disabled={isVerifyingLocation}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-950/60 border border-amber-700/60 px-2.5 py-1.5 rounded-full hover:bg-amber-900/80 cursor-pointer"
+              title={locationError || 'Click to verify you are at store location'}
+            >
+              <Navigation className={`w-3 h-3 ${isVerifyingLocation ? 'animate-spin' : ''}`} />
+              <span>{isVerifyingLocation ? 'Verifying...' : 'Verify GPS'}</span>
+            </button>
+          )}
+        </div>
 
         {/* CUSTOMER SELECTION PILL AT TOP */}
         <div className="flex items-center space-x-1.5">

@@ -362,6 +362,21 @@ export const salesService = {
 
     return { ...sale, items: items || [], payments: payments || [] };
   },
+
+  async remove(saleId: string): Promise<void> {
+    try {
+      await supabase.from('sale_items').delete().eq('sale_id', saleId);
+      await supabase.from('sale_payments').delete().eq('sale_id', saleId);
+      const { error } = await supabase.from('sales').delete().eq('id', saleId);
+      if (error) {
+        console.error('Failed to delete sale from Supabase:', error);
+        throw error;
+      }
+    } catch (err) {
+      console.error('Error in salesService.remove:', err);
+      throw err;
+    }
+  },
 };
 
 // ============================================================================

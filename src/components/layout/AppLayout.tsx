@@ -14,10 +14,22 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../common/ZainLogo';
+import { SalesNotificationToast } from '../common/SalesNotificationToast';
+import { InvoiceDetailModal } from '../common/InvoiceDetailModal';
+import { SaleRecord } from '../../types/database.types';
 
 export const AppLayout: React.FC = () => {
-  const { activeShop, userProfile, activeRole, hasPermission, logoutUser } = useShop();
+  const {
+    activeShop,
+    userProfile,
+    activeRole,
+    hasPermission,
+    logoutUser,
+    latestNotificationSale,
+    clearNotificationSale,
+  } = useShop();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false);
+  const [toastSelectedSale, setToastSelectedSale] = useState<SaleRecord | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -276,6 +288,20 @@ export const AppLayout: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* REAL-TIME SALE AUDIO-VISUAL NOTIFICATION TOAST */}
+      <SalesNotificationToast
+        latestSale={latestNotificationSale}
+        onViewInvoice={(sale) => setToastSelectedSale(sale)}
+        onDismiss={clearNotificationSale}
+      />
+
+      {/* QUICK INVOICE DETAIL & RETURN MODAL */}
+      <InvoiceDetailModal
+        sale={toastSelectedSale}
+        isOpen={!!toastSelectedSale}
+        onClose={() => setToastSelectedSale(null)}
+      />
     </div>
   );
 };

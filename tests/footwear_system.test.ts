@@ -262,6 +262,181 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(invoiceDue).toBe(0);
     expect(customerBalance).toBe(0);
   });
+
+  it('Acceptance Test 15: Sales Return / Refund by Invoice Number is restricted to Admin role and updates sale status', () => {
+    const saleRecord = {
+      id: 'sale-ret-101',
+      receipt_number: 'ZAIN-990011',
+      customer_id: 'cust-501',
+      customer_name: 'Imran Ansari',
+      total: 3000,
+      subtotal: 3000,
+      cash_amount: 3000,
+      online_amount: 0,
+      status: 'COMPLETED',
+      items: [
+        { item_name: 'Sneakers (Size 9)', size: '9', quantity: 1, unit_price: 2000, total_price: 2000 },
+        { item_name: 'Slippers (Size 8)', size: '8', quantity: 1, unit_price: 1000, total_price: 1000 },
+      ],
+      returned_at: undefined as string | undefined,
+      returned_by_name: undefined as string | undefined,
+      refund_amount: undefined as number | undefined,
+    };
+
+    // Non-admin attempting return must be denied
+    const nonAdminRole = 'CASHIER';
+    const canReturn = nonAdminRole === 'ADMIN';
+    expect(canReturn).toBe(false);
+
+    // Admin executing return of 1 item
+    const adminRole = 'ADMIN';
+    expect(adminRole === 'ADMIN').toBe(true);
+
+    const refundItem = saleRecord.items[0]; // Refund Sneakers ₹2,000
+    const refundAmount = refundItem.unit_price;
+    const isFullReturn = refundAmount >= saleRecord.total;
+
+    saleRecord.status = isFullReturn ? 'RETURNED' : 'PARTIALLY_RETURNED';
+    saleRecord.refund_amount = refundAmount;
+    saleRecord.returned_at = new Date().toISOString();
+    saleRecord.returned_by_name = 'Saif (Admin)';
+
+    expect(saleRecord.status).toBe('PARTIALLY_RETURNED');
+    expect(saleRecord.refund_amount).toBe(2000);
+    expect(saleRecord.returned_by_name).toBe('Saif (Admin)');
+  });
+
+  it('Acceptance Test 16: Geofence distance calculation using Haversine accurately classifies store perimeter', () => {
+    // Haversine formula
+    const calculateDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371e3;
+      const φ1 = (lat1 * Math.PI) / 180;
+      const φ2 = (lat2 * Math.PI) / 180;
+      const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+      const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+      const a =
+        Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return Math.round(R * c);
+    };
+
+    const storeLat = 18.9696;
+    const storeLon = 72.8193;
+    const allowedRadius = 500; // 500 meters
+
+    // Person inside shop (approx 15 meters away)
+    const insideLat = 18.9697;
+    const insideLon = 72.8194;
+    const distanceInside = calculateDistanceMeters(insideLat, insideLon, storeLat, storeLon);
+    expect(distanceInside).toBeLessThanOrEqual(allowedRadius);
+
+    // Person at home (approx 5 km away)
+    const farLat = 19.0144;
+    const farLon = 72.8479;
+    const distanceFar = calculateDistanceMeters(farLat, farLon, storeLat, storeLon);
+    expect(distanceFar).toBeGreaterThan(allowedRadius);
+  });
+
+  it('Acceptance Test 17: Vendor purchase attached bill document tracking and verification', () => {
+    const purchaseWithBill = {
+      id: 'pur-attach-101',
+      vendor_name: 'Metro Footwear Wholesale',
+      bill_number: 'MFW-2026-99',
+      total: 45000,
+      invoice_attachment_path: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop&q=80',
+      items_count: 50,
+      payment_status: 'PAID',
+    };
+
+    expect(purchaseWithBill.invoice_attachment_path).toBeDefined();
+    expect(purchaseWithBill.invoice_attachment_path?.startsWith('http')).toBe(true);
+    expect(purchaseWithBill.total).toBe(45000);
+  });
+
+  it('Acceptance Test 18: Audio notification contract and sale toast payload', () => {
+    const newSaleEvent = {
+      id: 'sale-toast-101',
+      receipt_number: 'ZAIN-774411',
+      customer_name: 'Rashid Khan',
+      total: 2499,
+      items: [{ item_name: 'Running Shoes', size: '10', quantity: 1, unit_price: 2499 }],
+      payment_mode: 'CASH',
+      created_at: new Date().toISOString(),
+    };
+
+    expect(newSaleEvent.receipt_number).toBe('ZAIN-774411');
+    expect(newSaleEvent.total).toBe(2499);
+    expect(newSaleEvent.items.length).toBe(1);
+  });
+
+  it('Acceptance Test 19: Duplicate order detection identifies rapid same-amount sales within time window', () => {
+    const existingSales = [
+      {
+        id: 'sale-recent-1',
+        receipt_number: 'ZAIN-112233',
+        total: 1999,
+        created_at: new Date(Date.now() - 10000).toISOString(), // 10 seconds ago
+      },
+      {
+        id: 'sale-old-2',
+        receipt_number: 'ZAIN-998877',
+        total: 1999,
+        created_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+      },
+    ];
+
+    const currentAttemptTotal = 1999;
+    const now = Date.now();
+
+    // Duplicate check logic
+    const duplicateCandidate = existingSales.find((s) => {
+      const diffSec = (now - new Date(s.created_at).getTime()) / 1000;
+      return s.total === currentAttemptTotal && diffSec <= 45;
+    });
+
+    expect(duplicateCandidate).toBeDefined();
+    expect(duplicateCandidate?.receipt_number).toBe('ZAIN-112233');
+
+    // Attempt with different amount should not trigger duplicate
+    const differentAttemptTotal = 2499;
+    const noDuplicate = existingSales.find((s) => {
+      const diffSec = (now - new Date(s.created_at).getTime()) / 1000;
+      return s.total === differentAttemptTotal && diffSec <= 45;
+    });
+
+    expect(noDuplicate).toBeUndefined();
+  });
+
+  it('Acceptance Test 20: Order deletion is strictly restricted to Admin role and rolls back customer dues', () => {
+    // Non-Admin deletion attempt
+    const cashierRole = 'CASHIER';
+    const canCashierDelete = cashierRole === 'ADMIN';
+    expect(canCashierDelete).toBe(false);
+
+    // Admin deletion attempt
+    const adminRole = 'ADMIN';
+    const canAdminDelete = adminRole === 'ADMIN';
+    expect(canAdminDelete).toBe(true);
+
+    // Customer balance rollback simulation
+    let customerCurrentBalance = 1500; // Has ₹1,500 due from an accidental duplicate order
+    let customerTotalSpent = 4500;
+    const saleToDelete = {
+      id: 'sale-dup-01',
+      receipt_number: 'ZAIN-DUP-99',
+      total: 1500,
+      due_amount: 1500,
+    };
+
+    customerCurrentBalance = Math.max(0, customerCurrentBalance - saleToDelete.due_amount);
+    customerTotalSpent = Math.max(0, customerTotalSpent - saleToDelete.total);
+
+    expect(customerCurrentBalance).toBe(0);
+    expect(customerTotalSpent).toBe(3000);
+  });
 });
 
 

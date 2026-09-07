@@ -27,6 +27,8 @@ import {
   Smartphone,
   Eye,
   Trash2,
+  Paperclip,
+  Image,
 } from 'lucide-react';
 import { Purchase, VendorPayment } from '../../types/database.types';
 
@@ -64,6 +66,7 @@ export const VendorDetail360Page: React.FC = () => {
 
   // Selected Invoice Modal State
   const [selectedInvoice, setSelectedInvoice] = useState<Purchase | null>(null);
+  const [selectedAttachedBill, setSelectedAttachedBill] = useState<Purchase | null>(null);
 
   // Pay Due Modal State (Can be for specific invoice or whole party)
   const [isPayDueModalOpen, setIsPayDueModalOpen] = useState<boolean>(false);
@@ -81,6 +84,7 @@ export const VendorDetail360Page: React.FC = () => {
   const [newPaidNow, setNewPaidNow] = useState<string>('0');
   const [newPurAccountId, setNewPurAccountId] = useState<string>(paymentAccounts[0]?.id || '');
   const [newPurNotes, setNewPurNotes] = useState<string>('');
+  const [newAttachmentPath, setNewAttachmentPath] = useState<string>('');
 
   // Dynamic Item Rows for New Purchase
   const [itemRows, setItemRows] = useState<
@@ -185,6 +189,7 @@ export const VendorDetail360Page: React.FC = () => {
       total: calculatedItemsTotal,
       amount_paid: paidNum,
       payment_account_id: paidNum > 0 ? newPurAccountId : undefined,
+      invoice_attachment_path: newAttachmentPath || undefined,
       notes: newPurNotes,
       items: itemsPayload,
     });
@@ -193,6 +198,7 @@ export const VendorDetail360Page: React.FC = () => {
     setNewBillNumber(`INV-${Date.now().toString().slice(-4)}`);
     setNewPaidNow('0');
     setNewPurNotes('');
+    setNewAttachmentPath('');
   };
 
   // Open Pay Due Modal
@@ -505,6 +511,16 @@ export const VendorDetail360Page: React.FC = () => {
                               <span>Pay Due</span>
                             </button>
                           )}
+
+                          {/* Attached Bill Button */}
+                          <button
+                            onClick={() => setSelectedAttachedBill(purchase)}
+                            className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
+                            title="View Supplier Physical Bill / Attachment"
+                          >
+                            <Paperclip className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Attached Bill</span>
+                          </button>
 
                           {/* View Invoice Button */}
                           <button
@@ -1193,6 +1209,86 @@ export const VendorDetail360Page: React.FC = () => {
                 <button
                   onClick={() => setSelectedInvoice(null)}
                   className="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 6. ATTACHED PHYSICAL INVOICE BILL MODAL VIEWER */}
+        {selectedAttachedBill && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-1.5 text-blue-600 text-xs font-bold uppercase tracking-wider">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span>Attached Purchase Bill</span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 mt-0.5">
+                    Bill #{selectedAttachedBill.bill_number}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setSelectedAttachedBill(null)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Bill Details Summary */}
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-1">
+                <div className="flex justify-between text-slate-600 font-semibold">
+                  <span>Supplier:</span>
+                  <span className="font-bold text-slate-900">{party.name}</span>
+                </div>
+                <div className="flex justify-between text-slate-600 font-semibold">
+                  <span>Bill Date:</span>
+                  <span className="font-mono text-slate-800">
+                    {selectedAttachedBill.business_date || selectedAttachedBill.created_at.split('T')[0]}
+                  </span>
+                </div>
+                <div className="flex justify-between text-slate-900 font-black pt-1 border-t border-slate-200">
+                  <span>Total Amount:</span>
+                  <span className="font-mono text-[#ff6600]">
+                    ₹{selectedAttachedBill.total.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Bill Attachment Image Preview */}
+              <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-100 p-4 text-center space-y-2">
+                {selectedAttachedBill.invoice_attachment_path ? (
+                  <img
+                    src={selectedAttachedBill.invoice_attachment_path}
+                    alt="Attached Purchase Bill"
+                    className="max-h-64 mx-auto rounded-xl object-contain border border-slate-300 shadow-xs"
+                  />
+                ) : (
+                  <div className="py-8 space-y-2 text-slate-400">
+                    <FileText className="w-12 h-12 mx-auto text-slate-300" />
+                    <p className="text-xs font-bold text-slate-700">Digital Stock Inward Receipt</p>
+                    <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                      Physical bill #{selectedAttachedBill.bill_number} from {party.name} recorded in stock registry.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => window.print()}
+                  className="flex-1 py-2.5 bg-slate-900 hover:bg-black text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Receipt</span>
+                </button>
+                <button
+                  onClick={() => setSelectedAttachedBill(null)}
+                  className="py-2.5 px-4 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
                 >
                   Close
                 </button>

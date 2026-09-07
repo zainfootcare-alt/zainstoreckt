@@ -50,6 +50,7 @@ import {
   ORG_ID,
   SHOP_ID,
 } from '../services/supabaseService';
+import { soundEffects, calculateDistanceMeters } from '../utils/audioNotification';
 
 // Fallback default user (used only if Supabase is unreachable)
 export const DEFAULT_USERS: UserProfile[] = [
@@ -112,6 +113,29 @@ interface ShopContextType {
   activeCashSession: CashSession | null;
 
   recordSale: (saleData: Omit<SaleRecord, 'id' | 'created_at'>) => Promise<SaleRecord>;
+  deleteSale: (saleId: string) => Promise<void>;
+  processSaleReturn: (data: {
+    sale_id: string;
+    refund_amount: number;
+    refund_method: 'cash' | 'upi' | 'credit';
+    return_reason: string;
+    items: Array<{
+      item_name: string;
+      size?: string;
+      quantity: number;
+      unit_price: number;
+      total_refund: number;
+    }>;
+  }) => Promise<SaleRecord>;
+  latestNotificationSale: SaleRecord | null;
+  clearNotificationSale: () => void;
+
+  userLocation: { latitude: number; longitude: number } | null;
+  isLocationVerified: boolean;
+  locationError: string | null;
+  verifyStoreLocation: () => Promise<{ success: boolean; distanceMeters?: number; message?: string }>;
+  bypassLocationVerification: () => void;
+
   addCustomer: (customerData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
   updateCustomer: (customerId: string, customerData: Partial<Customer>) => Promise<void>;
   deleteCustomer: (customerId: string) => Promise<void>;
@@ -217,6 +241,63 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [activeCashSession, setActiveCashSession] = useState<CashSession | null>(null);
+
+  // Sales Notification & Sound State
+  const [latestNotificationSale, setLatestNotificationSale] = useState<SaleRecord | null>(null);
+  const clearNotificationSale = () => setLatestNotificationSale(null);
+
+  // Salesperson Geofence Location Verification
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isLocationVerified, setIsLocationVerified] = useState<boolean>(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const verifyStoreLocation = async (): Promise<{ success: boolean; distanceMeters?: number; message?: string }> => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setLocationError('Geolocation not supported on this device.');
+      return { success: false, message: 'Geolocation not supported' };
+    }
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          setUserLocation({ latitude: lat, longitude: lon });
+
+          const shopLat = activeShop?.latitude || 18.9696;
+          const shopLon = activeShop?.longitude || 72.8193;
+          const allowedRadius = activeShop?.geofence_radius_meters || 500;
+
+          const distance = calculateDistanceMeters(lat, lon, shopLat, shopLon);
+
+          if (distance <= allowedRadius) {
+            setIsLocationVerified(true);
+            setLocationError(null);
+            resolve({ success: true, distanceMeters: distance, message: `Verified! You are at store (${distance}m away)` });
+          } else {
+            setIsLocationVerified(false);
+            setLocationError(`You are ${distance}m away from the shop (Allowed: ${allowedRadius}m). Store presence required.`);
+            resolve({
+              success: false,
+              distanceMeters: distance,
+              message: `Outside store perimeter (${distance}m away)`,
+            });
+          }
+        },
+        (err) => {
+          setLocationError(err.message || 'Unable to retrieve store GPS location.');
+          setIsLocationVerified(false);
+          resolve({ success: false, message: err.message });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  };
+
+  const bypassLocationVerification = () => {
+    setIsLocationVerified(true);
+    setLocationError(null);
+  };
 
   // ============================================================================
   // Helper: build ledger maps from flat arrays
@@ -364,6 +445,29 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     init();
   }, [loadAllData]);
+
+  // Heartbeat & Silent Background Auto-Refresh (No auto-logout, periodic sync)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const [salesData, custData, purData, expData] = await Promise.all([
+          salesService.getAll().catch(() => null),
+          customersService.getAll().catch(() => null),
+          purchasesService.getAll().catch(() => null),
+          expensesService.getAll().catch(() => null),
+        ]);
+
+        if (salesData) setSales(salesData);
+        if (custData) setCustomers(custData);
+        if (purData) setPurchases(purData);
+        if (expData) setExpenses(expData);
+      } catch (err) {
+        console.debug('Background silent refresh skip:', err);
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const refreshData = useCallback(async () => {
     setIsLoading(true);
@@ -599,6 +703,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setSales((prev) => [newSale, ...prev]);
 
+    // Play POS Cashier electronic double-beep & trigger webapp toast notification
+    soundEffects.playSaleBeep();
+    setLatestNotificationSale(newSale);
+
     // Update customer if attached
     if (newSale.customer_id) {
       const cust = customers.find((c) => c.id === newSale.customer_id);
@@ -635,6 +743,135 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     return newSale;
+  };
+
+  // Process Sales Return (Admin Only Authority)
+  const processSaleReturn = async (data: {
+    sale_id: string;
+    refund_amount: number;
+    refund_method: 'cash' | 'upi' | 'credit';
+    return_reason: string;
+    items: Array<{
+      item_name: string;
+      size?: string;
+      quantity: number;
+      unit_price: number;
+      total_refund: number;
+    }>;
+  }): Promise<SaleRecord> => {
+    if (activeRole !== 'ADMIN') {
+      throw new Error('Unauthorized: Only Admin has authority to process returns and refunds.');
+    }
+
+    const targetSale = sales.find((s) => s.id === data.sale_id);
+    if (!targetSale) throw new Error('Sale not found.');
+
+    const totalSaleItemsCount = (targetSale.items || []).reduce((sum, it) => sum + (it.quantity || 1), 0);
+    const returnedItemsCount = data.items.reduce((sum, it) => sum + (it.quantity || 1), 0);
+    const isFullReturn = returnedItemsCount >= totalSaleItemsCount || data.refund_amount >= targetSale.total;
+
+    const returnStatus = isFullReturn ? 'RETURNED' : 'PARTIALLY_RETURNED';
+
+    const updatedSale: SaleRecord = {
+      ...targetSale,
+      status: returnStatus,
+      refund_amount: (targetSale.refund_amount || 0) + data.refund_amount,
+      refund_method: data.refund_method,
+      return_reason: data.return_reason,
+      returned_at: new Date().toISOString(),
+      returned_by_name: userProfile?.full_name || 'Admin',
+      return_items: [...(targetSale.return_items || []), ...data.items],
+    };
+
+    setSales((prev) => prev.map((s) => (s.id === data.sale_id ? updatedSale : s)));
+
+    // Adjust customer ledger if customer attached
+    if (targetSale.customer_id) {
+      const cust = customers.find((c) => c.id === targetSale.customer_id);
+      if (cust) {
+        const newBal = Math.max(0, (cust.current_balance || 0) - data.refund_amount);
+        await customersService.update(targetSale.customer_id, {
+          current_balance: newBal,
+        });
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === targetSale.customer_id ? { ...c, current_balance: newBal } : c))
+        );
+
+        const entry = await customerLedgerService.addEntry({
+          organization_id: ORG_ID,
+          customer_id: targetSale.customer_id,
+          transaction_type: 'CREDIT_NOTE',
+          reference_number: `RET-${targetSale.receipt_number}`,
+          business_date: new Date().toISOString().split('T')[0],
+          debit: 0,
+          credit: data.refund_amount,
+          running_balance: newBal,
+          description: `Return on Bill #${targetSale.receipt_number}: ${data.return_reason || 'Item returned'}`,
+        });
+        setCustomerLedgers((prev) => ({
+          ...prev,
+          [targetSale.customer_id!]: [...(prev[targetSale.customer_id!] || []), entry],
+        }));
+      }
+    }
+
+    soundEffects.playRefundBeep();
+    return updatedSale;
+  };
+
+  // Delete Sale Order (Admin Only Authority)
+  const deleteSale = async (saleId: string): Promise<void> => {
+    if (activeRole !== 'ADMIN') {
+      throw new Error('Unauthorized: Only Admin has authority to delete sales orders.');
+    }
+
+    const targetSale = sales.find((s) => s.id === saleId);
+    if (!targetSale) throw new Error('Sale order not found.');
+
+    // Rollback customer balance and ledger if customer attached
+    if (targetSale.customer_id) {
+      const cust = customers.find((c) => c.id === targetSale.customer_id);
+      if (cust) {
+        const dueAmount = targetSale.due_amount || 0;
+        const newBal = Math.max(0, (cust.current_balance || 0) - dueAmount);
+        const newTotalSpent = Math.max(0, (cust.total_spent || 0) - targetSale.total);
+        const newPurchasesCount = Math.max(0, (cust.total_purchases_count || 1) - 1);
+
+        await customersService.update(targetSale.customer_id, {
+          current_balance: newBal,
+          total_spent: newTotalSpent,
+          total_purchases_count: newPurchasesCount,
+        });
+
+        setCustomers((prev) =>
+          prev.map((c) =>
+            c.id === targetSale.customer_id
+              ? {
+                  ...c,
+                  current_balance: newBal,
+                  total_spent: newTotalSpent,
+                  total_purchases_count: newPurchasesCount,
+                }
+              : c
+          )
+        );
+
+        // Remove the sale ledger entry if present
+        setCustomerLedgers((prev) => {
+          const entries = prev[targetSale.customer_id!] || [];
+          return {
+            ...prev,
+            [targetSale.customer_id!]: entries.filter((e) => e.reference_number !== targetSale.receipt_number),
+          };
+        });
+      }
+    }
+
+    // Delete from Supabase
+    await salesService.remove(saleId);
+
+    // Update local sales list
+    setSales((prev) => prev.filter((s) => s.id !== saleId));
   };
 
   // ============================================================================
@@ -1182,6 +1419,16 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         activeCashSession,
 
         recordSale,
+        deleteSale,
+        processSaleReturn,
+        latestNotificationSale,
+        clearNotificationSale,
+        userLocation,
+        isLocationVerified,
+        locationError,
+        verifyStoreLocation,
+        bypassLocationVerification,
+
         addCustomer,
         updateCustomer,
         deleteCustomer,
