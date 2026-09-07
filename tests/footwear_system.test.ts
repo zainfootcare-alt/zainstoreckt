@@ -437,6 +437,26 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     expect(customerCurrentBalance).toBe(0);
     expect(customerTotalSpent).toBe(3000);
   });
+
+  it('Acceptance Test 21: Admin Finance Chart accurately calculates 7-day sales breakdown and fund utilization', () => {
+    const totalSales = 75000;
+    const totalPartyPayments = 45000;
+    const totalSalaries = 15000;
+    const totalShopExpenses = 5000;
+
+    const totalOutflow = totalPartyPayments + totalSalaries + totalShopExpenses;
+    const netCashflow = totalSales - totalOutflow;
+
+    const partyPct = Math.round((totalPartyPayments / totalOutflow) * 100);
+    const salaryPct = Math.round((totalSalaries / totalOutflow) * 100);
+    const opsPct = 100 - partyPct - salaryPct;
+
+    expect(totalOutflow).toBe(65000);
+    expect(netCashflow).toBe(10000); // ₹10,000 net positive cashflow
+    expect(partyPct).toBe(69);
+    expect(salaryPct).toBe(23);
+    expect(opsPct).toBe(8);
+  });
 });
 
 

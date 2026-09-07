@@ -6,6 +6,8 @@ import { PermissionGuard } from '../../components/auth/PermissionGuard';
 import { financeService } from '../../services/financeService';
 import { PaymentAccount, Expense } from '../../types/database.types';
 import { DollarSign, ArrowLeftRight, BookOpen, AlertCircle, PieChart, CreditCard, ShieldCheck, IndianRupee } from 'lucide-react';
+import { useShop } from '../../context/ShopContext';
+import { AdminFinanceChartCard } from '../../components/dashboard/AdminFinanceChartCard';
 
 export const FinanceOverviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,6 +55,9 @@ export const FinanceOverviewPage: React.FC = () => {
             },
           ]}
         />
+
+        {/* ADMIN SHORT FINANCE CHART & EXPENSE UTILIZATION TRACKER */}
+        <AdminFinanceChartCard />
 
         {/* FINANCIAL METRICS CARDS IN INR ₹ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

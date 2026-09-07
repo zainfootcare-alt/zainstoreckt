@@ -22,6 +22,7 @@ import {
   formatDateLabel,
 } from '../../components/common/DateFilterModal';
 import { InvoiceDetailModal } from '../../components/common/InvoiceDetailModal';
+import { AdminFinanceChartCard } from '../../components/dashboard/AdminFinanceChartCard';
 
 export const DashboardPage: React.FC = () => {
   const { sales, activeRole } = useShop();
@@ -206,6 +207,9 @@ export const DashboardPage: React.FC = () => {
           <span className="text-[10px] text-slate-400">Sales Records</span>
         </button>
       </div>
+
+      {/* 2.5. ADMIN COMPACT FINANCE & EXPENSE UTILIZATION TRACKER */}
+      {isAdmin && <AdminFinanceChartCard />}
 
       {/* 3. QUICK INVOICE SEARCH & LOOKUP BAR */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-3.5 sm:p-4 shadow-xs">
