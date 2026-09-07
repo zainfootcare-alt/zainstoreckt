@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { SaleRecord } from '../../types/database.types';
+import { InvoiceDetailModal } from '../../components/common/InvoiceDetailModal';
 
 export const PartyDetailPage: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -607,71 +608,12 @@ export const PartyDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* 6. FULL RECEIPT DETAILS MODAL */}
-      {selectedReceipt && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-black text-base text-slate-900">Receipt Details</h3>
-                <p className="text-[11px] text-slate-500 font-mono">#{selectedReceipt.receipt_number}</p>
-              </div>
-              <button
-                onClick={() => setSelectedReceipt(null)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between text-slate-600">
-                <span>Date:</span>
-                <span className="font-bold text-slate-900">
-                  {new Date(selectedReceipt.created_at).toLocaleString('en-IN')}
-                </span>
-              </div>
-
-              {/* Items */}
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-1.5">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                  Purchased Items
-                </p>
-                {(selectedReceipt.items || []).map((it, idx) => (
-                  <div key={idx} className="flex justify-between font-semibold text-slate-800">
-                    <span>
-                      {it.item_name} {it.size ? `[Size ${it.size}]` : ''}
-                    </span>
-                    <span className="font-mono font-bold">₹{it.unit_price}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Split */}
-              <div className="pt-2 border-t border-slate-100 flex justify-between font-black text-sm text-slate-900">
-                <span>Total Amount:</span>
-                <span className="font-mono text-[#ff6600]">₹{selectedReceipt.total}</span>
-              </div>
-            </div>
-
-            <div className="pt-2 flex space-x-2">
-              <button
-                onClick={() => window.print()}
-                className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print</span>
-              </button>
-              <button
-                onClick={() => setSelectedReceipt(null)}
-                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 6. FULL INVOICE & ORDER DETAILS MODAL */}
+      <InvoiceDetailModal
+        sale={selectedReceipt}
+        isOpen={!!selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
+      />
     </div>
   );
 };

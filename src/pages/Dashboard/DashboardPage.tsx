@@ -8,19 +8,29 @@ import {
   ArrowRight,
   Calendar,
   ChevronDown,
+  Search,
+  FileText,
+  Eye,
+  Sparkles,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { SaleRecord } from '../../types/database.types';
 import {
   DateFilterModal,
   DateFilterValue,
   getPresetDates,
   formatDateLabel,
 } from '../../components/common/DateFilterModal';
+import { InvoiceDetailModal } from '../../components/common/InvoiceDetailModal';
 
 export const DashboardPage: React.FC = () => {
   const { sales, activeRole } = useShop();
   const navigate = useNavigate();
   const isAdmin = activeRole === 'ADMIN';
+
+  // Invoice Modal State
+  const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
+  const [quickInvoiceSearch, setQuickInvoiceSearch] = useState<string>('');
 
   // Date Filter Modal & State (Default: TODAY)
   const [isDateModalOpen, setIsDateModalOpen] = useState<boolean>(false);
@@ -56,7 +66,24 @@ export const DashboardPage: React.FC = () => {
   const displaySales = filteredSales.length > 0 ? filteredSales : sales;
   const latestTransactions = [...displaySales]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
+    .slice(0, 6);
+
+  // Quick Invoice Search matches
+  const matchedQuickSales = quickInvoiceSearch.trim()
+    ? sales.filter(
+        (s) =>
+          s.receipt_number.toLowerCase().includes(quickInvoiceSearch.toLowerCase()) ||
+          (s.customer_name && s.customer_name.toLowerCase().includes(quickInvoiceSearch.toLowerCase())) ||
+          (s.customer_phone && s.customer_phone.includes(quickInvoiceSearch))
+      )
+    : [];
+
+  const handleQuickInvoiceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (matchedQuickSales.length > 0) {
+      setSelectedReceipt(matchedQuickSales[0]);
+    }
+  };
 
   const formatTime = (isoString: string) => {
     try {
@@ -70,7 +97,7 @@ export const DashboardPage: React.FC = () => {
   const currentLabel = formatDateLabel(dateFilter);
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 font-sans">
       {/* 1. SALES / ORDERS OVERVIEW CARD WITH SIDE CALENDAR POPUP FILTER */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3.5">
         {/* Card Header with Side Date Selector Button */}
@@ -180,11 +207,63 @@ export const DashboardPage: React.FC = () => {
         </button>
       </div>
 
-      {/* 3. RECENT SALES TRANSACTIONS */}
+      {/* 3. QUICK INVOICE SEARCH & LOOKUP BAR */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-3.5 sm:p-4 shadow-xs">
+        <form onSubmit={handleQuickInvoiceSubmit} className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={quickInvoiceSearch}
+              onChange={(e) => setQuickInvoiceSearch(e.target.value)}
+              placeholder="Search Invoice # (e.g. ZAIN-1025) or customer name..."
+              className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+          {quickInvoiceSearch.trim() && (
+            <button
+              type="submit"
+              disabled={matchedQuickSales.length === 0}
+              className="px-3.5 py-2 bg-slate-900 hover:bg-black disabled:opacity-40 text-white rounded-2xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+            >
+              <Eye className="w-3.5 h-3.5 text-orange-400" />
+              <span>{matchedQuickSales.length > 0 ? `Open (#${matchedQuickSales[0].receipt_number})` : 'No Match'}</span>
+            </button>
+          )}
+        </form>
+
+        {/* Quick Matched Chips */}
+        {quickInvoiceSearch.trim() && matchedQuickSales.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400 uppercase">Found Invoices:</span>
+            {matchedQuickSales.slice(0, 3).map((ms) => (
+              <button
+                key={ms.id}
+                type="button"
+                onClick={() => {
+                  setSelectedReceipt(ms);
+                  setQuickInvoiceSearch('');
+                }}
+                className="text-xs font-mono font-bold text-slate-800 hover:text-orange-600 bg-slate-100 hover:bg-orange-50 px-2.5 py-1 rounded-xl border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <FileText className="w-3 h-3 text-[#ff6600]" />
+                <span>#{ms.receipt_number} (₹{ms.total})</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 4. RECENT SALES TRANSACTIONS (Clickable to open full Invoice Breakdown) */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-black text-sm text-slate-900">Recent Sales</h3>
+            <h3 className="font-black text-sm text-slate-900 flex items-center gap-1.5">
+              <span>Recent Sales</span>
+              <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                Click any order to view items
+              </span>
+            </h3>
             <p className="text-[11px] text-slate-400 font-medium">{currentLabel}</p>
           </div>
           <Link to="/app/sales" className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center">
@@ -200,24 +279,41 @@ export const DashboardPage: React.FC = () => {
             </div>
           ) : (
             latestTransactions.map((sale) => (
-              <div key={sale.id} className="py-2.5 flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-bold text-slate-900">{sale.customer_name || 'Walk-in Customer'}</p>
-                  <p className="text-[11px] text-slate-400">
-                    #{sale.receipt_number} • {formatTime(sale.created_at)}
-                  </p>
+              <div
+                key={sale.id}
+                onClick={() => setSelectedReceipt(sale)}
+                className="py-3 px-2 -mx-2 hover:bg-orange-50/50 rounded-2xl flex items-center justify-between text-xs transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-orange-100 text-slate-600 group-hover:text-orange-600 flex items-center justify-center flex-shrink-0 transition-colors">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 group-hover:text-orange-600 transition-colors truncate">
+                      {sale.customer_name || 'Walk-in Customer'}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                      <span className="font-mono font-bold text-slate-600">#{sale.receipt_number}</span>
+                      <span>•</span>
+                      <span>{sale.items?.length || 1} Item(s)</span>
+                      <span>•</span>
+                      <span>{formatTime(sale.created_at)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right font-mono">
-                  <p className="font-black text-slate-900">₹{sale.total.toLocaleString('en-IN')}</p>
-                  <p className="text-[10px] text-emerald-600 font-bold">
-                    {sale.cash_amount > 0 && sale.online_amount > 0
-                      ? 'Split'
-                      : sale.cash_amount > 0
-                      ? 'Cash'
-                      : (sale.due_amount || 0) > 0
-                      ? 'Due'
-                      : 'Online'}
-                  </p>
+
+                <div className="text-right font-mono flex-shrink-0 ml-2">
+                  <p className="font-black text-slate-900 text-sm">₹{sale.total.toLocaleString('en-IN')}</p>
+                  <div className="flex items-center justify-end gap-1 text-[10px]">
+                    <span className={`font-bold ${
+                      (sale.due_amount || 0) > 0
+                        ? 'text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded'
+                        : 'text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded'
+                    }`}>
+                      {(sale.due_amount || 0) > 0 ? `Due: ₹${sale.due_amount}` : 'PAID'}
+                    </span>
+                    <span className="text-slate-300 group-hover:text-orange-400 transition-colors">→</span>
+                  </div>
                 </div>
               </div>
             ))
@@ -225,12 +321,19 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. CALENDAR DATE FILTER MODAL */}
+      {/* 5. CALENDAR DATE FILTER MODAL */}
       <DateFilterModal
         isOpen={isDateModalOpen}
         onClose={() => setIsDateModalOpen(false)}
         currentValue={dateFilter}
         onApply={(newFilter) => setDateFilter(newFilter)}
+      />
+
+      {/* 6. INVOICE & ORDER DETAILS MODAL */}
+      <InvoiceDetailModal
+        sale={selectedReceipt}
+        isOpen={!!selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
       />
     </div>
   );
