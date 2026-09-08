@@ -29,7 +29,8 @@ import {
   X,
   MapPin,
   Navigation,
-  FileQuestion,
+  Copy,
+  AlertCircle,
 } from 'lucide-react';
 import { DemandLogModal } from '../../components/common/DemandLogModal';
 
@@ -1713,84 +1714,23 @@ export const CalculatorPOSPage: React.FC = () => {
   // =========================================================================
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-[#131417] text-white flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
-      {/* Top Header Bar with Customer Pill, Location & Exit Sale */}
+      {/* Top Header Bar with only Exit and Sales */}
       <div className="flex items-center justify-between pt-1 pb-1 flex-shrink-0">
-        <div className="flex items-center space-x-1.5">
-          <Link
-            to="/app/dashboard"
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
-          >
-            <ArrowLeft className="w-4 h-4 text-orange-400" />
-            <span>Exit</span>
-          </Link>
+        <Link
+          to="/app/dashboard"
+          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
+        >
+          <ArrowLeft className="w-4 h-4 text-orange-400" />
+          <span>Exit</span>
+        </Link>
 
-          {/* GPS Store Geofence Pill */}
-          {isLocationVerified ? (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-1.5 rounded-full">
-              <MapPin className="w-3 h-3 text-emerald-400" />
-              <span>Store OK</span>
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={handleVerifyGPS}
-              disabled={isVerifyingLocation}
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-950/60 border border-amber-700/60 px-2.5 py-1.5 rounded-full hover:bg-amber-900/80 cursor-pointer"
-              title={locationError || 'Click to verify you are at store location'}
-            >
-              <Navigation className={`w-3 h-3 ${isVerifyingLocation ? 'animate-spin' : ''}`} />
-              <span>{isVerifyingLocation ? 'Verifying...' : 'Verify GPS'}</span>
-            </button>
-          )}
-        </div>
-
-        {/* CUSTOMER SELECTION & OUT OF STOCK DEMAND PILLS AT TOP */}
-        <div className="flex items-center space-x-1.5">
-          {/* Quick Out of Stock Demand Log Button */}
-          <button
-            type="button"
-            onClick={() => setIsDemandModalOpen(true)}
-            className="flex items-center space-x-1 text-[11px] font-bold text-amber-300 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-700/60 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
-            title="Customer asking for shoe not in stock? Log Demand"
-          >
-            <FileQuestion className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Out of Stock</span>
-            <span className="sm:hidden">Demand</span>
-          </button>
-
-          {activeCustomer ? (
-            <button
-              type="button"
-              onClick={() => setIsCustomerPickerOpen(true)}
-              className="flex items-center space-x-1.5 text-[11px] font-extrabold bg-orange-500/20 text-orange-400 border border-orange-500/40 px-3 py-1.5 rounded-full hover:bg-orange-500/30 transition-all cursor-pointer"
-            >
-              <User className="w-3.5 h-3.5 text-orange-400" />
-              <span className="max-w-[100px] truncate">{activeCustomer.name}</span>
-              {activeCustomer.current_balance !== undefined && activeCustomer.current_balance > 0 && (
-                <span className="text-[9px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded-full font-mono">
-                  ₹{activeCustomer.current_balance} Due
-                </span>
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsCustomerPickerOpen(true)}
-              className="flex items-center space-x-1 text-[11px] font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] border border-white/10 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
-            >
-              <UserPlus className="w-3.5 h-3.5 text-orange-400" />
-              <span>+ Cust</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => handleKeypadPress('AC')}
-            className="text-xs font-bold text-slate-400 hover:text-rose-400 px-2 py-1.5 rounded-full bg-[#282a2d] hover:bg-rose-950/40 border border-white/5 transition-colors cursor-pointer"
-          >
-            AC
-          </button>
-        </div>
+        <Link
+          to="/app/sales"
+          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3.5 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
+        >
+          <ShoppingBag className="w-4 h-4 text-orange-400" />
+          <span>Sales</span>
+        </Link>
       </div>
 
       {/* Android Big Display Screen */}

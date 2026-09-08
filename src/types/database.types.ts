@@ -560,6 +560,7 @@ export interface Expense {
   organization_id: string;
   shop_id: string;
   category_name: string;
+  category?: string;
   title: string;
   vendor_name?: string;
   amount: number;

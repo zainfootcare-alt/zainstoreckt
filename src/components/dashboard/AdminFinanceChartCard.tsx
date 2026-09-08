@@ -95,13 +95,19 @@ export const AdminFinanceChartCard: React.FC = () => {
 
     // Categorized expense breakdown
     const rentExpenses = expenses
-      .filter((e) => (e.category || '').toLowerCase().includes('rent'))
+      .filter((e) => (e.category_name || e.category || '').toLowerCase().includes('rent'))
       .reduce((sum, e) => sum + Number(e.amount), 0);
     const teaAndSnacks = expenses
-      .filter((e) => (e.category || '').toLowerCase().includes('tea') || (e.category || '').toLowerCase().includes('refreshment') || (e.category || '').toLowerCase().includes('food'))
+      .filter((e) => {
+        const cat = (e.category_name || e.category || '').toLowerCase();
+        return cat.includes('tea') || cat.includes('refreshment') || cat.includes('food');
+      })
       .reduce((sum, e) => sum + Number(e.amount), 0);
     const maintenanceAndBills = expenses
-      .filter((e) => !((e.category || '').toLowerCase().includes('rent')) && !((e.category || '').toLowerCase().includes('tea')))
+      .filter((e) => {
+        const cat = (e.category_name || e.category || '').toLowerCase();
+        return !cat.includes('rent') && !cat.includes('tea');
+      })
       .reduce((sum, e) => sum + Number(e.amount), 0);
 
     const totalOutflow = totalPartyPayments + totalExpenses + totalSalaries;

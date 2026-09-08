@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { KPICard } from '../../components/common/KPICard';
 import { PermissionGuard } from '../../components/auth/PermissionGuard';
-import { financeService } from '../../services/financeService';
-import { PaymentAccount, Expense } from '../../types/database.types';
-import { PieChart, Download, Printer, ShieldAlert, IndianRupee } from 'lucide-react';
+import { useShop } from '../../context/ShopContext';
+import { PieChart, Printer, ShieldAlert, IndianRupee } from 'lucide-react';
 
 export const ProfitLossPage: React.FC = () => {
   const { paymentAccounts, expenses, sales, purchases, vendors } = useShop();

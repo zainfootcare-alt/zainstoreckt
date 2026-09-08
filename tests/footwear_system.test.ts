@@ -284,7 +284,7 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
     };
 
     // Non-admin attempting return must be denied
-    const nonAdminRole = 'CASHIER';
+    const nonAdminRole: string = 'CASHIER';
     const canReturn = nonAdminRole === 'ADMIN';
     expect(canReturn).toBe(false);
 
@@ -412,7 +412,7 @@ describe('Shop Operations & Finance Transaction Rules & Acceptance Criteria', ()
 
   it('Acceptance Test 20: Order deletion is strictly restricted to Admin role and rolls back customer dues', () => {
     // Non-Admin deletion attempt
-    const cashierRole = 'CASHIER';
+    const cashierRole: string = 'CASHIER';
     const canCashierDelete = cashierRole === 'ADMIN';
     expect(canCashierDelete).toBe(false);
 
