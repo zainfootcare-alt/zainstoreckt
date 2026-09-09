@@ -77,6 +77,10 @@ export const CalculatorPOSPage: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [isItemsSectionOpen, setIsItemsSectionOpen] = useState<boolean>(true);
+  const [isCustomerSectionOpen, setIsCustomerSectionOpen] = useState<boolean>(true);
+  const [isCustPickerOpen, setIsCustPickerOpen] = useState<boolean>(false);
+  const [custPickerSearch, setCustPickerSearch] = useState<string>('');
 
   // CUSTOMER HISTORY MODAL
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
@@ -710,294 +714,423 @@ export const CalculatorPOSPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Scrollable Center Content with Selected Items & Customer Profile */}
+        {/* Scrollable Center Content with Upper Sizing/Categories & Lower Customer Details */}
         <div className="flex-1 flex flex-col space-y-2.5 overflow-y-auto no-scrollbar py-1">
-          {/* CUSTOMER DETAILS (WALK-IN) & LAST PURCHASE PANEL */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2.5">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-orange-600" />
-                <span className="text-xs font-black text-slate-900 uppercase tracking-wider">Customer Details</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                  {lastPurchase || activeCustomer ? 'Existing Customer' : customerPhone.replace(/\D/g, '').length >= 10 ? 'New Customer' : 'Walk-in'}
+          {/* ================================================================= */}
+          {/* 1. UPPER SECTION: FOOTWEAR SIZING & CATEGORIES DROPDOWN */}
+          {/* ================================================================= */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all">
+            {/* Upper Section Collapsible Header */}
+            <div
+              onClick={() => setIsItemsSectionOpen(!isItemsSectionOpen)}
+              className="p-3.5 bg-gradient-to-r from-orange-50/50 to-white flex items-center justify-between cursor-pointer hover:bg-orange-50/70 transition-colors select-none"
+            >
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-[#ff6600] text-white flex items-center justify-center font-black flex-shrink-0 shadow-2xs">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                      Footwear Size & Category
+                    </span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                      {lineItems.length} Item{lineItems.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                    {lineItems.map((it, i) => `#${i + 1} ${it.category} (Size ${it.size})`).join(', ')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                <span className="text-xs font-black font-mono text-orange-600">
+                  ₹{calculatedItemsTotal.toLocaleString('en-IN')}
                 </span>
-              </div>
-              {(customerPhone || customerName) && (
-                <button
-                  type="button"
-                  onClick={handleClearCustomer}
-                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-0.5 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                  <span>Reset to Walk-in</span>
-                </button>
-              )}
-            </div>
-
-            {/* Inputs: Mobile Number & Name */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="relative">
-                <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder="Mobile Number (Optional)"
-                  value={customerPhone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  maxLength={15}
-                  className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all font-mono"
-                />
-              </div>
-              <div className="relative">
-                <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Customer Name (Walk-in)"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
-                />
+                <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs">
+                  {isItemsSectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
               </div>
             </div>
 
-            {/* If Customer / Previous Purchase Found in Database */}
-            {lastPurchase ? (
-              <div className="bg-gradient-to-br from-emerald-50/90 to-teal-50/50 rounded-xl p-3 border border-emerald-200/90 space-y-2 animate-in fade-in duration-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-2xs flex-shrink-0">
-                      {(activeCustomer?.name || customerName || 'C').charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h4 className="font-extrabold text-xs text-slate-900">
-                          {activeCustomer?.name || customerName || 'Registered Customer'}
-                        </h4>
-                        <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded-md">
-                          Found in Database
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 font-mono">
-                        {customerPastSales.length} Total Bill{customerPastSales.length === 1 ? '' : 's'}
-                        {preferredSize && (
-                          <span className="ml-2 font-bold text-orange-700 bg-orange-100/80 px-1.5 py-0.2 rounded">
-                            👟 Size UK {preferredSize}
+            {/* Upper Section Body: Footwear Category & Size Selection for Each Item */}
+            {isItemsSectionOpen && (
+              <div className="p-3 space-y-2.5 border-t border-slate-100 bg-slate-50/30 animate-in fade-in duration-150">
+                {lineItems.map((item, idx) => {
+                  const isExpanded = lineItems.length === 1 || expandedItemId === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all"
+                    >
+                      {/* Sub-Header for Item */}
+                      <div
+                        onClick={() => {
+                          if (lineItems.length > 1) {
+                            setExpandedItemId(expandedItemId === item.id ? null : item.id);
+                          }
+                        }}
+                        className={`p-3 flex items-center justify-between transition-colors ${
+                          lineItems.length > 1 ? 'cursor-pointer hover:bg-slate-50' : ''
+                        } ${isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : ''}`}
+                      >
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 text-[11px] font-black flex items-center justify-center flex-shrink-0">
+                            {idx + 1}
                           </span>
-                        )}
-                      </p>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate">
+                              {item.category} • Size {item.size}
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-medium">
+                              Footwear Item #{idx + 1}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-black text-slate-900 font-mono">
+                            ₹{item.unit_price.toLocaleString('en-IN')}
+                          </span>
+
+                          {/* Duplicate & Delete Buttons */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicateLineItem(item);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            title="Duplicate Item"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+
+                          {lineItems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveLineItem(item.id);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Remove Item"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {lineItems.length > 1 && (
+                            <div className="text-slate-400">
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expanded Categories & Sizes Selection */}
+                      {isExpanded && (
+                        <div className="p-3 space-y-3 bg-white animate-in fade-in duration-100">
+                          {/* 1. Category Chips */}
+                          <div>
+                            <div className="flex justify-between items-center mb-1.5">
+                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                                Select Category
+                              </span>
+                              <span className="text-xs font-black text-orange-600">{item.category}</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1.5">
+                              {FOOTWEAR_CATEGORIES.map((cat) => (
+                                <button
+                                  key={cat.id}
+                                  type="button"
+                                  onClick={() => updateItemCategory(item.id, cat.id)}
+                                  className={`py-2 px-1 rounded-xl text-[11px] font-bold text-center truncate transition-all cursor-pointer ${
+                                    item.category === cat.id
+                                      ? 'bg-[#ff6600] text-white shadow-xs font-black scale-102'
+                                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                  }`}
+                                >
+                                  {cat.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 2. Shoe Size Chips */}
+                          <div>
+                            <div className="flex justify-between items-center mb-1.5">
+                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                                Select Shoe Size (UK/IND)
+                              </span>
+                              <span className="text-xs font-black text-orange-600">Selected: UK {item.size}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {ALL_SHOE_SIZES.map((sz) => (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => updateItemSize(item.id, sz)}
+                                  className={`h-9 ${
+                                    sz === 'Free Size' ? 'px-2.5 text-[11px]' : 'w-9 text-xs'
+                                  } rounded-xl font-black flex items-center justify-center transition-all cursor-pointer ${
+                                    item.size === sz
+                                      ? 'bg-slate-900 text-white shadow-xs border-2 border-slate-900 scale-105'
+                                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                                  }`}
+                                >
+                                  {sz}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-
-                  {activeCustomer?.current_balance !== undefined && activeCustomer.current_balance > 0 ? (
-                    <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full flex-shrink-0">
-                      ₹{activeCustomer.current_balance.toLocaleString('en-IN')} Due
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full flex-shrink-0">
-                      All Settled
-                    </span>
-                  )}
-                </div>
-
-                {/* LAST PURCHASE DETAILS CARD */}
-                <div className="bg-white rounded-lg p-2.5 border border-emerald-200/70 text-[11px] space-y-1 shadow-2xs">
-                  <div className="flex items-center justify-between font-bold text-slate-800 pb-1 border-b border-slate-100">
-                    <span className="flex items-center gap-1 text-[10px] uppercase font-black text-emerald-800 tracking-wider">
-                      <ShoppingBag className="w-3 h-3 text-emerald-600" />
-                      <span>Last Purchase: {formatPurchaseDate(lastPurchase.created_at)}</span>
-                    </span>
-                    <span className="font-mono text-xs font-black text-slate-900">
-                      ₹{lastPurchase.total.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-
-                  {/* Items from last purchase */}
-                  <div className="text-[11px] text-slate-600 flex flex-wrap gap-1 items-center pt-0.5">
-                    <span className="font-bold text-slate-700 text-[10px]">Bought:</span>
-                    {(lastPurchase.items || []).map((it: any, i: number) => (
-                      <span
-                        key={i}
-                        className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-800 border border-slate-200/60"
-                      >
-                        {it.item_name || 'Footwear'} {it.size ? `(Size ${it.size})` : ''}
-                      </span>
-                    ))}
-                  </div>
-
-                  {customerPastSales.length > 1 && (
-                    <div className="pt-1 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setIsHistoryModalOpen(true)}
-                        className="text-[10px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer"
-                      >
-                        View All {customerPastSales.length} Past Purchases →
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-            ) : customerPhone.replace(/\D/g, '').length >= 10 ? (
-              <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-200/60">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>New customer • No previous purchase found. Will save automatically as Walk-in.</span>
-                </span>
-              </div>
-            ) : (
-              <p className="text-[10px] text-slate-400 italic">
-                Walk-in sale. Enter mobile number to auto-detect customer & last purchase.
-              </p>
             )}
           </div>
 
-          {/* SECTION: SELECTED ITEMS BEING PURCHASED (ABHI KYA KHAREED RAHE HAIN) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                <ShoppingBag className="w-3.5 h-3.5 text-slate-600" />
-                <span>Selected Items to Purchase ({lineItems.length})</span>
-              </span>
-              <span className="text-[11px] font-mono font-bold text-orange-600">
-                ₹{calculatedItemsTotal.toLocaleString('en-IN')}
-              </span>
+          {/* ================================================================= */}
+          {/* 2. LOWER SECTION: CUSTOMER NAME & NUMBER DROPDOWN */}
+          {/* ================================================================= */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all">
+            {/* Lower Section Collapsible Header */}
+            <div
+              onClick={() => setIsCustomerSectionOpen(!isCustomerSectionOpen)}
+              className="p-3.5 bg-gradient-to-r from-emerald-50/40 to-white flex items-center justify-between cursor-pointer hover:bg-emerald-50/60 transition-colors select-none"
+            >
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black flex-shrink-0 shadow-2xs">
+                  <User className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                      Customer Name & Number
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                      {lastPurchase || activeCustomer ? 'Existing Customer' : customerPhone.replace(/\D/g, '').length >= 10 ? 'New Customer' : 'Walk-in'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                    {customerName || 'Walk-in Customer'} {customerPhone ? `• ${customerPhone}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                {(customerPhone || customerName) && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearCustomer();
+                    }}
+                    className="text-[11px] font-bold text-rose-600 hover:text-rose-700 px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+                <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs">
+                  {isCustomerSectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </div>
             </div>
 
-            {/* List of Cart Items */}
-            {lineItems.map((item, idx) => {
-              const isExpanded = lineItems.length === 1 || expandedItemId === item.id;
-
-              return (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all"
-                >
-                  {/* Collapsible Header */}
-                  <div
-                    onClick={() => {
-                      if (lineItems.length > 1) {
-                        setExpandedItemId(expandedItemId === item.id ? null : item.id);
-                      }
-                    }}
-                    className={`p-3 flex items-center justify-between transition-colors ${
-                      lineItems.length > 1 ? 'cursor-pointer hover:bg-slate-50' : ''
-                    } ${isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : ''}`}
-                  >
-                    <div className="flex items-center space-x-2.5 min-w-0">
-                      <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 text-[11px] font-black flex items-center justify-center flex-shrink-0">
-                        {idx + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 truncate">
-                          {item.category} • Size {item.size}
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-medium">
-                          Footwear #{idx + 1}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-black text-slate-900 font-mono">
-                        ₹{item.unit_price.toLocaleString('en-IN')}
-                      </span>
-
-                      {/* Duplicate & Delete Buttons */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDuplicateLineItem(item);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                        title="Duplicate Item"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-
-                      {lineItems.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveLineItem(item.id);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Remove Item"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {lineItems.length > 1 && (
-                        <div className="text-slate-400">
-                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </div>
-                      )}
-                    </div>
+            {/* Lower Section Body: Customer Input & History */}
+            {isCustomerSectionOpen && (
+              <div className="p-3.5 space-y-3 border-t border-slate-100 bg-white animate-in fade-in duration-150">
+                {/* Quick Dropdown: Select From Existing Customers */}
+                <div className="relative">
+                  <div className="flex items-center justify-between pb-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                      Quick Pick or Enter Details
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustPickerOpen(!isCustPickerOpen)}
+                      className="text-[11px] font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>{isCustPickerOpen ? 'Close Customer List ▴' : 'Select From Saved Customers ▾'}</span>
+                    </button>
                   </div>
 
-                  {/* Expanded Body: Categories & Sizes */}
-                  {isExpanded && (
-                    <div className="p-3.5 space-y-3 bg-white animate-in fade-in duration-100">
-                      {/* 1. Category Chips */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                            Footwear Type
-                          </span>
-                          <span className="text-xs font-black text-orange-600">{item.category}</span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {FOOTWEAR_CATEGORIES.map((cat) => (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() => updateItemCategory(item.id, cat.id)}
-                              className={`py-2 px-1 rounded-xl text-[11px] font-bold text-center truncate transition-all cursor-pointer ${
-                                item.category === cat.id
-                                  ? 'bg-[#ff6600] text-white shadow-xs font-black scale-102'
-                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                              }`}
-                            >
-                              {cat.label}
-                            </button>
-                          ))}
-                        </div>
+                  {/* Customer Dropdown Popover */}
+                  {isCustPickerOpen && (
+                    <div className="mb-2 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 shadow-xs animate-in fade-in duration-100">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={custPickerSearch}
+                          onChange={(e) => setCustPickerSearch(e.target.value)}
+                          placeholder="Search saved customer by name or phone..."
+                          className="w-full pl-3 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
+                        />
                       </div>
-
-                      {/* 2. Shoe Size Chips */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                            Shoe Size (UK/IND)
-                          </span>
-                          <span className="text-xs font-black text-orange-600">Selected Size: {item.size}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {ALL_SHOE_SIZES.map((sz) => (
+                      <div className="max-h-36 overflow-y-auto space-y-1 divide-y divide-slate-100 no-scrollbar">
+                        {customers
+                          .filter((c) => {
+                            if (!custPickerSearch.trim()) return true;
+                            const q = custPickerSearch.toLowerCase();
+                            return c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
+                          })
+                          .slice(0, 8)
+                          .map((c) => (
                             <button
-                              key={sz}
+                              key={c.id}
                               type="button"
-                              onClick={() => updateItemSize(item.id, sz)}
-                              className={`h-9 ${
-                                sz === 'Free Size' ? 'px-2.5 text-[11px]' : 'w-9 text-xs'
-                              } rounded-xl font-black flex items-center justify-center transition-all cursor-pointer ${
-                                item.size === sz
-                                  ? 'bg-slate-900 text-white shadow-xs border-2 border-slate-900 scale-105'
-                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                              }`}
+                              onClick={() => {
+                                setSelectedCustomerId(c.id);
+                                setCustomerName(c.name);
+                                setCustomerPhone(c.phone || '');
+                                setIsCustPickerOpen(false);
+                                setCustPickerSearch('');
+                              }}
+                              className="w-full text-left p-2 hover:bg-orange-50/80 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer"
                             >
-                              {sz}
+                              <div>
+                                <p className="font-bold text-slate-900">{c.name}</p>
+                                <p className="text-[10px] text-slate-500 font-mono">{c.phone || 'No phone'}</p>
+                              </div>
+                              {c.current_balance !== undefined && c.current_balance > 0 ? (
+                                <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                  ₹{c.current_balance} Due
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-slate-400">Select →</span>
+                              )}
                             </button>
                           ))}
-                        </div>
+                        {customers.length === 0 && (
+                          <p className="text-[11px] text-slate-400 italic p-2 text-center">No saved customers yet.</p>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
-              );
-            })}
+
+                {/* Direct Number & Name Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="Mobile Number (Optional)"
+                      value={customerPhone}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      maxLength={15}
+                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all font-mono"
+                    />
+                  </div>
+                  <div className="relative">
+                    <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Customer Name (Walk-in)"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto-detected Last Purchase Details if Found */}
+                {lastPurchase ? (
+                  <div className="bg-gradient-to-br from-emerald-50/90 to-teal-50/50 rounded-xl p-3 border border-emerald-200/90 space-y-2 animate-in fade-in duration-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-2xs flex-shrink-0">
+                          {(activeCustomer?.name || customerName || 'C').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-extrabold text-xs text-slate-900">
+                              {activeCustomer?.name || customerName || 'Registered Customer'}
+                            </h4>
+                            <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded-md">
+                              Found in Database
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-mono">
+                            {customerPastSales.length} Total Bill{customerPastSales.length === 1 ? '' : 's'}
+                            {preferredSize && (
+                              <span className="ml-2 font-bold text-orange-700 bg-orange-100/80 px-1.5 py-0.2 rounded">
+                                👟 Size UK {preferredSize}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {activeCustomer?.current_balance !== undefined && activeCustomer.current_balance > 0 ? (
+                        <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                          ₹{activeCustomer.current_balance.toLocaleString('en-IN')} Due
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                          All Settled
+                        </span>
+                      )}
+                    </div>
+
+                    {/* LAST PURCHASE DETAILS CARD */}
+                    <div className="bg-white rounded-lg p-2.5 border border-emerald-200/70 text-[11px] space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between font-bold text-slate-800 pb-1 border-b border-slate-100">
+                        <span className="flex items-center gap-1 text-[10px] uppercase font-black text-emerald-800 tracking-wider">
+                          <ShoppingBag className="w-3 h-3 text-emerald-600" />
+                          <span>Last Purchase: {formatPurchaseDate(lastPurchase.created_at)}</span>
+                        </span>
+                        <span className="font-mono text-xs font-black text-slate-900">
+                          ₹{lastPurchase.total.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      {/* Items from last purchase */}
+                      <div className="text-[11px] text-slate-600 flex flex-wrap gap-1 items-center pt-0.5">
+                        <span className="font-bold text-slate-700 text-[10px]">Bought:</span>
+                        {(lastPurchase.items || []).map((it: any, i: number) => (
+                          <span
+                            key={i}
+                            className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-800 border border-slate-200/60"
+                          >
+                            {it.item_name || 'Footwear'} {it.size ? `(Size ${it.size})` : ''}
+                          </span>
+                        ))}
+                      </div>
+
+                      {customerPastSales.length > 1 && (
+                        <div className="pt-1 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setIsHistoryModalOpen(true)}
+                            className="text-[10px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer"
+                          >
+                            View All {customerPastSales.length} Past Purchases →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : customerPhone.replace(/\D/g, '').length >= 10 ? (
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>New customer • No previous purchase found. Will save automatically.</span>
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 italic">
+                    Walk-in sale. Enter mobile number or choose from dropdown to auto-detect customer & last purchase.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1273,44 +1406,82 @@ export const CalculatorPOSPage: React.FC = () => {
     const isDueCustomerMissing = isDuePending && (!customerName.trim() || !customerPhone.trim()) && !selectedCustomerId;
 
     return (
-      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
+      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-start max-w-md mx-auto p-2.5 sm:p-3 select-none overflow-hidden animate-in fade-in duration-150">
         {/* Top Header */}
         <div className="flex items-center justify-between pb-1 flex-shrink-0">
           <button
             onClick={() => setStep('DETAILS')}
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+            className="flex items-center space-x-1 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-2.5 py-1 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-600" />
-            <span>Back</span>
+            <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
+            <span>Back to Details</span>
           </button>
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            Step 3 • Make Payment
+          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+            Step 3 • Payment & Settlement
           </span>
         </div>
 
-        {/* Big Amount Card */}
-        <div className="bg-slate-950 text-white rounded-3xl p-4 sm:p-5 shadow-lg space-y-1 text-center flex-shrink-0 my-1">
-          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Total Bill Amount</p>
-          <div className="flex items-baseline justify-center space-x-1">
-            <span className="text-2xl font-bold text-orange-400">₹</span>
-            <span className="text-4xl sm:text-5xl font-black text-white font-mono tracking-tight">
-              {(activeSubtotal - discountAmount).toLocaleString('en-IN')}
+        {/* Compact Integrated Bill & Footwear Items Summary Card */}
+        <div className="bg-slate-950 text-white rounded-2xl p-3 shadow-md flex-shrink-0 my-1 space-y-2 border border-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Payable</p>
+              <div className="flex items-baseline space-x-1">
+                <span className="text-lg font-bold text-orange-400">₹</span>
+                <span className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                  {(activeSubtotal - discountAmount).toLocaleString('en-IN')}
+                </span>
+                {discountAmount > 0 && (
+                  <span className="text-xs font-bold text-emerald-400 ml-1.5 line-through opacity-70">
+                    ₹{activeSubtotal.toLocaleString('en-IN')}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Customer Badge */}
+            <div className="text-right">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-200 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg">
+                <User className="w-3 h-3 text-emerald-400" />
+                <span className="truncate max-w-[120px]">{activeCustomer?.name || customerName || 'Walk-in'}</span>
+              </span>
+              {customerPhone && (
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{customerPhone}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Footwear Items Summary Breakdown Pills */}
+          <div className="pt-1.5 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 flex-shrink-0">
+              <ShoppingBag className="w-3 h-3 text-slate-400" />
+              <span>{lineItems.length > 0 ? lineItems.length : 1} Item{lineItems.length > 1 ? 's' : ''}:</span>
             </span>
-            {discountAmount > 0 && (
-              <span className="text-xs font-bold text-emerald-400 ml-2 line-through opacity-70">
-                ₹{activeSubtotal}
+            {lineItems.length > 0 ? (
+              lineItems.map((item, idx) => (
+                <span
+                  key={item.id || idx}
+                  className="inline-flex items-center gap-1 bg-slate-800/90 border border-slate-700/90 text-slate-200 text-[10px] font-medium px-2 py-0.5 rounded-md flex-shrink-0"
+                >
+                  <span className="font-bold text-white">{item.category || item.name}</span>
+                  <span className="text-amber-300 font-mono text-[9px] bg-slate-900 px-1 rounded">Sz {item.size}</span>
+                  <span className="text-emerald-400 font-mono font-bold">₹{item.unit_price}</span>
+                </span>
+              ))
+            ) : (
+              <span className="inline-flex items-center gap-1 bg-slate-800/90 border border-slate-700 text-slate-300 text-[10px] px-2 py-0.5 rounded-md">
+                <span>{shoeCategory}</span>
+                <span className="text-amber-300 font-mono text-[9px]">Sz {shoeSize}</span>
+                <span className="text-emerald-400 font-mono">₹{activeSubtotal}</span>
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-300 font-medium">
-            {lineItems.length} Items • {activeCustomer?.name || customerName || 'Walk-in'}
-          </p>
         </div>
 
-        {/* Scrollable Center Content */}
-        <div className="flex-1 flex flex-col justify-center space-y-2.5 overflow-y-auto no-scrollbar py-1">
+        {/* Scrollable Center Content - Tight Spacing without dead space */}
+        <div className="flex-1 flex flex-col justify-start space-y-2 overflow-y-auto no-scrollbar py-1">
           {/* Quick 1-Tap Payment Mode Presets */}
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5 flex-shrink-0">
             <button
               type="button"
               onClick={handleSelectFullCash}
@@ -1346,55 +1517,55 @@ export const CalculatorPOSPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Cash & Online Direct Inputs */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2.5">
+          {/* Cash & Online Direct Inputs - Compact & Clean */}
+          <div className="bg-white rounded-xl p-2.5 border border-slate-200/80 shadow-2xs space-y-2 flex-shrink-0">
             {/* Cash Input Box */}
-            <div className="flex items-center justify-between space-x-2 bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-200/80">
+            <div className="flex items-center justify-between space-x-2 bg-emerald-50/70 p-2 rounded-lg border border-emerald-200/80">
               <div className="flex items-center space-x-2 min-w-0">
-                <Banknote className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <Banknote className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 <div>
-                  <p className="text-xs font-black text-emerald-900">Cash Received</p>
-                  <p className="text-[10px] text-emerald-700">Cash in drawer</p>
+                  <p className="text-xs font-black text-emerald-950">Cash Received</p>
+                  <p className="text-[9px] text-emerald-700">Cash in drawer</p>
                 </div>
               </div>
               <div className="flex items-center space-x-1">
-                <span className="text-sm font-bold text-slate-500">₹</span>
+                <span className="text-xs font-bold text-slate-500">₹</span>
                 <input
                   type="number"
                   min="0"
                   value={cashPaid}
                   onChange={(e) => setCashPaid(e.target.value)}
                   placeholder="0"
-                  className="w-24 text-right px-2.5 py-1.5 bg-white border border-emerald-300 rounded-lg text-base font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-24 text-right px-2 py-1 bg-white border border-emerald-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
             </div>
 
             {/* Online UPI Input Box */}
-            <div className="flex items-center justify-between space-x-2 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-200/80">
+            <div className="flex items-center justify-between space-x-2 bg-indigo-50/70 p-2 rounded-lg border border-indigo-200/80">
               <div className="flex items-center space-x-2 min-w-0">
-                <Smartphone className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                <Smartphone className="w-4 h-4 text-indigo-600 flex-shrink-0" />
                 <div>
-                  <p className="text-xs font-black text-indigo-900">Online / UPI</p>
+                  <p className="text-xs font-black text-indigo-950">Online / UPI</p>
                   <button
                     type="button"
                     onClick={() => setShowQrModal(true)}
-                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
+                    className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
                   >
-                    <QrCode className="w-3 h-3" />
+                    <QrCode className="w-2.5 h-2.5" />
                     <span>Show Store QR</span>
                   </button>
                 </div>
               </div>
               <div className="flex items-center space-x-1">
-                <span className="text-sm font-bold text-slate-500">₹</span>
+                <span className="text-xs font-bold text-slate-500">₹</span>
                 <input
                   type="number"
                   min="0"
                   value={onlinePaid}
                   onChange={(e) => setOnlinePaid(e.target.value)}
                   placeholder="0"
-                  className="w-24 text-right px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg text-base font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-24 text-right px-2 py-1 bg-white border border-indigo-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -1402,23 +1573,23 @@ export const CalculatorPOSPage: React.FC = () => {
 
           {/* AUTO-DISCOUNT OR DUE PROMPT (When Customer Pays Less) */}
           {unpaidDifference > 0 && discountAmount === 0 && (
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3 space-y-2 animate-in fade-in">
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-2.5 space-y-1.5 animate-in fade-in flex-shrink-0">
               <div className="flex justify-between items-center text-xs font-black text-amber-900">
                 <span>⚠️ Remaining Amount: ₹{unpaidDifference}</span>
-                <span className="text-[10px] font-bold bg-amber-200 px-2 py-0.5 rounded-full text-amber-900">Action Required</span>
+                <span className="text-[9px] font-bold bg-amber-200 px-1.5 py-0.5 rounded-full text-amber-900">Action Required</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 <button
                   type="button"
                   onClick={handleApplyRemainingAsDiscount}
-                  className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs"
+                  className="py-2 px-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-black transition-all cursor-pointer shadow-xs text-center"
                 >
                   🏷️ Give ₹{unpaidDifference} Discount
                 </button>
                 <button
                   type="button"
                   onClick={handleKeepRemainingAsDue}
-                  className="py-2.5 px-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs"
+                  className="py-2 px-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-lg text-xs font-black transition-all cursor-pointer shadow-xs text-center"
                 >
                   ⏳ Keep ₹{unpaidDifference} as Due
                 </button>
@@ -1428,8 +1599,8 @@ export const CalculatorPOSPage: React.FC = () => {
 
           {/* Discount Applied Badge */}
           {discountAmount > 0 && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5 flex justify-between items-center text-xs">
-              <span className="font-bold text-emerald-900">🏷️ Discount Applied: ₹{discountAmount} (Bill Settled)</span>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2 flex justify-between items-center text-xs flex-shrink-0">
+              <span className="font-bold text-emerald-900 text-xs">🏷️ Discount Applied: ₹{discountAmount} (Bill Settled)</span>
               <button
                 type="button"
                 onClick={() => setDiscountAmount(0)}
@@ -1442,9 +1613,9 @@ export const CalculatorPOSPage: React.FC = () => {
 
           {/* MANDATORY CUSTOMER DATA FOR DUE / UDHAAR */}
           {isDuePending && (
-            <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in">
+            <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-2.5 space-y-2 animate-in fade-in flex-shrink-0">
               <div className="flex items-center space-x-1.5">
-                <Clock className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                <Clock className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
                 <p className="text-xs font-black text-amber-950">
                   Customer Details Required for Udhaar (Due: ₹{dueAmount || unpaidDifference})
                 </p>
@@ -1452,7 +1623,7 @@ export const CalculatorPOSPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-black text-amber-900 uppercase block mb-0.5">
+                  <label className="text-[9px] font-black text-amber-900 uppercase block mb-0.5">
                     Customer Name *
                   </label>
                   <input
@@ -1463,11 +1634,11 @@ export const CalculatorPOSPage: React.FC = () => {
                       setCustomerName(e.target.value);
                       setSelectedCustomerId('');
                     }}
-                    className="w-full px-2.5 py-2 bg-white border-2 border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                    className="w-full px-2 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-amber-900 uppercase block mb-0.5">
+                  <label className="text-[9px] font-black text-amber-900 uppercase block mb-0.5">
                     10-digit Phone *
                   </label>
                   <input
@@ -1478,7 +1649,7 @@ export const CalculatorPOSPage: React.FC = () => {
                       setCustomerPhone(e.target.value);
                       setSelectedCustomerId('');
                     }}
-                    className="w-full px-2.5 py-2 bg-white border-2 border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                    className="w-full px-2 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -1486,21 +1657,21 @@ export const CalculatorPOSPage: React.FC = () => {
           )}
         </div>
 
-        {/* Big Complete Sale Button */}
+        {/* Big Complete Sale Button - Compact & Fixed Bottom */}
         <div className="pt-2 flex-shrink-0">
           <button
             type="button"
             onClick={() => handleCompleteSale(false)}
             disabled={isDueCustomerMissing || isProcessingSale || isSalesCreationBlocked}
-            className={`w-full py-4 rounded-full font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+            className={`w-full py-3.5 rounded-xl font-black text-base shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer ${
               isSalesCreationBlocked
                 ? 'bg-rose-500 text-white opacity-75 cursor-not-allowed'
                 : isDueCustomerMissing || isProcessingSale
                 ? 'bg-amber-400 text-amber-950 opacity-60 cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-emerald-600/30'
+                : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-emerald-600/25'
             }`}
           >
-            <Check className="w-6 h-6 stroke-[3]" />
+            <Check className="w-5 h-5 stroke-[3]" />
             <span>
               {isSalesCreationBlocked
                 ? `🔒 Sales Locked (${salesTimeCheck.startTime} - ${salesTimeCheck.endTime})`
