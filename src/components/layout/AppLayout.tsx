@@ -29,6 +29,7 @@ export const AppLayout: React.FC = () => {
     userProfile,
     activeRole,
     hasPermission,
+    isLoading,
     logoutUser,
     lockScreen,
     openProfileModal,
@@ -41,10 +42,10 @@ export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    if (!userProfile && location.pathname.startsWith('/app')) {
+    if (!isLoading && !userProfile && location.pathname.startsWith('/app')) {
       navigate('/login', { replace: true });
     }
-  }, [userProfile, location.pathname, navigate]);
+  }, [isLoading, userProfile, location.pathname, navigate]);
 
   // Primary 5 Navigation Tabs (Centered Sale & To-Do before More)
   const primaryNavItems = [

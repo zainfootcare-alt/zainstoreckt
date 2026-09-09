@@ -248,8 +248,11 @@ const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Auth state
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [activeRole, setActiveRole] = useState<ActiveRole>('ADMIN');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => authService.restoreSession());
+  const [activeRole, setActiveRole] = useState<ActiveRole>(() => {
+    const saved = authService.restoreSession();
+    return (saved?.role as ActiveRole) || 'ADMIN';
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dbError, setDbError] = useState<string | null>(null);
   const [lastAccount, setLastAccount] = useState<Partial<UserProfile> | null>(() => authService.getLastAccount());
@@ -260,7 +263,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const hasConfiguredPin = useMemo(() => {
     const pin = userProfile?.pin;
-    return !!pin && /^\d{4}$/.test(pin.trim());
+    if (!pin) return false;
+    return /^\d{4}$/.test(String(pin).trim());
   }, [userProfile?.pin]);
 
   const openSetPinModal = useCallback((action: 'LOCK' | 'JUST_SAVE' = 'JUST_SAVE') => {

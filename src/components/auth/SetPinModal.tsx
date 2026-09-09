@@ -8,6 +8,7 @@ export const SetPinModal: React.FC = () => {
     closeSetPinModal,
     pinPromptAction,
     updateUserPin,
+    lockScreen,
     userProfile,
     lastAccount,
   } = useShop();
@@ -73,10 +74,8 @@ export const SetPinModal: React.FC = () => {
           setNewPin('');
           setConfirmPin('');
           setSuccessMsg('');
-          // If triggered by lock request, now proceed to lock screen
           if (pinPromptAction === 'LOCK') {
-            // Note: lockScreen will now see the new PIN and lock cleanly
-            window.location.reload(); // Quick refresh ensures active session has the latest PIN state
+            lockScreen();
           }
         }, 600);
       } else {
