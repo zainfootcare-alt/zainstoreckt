@@ -11,6 +11,7 @@ import {
   Building2,
   Bell,
   CheckSquare,
+  Sparkles,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../common/ZainLogo';
@@ -129,6 +130,33 @@ export const AppLayout: React.FC = () => {
                   </Link>
                 );
               })}
+
+              {/* Admin Analytics Link */}
+              {activeRole === 'ADMIN' && (
+                <div className="pt-2 mt-2 border-t border-slate-100 space-y-1">
+                  <span className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                    Intelligence
+                  </span>
+                  <Link
+                    to="/app/analytics"
+                    className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                      location.pathname.startsWith('/app/analytics')
+                        ? 'bg-[#ff6600] text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-orange-50/70'
+                    }`}
+                  >
+                    <Sparkles className={`w-5 h-5 ${location.pathname.startsWith('/app/analytics') ? 'text-white' : 'text-orange-600'}`} />
+                    <div className="flex items-center justify-between flex-1">
+                      <span>Analytics</span>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
+                        location.pathname.startsWith('/app/analytics') ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-800'
+                      }`}>
+                        Scale
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              )}
             </nav>
           </div>
 

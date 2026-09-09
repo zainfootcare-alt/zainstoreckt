@@ -28,6 +28,7 @@ import { CustomerDemandsPage } from './pages/Demands/CustomerDemandsPage';
 import { UserManagementPage } from './pages/Settings/UserManagementPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { NotificationsPage } from './pages/Notifications/NotificationsPage';
+import { AdminAnalyticsPage } from './pages/Analytics/AdminAnalyticsPage';
 
 export const App: React.FC = () => {
   return (
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
             <Route path="staff" element={<StaffManagementPage />} />
 
             {/* REPORTS, NOTIFICATIONS & USER MANAGEMENT */}
+            <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="settings" element={<UserManagementPage />} />

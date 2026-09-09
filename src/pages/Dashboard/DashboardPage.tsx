@@ -25,7 +25,7 @@ import {
 import { InvoiceDetailModal } from '../../components/common/InvoiceDetailModal';
 
 export const DashboardPage: React.FC = () => {
-  const { sales, customerDemands, activeRole } = useShop();
+  const { sales, customerDemands, activeRole, userProfile } = useShop();
   const navigate = useNavigate();
   const isAdmin = activeRole === 'ADMIN';
 
@@ -43,8 +43,19 @@ export const DashboardPage: React.FC = () => {
     label: 'Today',
   });
 
+  // Role-scoped sales: Non-admin users only see their own counter receipts
+  const roleScopedSales = React.useMemo(() => {
+    if (isAdmin) return sales;
+    return sales.filter(
+      (s) =>
+        !userProfile?.id ||
+        s.created_by_user_id === userProfile.id ||
+        s.created_by_name === userProfile.full_name
+    );
+  }, [sales, isAdmin, userProfile]);
+
   // Filter sales by selected date range
-  const filteredSales = sales.filter((s) => {
+  const filteredSales = roleScopedSales.filter((s) => {
     if (dateFilter.preset === 'ALL_TIME') return true;
     const saleDate = s.created_at.split('T')[0];
 
@@ -63,15 +74,15 @@ export const DashboardPage: React.FC = () => {
   const dueSalesAmount = filteredSales.reduce((sum, s) => sum + (s.due_amount || 0), 0);
   const totalOrdersCount = filteredSales.length;
 
-  // Latest Transactions (from filtered or all)
-  const displaySales = filteredSales.length > 0 ? filteredSales : sales;
+  // Latest Transactions (from filtered or roleScopedSales)
+  const displaySales = filteredSales.length > 0 ? filteredSales : roleScopedSales;
   const latestTransactions = [...displaySales]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 
-  // Quick Invoice Search matches
+  // Quick Invoice Search matches (scoped to allowed sales)
   const matchedQuickSales = quickInvoiceSearch.trim()
-    ? sales.filter(
+    ? roleScopedSales.filter(
         (s) =>
           s.receipt_number.toLowerCase().includes(quickInvoiceSearch.toLowerCase()) ||
           (s.customer_name && s.customer_name.toLowerCase().includes(quickInvoiceSearch.toLowerCase())) ||
@@ -199,6 +210,37 @@ export const DashboardPage: React.FC = () => {
           <span className="font-bold text-xs sm:text-sm">History</span>
         </button>
       </div>
+
+      {/* ADMIN BUSINESS SCALING ANALYTICS BANNER */}
+      {isAdmin && (
+        <Link
+          to="/app/analytics"
+          className="bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs flex items-center justify-between gap-3 hover:shadow-md transition-all group border border-orange-500/30"
+        >
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#ff6600] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Sparkles className="w-5 h-5 text-white animate-pulse" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-black text-white block truncate">
+                  Business Scaling Analytics & Sizing
+                </span>
+                <span className="text-[9px] font-black bg-[#ff6600] text-white px-2 py-0.5 rounded-full uppercase">
+                  Admin Intelligence
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
+                Shoe sizes (7, 8, 9 demand), peak rush hours (5-9 PM), AOV & customer footfall
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-1.5 flex-shrink-0 text-orange-400 font-bold text-xs group-hover:translate-x-1 transition-transform">
+            <span className="hidden sm:inline">View Insights</span>
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </Link>
+      )}
 
       {/* 2.8. CUSTOMER DEMANDS / OUT OF STOCK WISHLIST BANNER */}
       <Link

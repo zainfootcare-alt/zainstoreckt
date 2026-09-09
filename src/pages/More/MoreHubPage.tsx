@@ -18,6 +18,7 @@ import {
   Coins,
   CheckSquare,
   ShoppingBag,
+  Sparkles,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 
@@ -79,13 +80,20 @@ export const MoreHubPage: React.FC = () => {
       ],
     },
     {
-      title: 'Business & Finance',
+      title: 'Business Intelligence & Finance',
       items: [
+        {
+          label: 'Business Scaling Analytics',
+          path: '/app/analytics',
+          icon: Sparkles,
+          color: 'text-orange-600 bg-orange-50',
+          permission: 'analytics:view',
+        },
         {
           label: 'Sales History',
           path: '/app/sales',
           icon: History,
-          color: 'text-orange-600 bg-orange-50',
+          color: 'text-blue-600 bg-blue-50',
           permission: 'sales:view',
         },
         {

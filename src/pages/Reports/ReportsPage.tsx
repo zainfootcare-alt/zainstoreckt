@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
-  const { sales, expenses, vendors, purchases, vendorPayments, employees } = useShop();
+  const { sales, expenses, vendors, purchases, vendorPayments, employees, activeRole } = useShop();
+  const isAdmin = activeRole === 'ADMIN';
 
   const [activeReportTab, setActiveReportTab] = useState<'sales' | 'expenses' | 'parties'>('sales');
   const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'this_week' | 'this_month'>('this_month');
@@ -125,33 +126,35 @@ export const ReportsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* SALESPERSON PERFORMANCE TABLE */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs space-y-4">
-              <h2 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-600" /> Salesperson-wise Performance
-              </h2>
+            {/* SALESPERSON PERFORMANCE TABLE (ADMIN ONLY) */}
+            {isAdmin && (
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs space-y-4">
+                <h2 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                  <Users className="w-5 h-5 text-emerald-600" /> Salesperson-wise Performance
+                </h2>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-medium border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 font-extrabold uppercase text-[10px]">
-                      <th className="py-3 px-4">Salesperson</th>
-                      <th className="py-3 px-4 text-center">Transactions</th>
-                      <th className="py-3 px-4 text-right">Total Sales</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {Object.values(salespersonSalesMap).map((sp, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="py-3.5 px-4 font-bold text-slate-900">{sp.name}</td>
-                        <td className="py-3.5 px-4 text-center font-semibold text-slate-700">{sp.count}</td>
-                        <td className="py-3.5 px-4 text-right font-black text-emerald-700">₹{sp.total.toLocaleString('en-IN')}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-medium border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-extrabold uppercase text-[10px]">
+                        <th className="py-3 px-4">Salesperson</th>
+                        <th className="py-3 px-4 text-center">Transactions</th>
+                        <th className="py-3 px-4 text-right">Total Sales</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {Object.values(salespersonSalesMap).map((sp, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="py-3.5 px-4 font-bold text-slate-900">{sp.name}</td>
+                          <td className="py-3.5 px-4 text-center font-semibold text-slate-700">{sp.count}</td>
+                          <td className="py-3.5 px-4 text-right font-black text-emerald-700">₹{sp.total.toLocaleString('en-IN')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

@@ -59,8 +59,19 @@ export const SalesPage: React.FC = () => {
   // Selected receipt for modal / details
   const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
 
+  // Role Scoped Sales: Cashier/Sales user only sees their own bills
+  const baseSales = React.useMemo(() => {
+    if (isAdmin) return sales;
+    return sales.filter(
+      (s) =>
+        !userProfile?.id ||
+        s.created_by_user_id === userProfile.id ||
+        s.created_by_name === userProfile.full_name
+    );
+  }, [sales, isAdmin, userProfile]);
+
   // Filter Sales
-  const filteredSales = sales.filter((s) => {
+  const filteredSales = baseSales.filter((s) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       s.receipt_number.toLowerCase().includes(q) ||
@@ -168,8 +179,8 @@ export const SalesPage: React.FC = () => {
                 }`}
               >
                 <span className="truncate">
-                  <span className="sm:hidden">Sales ({sales.length})</span>
-                  <span className="hidden sm:inline">Sales Receipts ({sales.length})</span>
+                  <span className="sm:hidden">Sales ({baseSales.length})</span>
+                  <span className="hidden sm:inline">Sales Receipts ({baseSales.length})</span>
                 </span>
               </button>
               <button
@@ -212,13 +223,15 @@ export const SalesPage: React.FC = () => {
               <p className="text-[11px] text-slate-500 font-medium">Customers with 2+ sales transactions</p>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Total Customer Lifetime Value</span>
-              <p className="text-2xl font-black text-emerald-700">
-                ₹{customers.reduce((sum, c) => sum + c.total_spent, 0).toLocaleString('en-IN')}
-              </p>
-              <p className="text-[11px] text-slate-500 font-medium">Total sales revenue from stored customers</p>
-            </div>
+            {isAdmin && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Total Customer Lifetime Value</span>
+                <p className="text-2xl font-black text-emerald-700">
+                  ₹{customers.reduce((sum, c) => sum + c.total_spent, 0).toLocaleString('en-IN')}
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">Total sales revenue from stored customers</p>
+              </div>
+            )}
           </div>
         )}
 
