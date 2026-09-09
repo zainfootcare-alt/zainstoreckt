@@ -73,7 +73,7 @@ export const CalculatorPOSPage: React.FC = () => {
   // STEP 1: CALCULATOR STATE
   const [calcDisplay, setCalcDisplay] = useState<string>('0');
   const [lineItems, setLineItems] = useState<PosLineItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('Sneakers');
+  const [activeCategory, setActiveCategory] = useState<string>('Sandals');
   const [activeSize, setActiveSize] = useState<string>('8');
 
   // STEP 2: SHOE SIZE & CUSTOMER STATE
@@ -116,13 +116,13 @@ export const CalculatorPOSPage: React.FC = () => {
     }
   }, [searchParams, customers]);
 
-  // Footwear Categories
+  // Footwear Categories (Default: Sandals)
   const FOOTWEAR_CATEGORIES = [
+    { id: 'Sandals', label: '👡 Sandals', icon: '👡' },
     { id: 'Sneakers', label: '👟 Sneakers', icon: '👟' },
     { id: 'Formal', label: '👞 Formal', icon: '👞' },
     { id: 'Casual', label: '🥿 Casual', icon: '🥿' },
     { id: 'Slippers', label: '🩴 Slippers', icon: '🩴' },
-    { id: 'Sandals', label: '👡 Sandals', icon: '👡' },
     { id: 'Boots', label: '🥾 Boots', icon: '🥾' },
     { id: 'Kids', label: '🧒 Kids', icon: '🧒' },
     { id: 'Other', label: '📦 Other', icon: '📦' },
@@ -645,7 +645,7 @@ export const CalculatorPOSPage: React.FC = () => {
     setCashTendered('');
     setCompletedSale(null);
     setExpandedItemId(null);
-    setActiveCategory('Sneakers');
+    setActiveCategory('Sandals');
     setActiveSize('8');
   };
 
@@ -1637,7 +1637,7 @@ export const CalculatorPOSPage: React.FC = () => {
   // =========================================================================
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-slate-950 text-white flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans">
-      {/* Top Header Bar */}
+      {/* Top Header Bar - Clean & Simple */}
       <div className="flex items-center justify-between pt-0.5 pb-1 flex-shrink-0">
         <Link
           to="/app/dashboard"
@@ -1646,37 +1646,7 @@ export const CalculatorPOSPage: React.FC = () => {
           <ArrowLeft className="w-4 h-4 text-orange-400" />
           <span>Exit</span>
         </Link>
-
-        {/* Quick Action Tools */}
-        <div className="flex items-center space-x-1.5">
-          <button
-            type="button"
-            onClick={() => setIsDemandModalOpen(true)}
-            className="flex items-center space-x-1 text-xs font-bold text-orange-300 bg-orange-950/40 hover:bg-orange-900/50 active:scale-95 px-2.5 py-1.5 rounded-full border border-orange-500/30 transition-all cursor-pointer shadow-xs"
-            title="Log Out-of-Stock Shoe Demand"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-            <span>Demand</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={lockScreen}
-            className="flex items-center space-x-1 text-xs font-bold text-amber-300 bg-slate-800 hover:bg-slate-700 active:scale-95 px-2.5 py-1.5 rounded-full border border-amber-500/30 transition-all cursor-pointer shadow-xs"
-            title="Lock Counter Screen (PIN)"
-          >
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span>Lock</span>
-          </button>
-
-          <Link
-            to="/app/sales"
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 active:scale-95 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer shadow-xs"
-          >
-            <ShoppingBag className="w-4 h-4 text-orange-400" />
-            <span>Sales</span>
-          </Link>
-        </div>
+        <span className="text-xs font-bold text-slate-400 font-mono">Counter POS</span>
       </div>
 
       {/* Store Sales Hours Alert Banner if restricted */}
@@ -1702,42 +1672,18 @@ export const CalculatorPOSPage: React.FC = () => {
         </div>
       )}
 
-      {/* FOOTWEAR CATEGORY SELECTOR CHIPS WITH ICONS */}
-      <div className="my-1 flex-shrink-0">
-        <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 px-1">
-          <span>Select Category</span>
-          <span className="text-orange-400 font-bold">Active: {activeCategory}</span>
-        </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-          {FOOTWEAR_CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setActiveCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0 transition-all cursor-pointer border ${
-                activeCategory === cat.id
-                  ? 'bg-[#ff6600] text-white border-orange-500 shadow-md shadow-orange-500/30 scale-102 ring-2 ring-orange-400/40'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
-              }`}
-            >
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* POS Big Display Screen */}
-      <div className="flex-1 flex flex-col justify-end text-right px-3 py-2 bg-slate-900/90 rounded-2xl border border-slate-800/80 shadow-inner my-1 flex-shrink-0">
+      {/* POS Big Display Screen - Clean & Minimal */}
+      <div className="flex-1 flex flex-col justify-end text-right px-4 py-3 bg-slate-900/90 rounded-2xl border border-slate-800/80 shadow-inner my-2 flex-shrink-0">
         <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-400 bg-orange-950/60 border border-orange-500/20 px-2 py-0.5 rounded-md">
-            <span>🏷️ {activeCategory}</span>
+          <span className="text-[11px] font-bold text-slate-400">
+            {activeCustomer ? `Customer: ${activeCustomer.name}` : 'Walk-in Sale'}
           </span>
-          <p className="tracking-wider truncate">
-            {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} item(s) in bill` : 'Enter amount'}
+          <p className="tracking-wider truncate font-mono">
+            {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} item(s) in bill` : '0'}
           </p>
         </div>
 
-        <div className="flex items-baseline justify-end space-x-2 my-0.5">
+        <div className="flex items-baseline justify-end space-x-2 my-1">
           <span className="text-2xl sm:text-3xl font-bold text-[#ff7b00]">₹</span>
           <span className="text-4xl sm:text-5xl font-black tracking-tight font-sans text-white">
             {(lineItems.length > 0 ? activeSubtotal : currentCalcValue || 0).toLocaleString('en-IN')}
