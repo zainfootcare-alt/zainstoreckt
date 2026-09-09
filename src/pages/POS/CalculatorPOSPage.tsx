@@ -18,9 +18,7 @@ import {
   ChevronUp,
   Trash2,
   Layers,
-  Search,
   User,
-  UserPlus,
   History,
   ShoppingBag,
   Tag,
@@ -77,13 +75,7 @@ export const CalculatorPOSPage: React.FC = () => {
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
 
-  // CUSTOMER PICKER & HISTORY MODALS
-  const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState<boolean>(false);
-  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>('');
-  const [isQuickAddCustomerOpen, setIsQuickAddCustomerOpen] = useState<boolean>(false);
-  const [newCustNameInput, setNewCustNameInput] = useState<string>('');
-  const [newCustPhoneInput, setNewCustPhoneInput] = useState<string>('');
-  const [newCustOpeningDueInput, setNewCustOpeningDueInput] = useState<string>('0');
+  // CUSTOMER HISTORY MODAL
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
 
   // STEP 3: PAYMENT & DISCOUNT STATE
@@ -154,30 +146,46 @@ export const CalculatorPOSPage: React.FC = () => {
       ? `${lineItems[0]?.size || '8'} (+${lineItems.length - 1})`
       : lineItems[0]?.size || '8';
 
-  // Find active customer object
+  // Find active customer object from database
   const activeCustomer = useMemo(() => {
     if (selectedCustomerId) {
       return customers.find((c) => c.id === selectedCustomerId) || null;
     }
-    if (customerPhone && customerPhone.length >= 10) {
-      return customers.find((c) => c.phone.includes(customerPhone.slice(-10))) || null;
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    if (cleanPhone.length >= 10) {
+      return (
+        customers.find((c) => {
+          const cPhone = (c.phone || '').replace(/\D/g, '');
+          return cPhone.length >= 10 && (cPhone.endsWith(cleanPhone.slice(-10)) || cleanPhone.endsWith(cPhone.slice(-10)));
+        }) || null
+      );
     }
-    if (customerName && customerName.trim() !== '' && customerName !== 'Walk-in Customer') {
+    if (customerName && customerName.trim() !== '' && customerName.toLowerCase() !== 'walk-in' && customerName.toLowerCase() !== 'walk-in customer') {
       return customers.find((c) => c.name.toLowerCase() === customerName.trim().toLowerCase()) || null;
     }
     return null;
   }, [selectedCustomerId, customerPhone, customerName, customers]);
 
-  // Customer Sales & Purchase Items History
+  // Customer Sales & Purchase Items History (sorted newest first)
   const customerPastSales = useMemo(() => {
-    if (!activeCustomer && !customerPhone) return [];
-    return sales.filter((s) => {
-      if (activeCustomer && s.customer_id === activeCustomer.id) return true;
-      if (activeCustomer && activeCustomer.phone && s.customer_phone === activeCustomer.phone) return true;
-      if (customerPhone && s.customer_phone === customerPhone) return true;
-      return false;
-    });
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    if (!activeCustomer && cleanPhone.length < 10) return [];
+    return sales
+      .filter((s) => {
+        if (activeCustomer && s.customer_id === activeCustomer.id) return true;
+        const sPhone = (s.customer_phone || '').replace(/\D/g, '');
+        if (cleanPhone.length >= 10 && sPhone.length >= 10 && (sPhone.endsWith(cleanPhone.slice(-10)) || cleanPhone.endsWith(sPhone.slice(-10)))) {
+          return true;
+        }
+        return false;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [activeCustomer, customerPhone, sales]);
+
+  // Most recent past purchase
+  const lastPurchase = useMemo(() => {
+    return customerPastSales.length > 0 ? customerPastSales[0] : null;
+  }, [customerPastSales]);
 
   // Extract all individual items purchased by this customer in past
   const customerPastItems = useMemo(() => {
@@ -202,47 +210,61 @@ export const CalculatorPOSPage: React.FC = () => {
     return sorted.length > 0 ? sorted[0][0] : null;
   }, [customerPastItems]);
 
-  // Filtered customer list for modal
-  const filteredCustomers = useMemo(() => {
-    const q = customerSearchQuery.toLowerCase().trim();
-    if (!q) return customers.slice(0, 15);
-    return customers.filter((c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)));
-  }, [customerSearchQuery, customers]);
+  // Handle customer mobile input change & auto-match database customer / past sales
+  const handlePhoneChange = (val: string) => {
+    setCustomerPhone(val);
+    const clean = val.replace(/\D/g, '');
 
-  // Select a customer from picker
-  const handleSelectCustomer = (c: any) => {
-    setSelectedCustomerId(c.id);
-    setCustomerName(c.name);
-    setCustomerPhone(c.phone || '');
-    setIsCustomerPickerOpen(false);
-  };
-
-  // Quick Add Customer directly from POS
-  const handleQuickAddCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCustNameInput.trim()) return;
-
-    try {
-      const created = await addCustomer({
-        organization_id: activeShop?.organization_id || 'org-footwear-101',
-        shop_id: activeShop?.id || 'shop-mumbai-01',
-        name: newCustNameInput.trim(),
-        phone: newCustPhoneInput.trim() || 'N/A',
-        opening_balance: parseFloat(newCustOpeningDueInput) || 0,
-        total_purchases_count: 0,
-        total_spent: 0,
+    if (clean.length >= 10) {
+      // 1. Try finding in customers database
+      const matched = customers.find((c) => {
+        const cPhone = (c.phone || '').replace(/\D/g, '');
+        return cPhone.length >= 10 && (cPhone.endsWith(clean.slice(-10)) || clean.endsWith(cPhone.slice(-10)));
       });
 
-      setSelectedCustomerId(created.id);
-      setCustomerName(created.name);
-      setCustomerPhone(created.phone || '');
-      setIsQuickAddCustomerOpen(false);
-      setIsCustomerPickerOpen(false);
-      setNewCustNameInput('');
-      setNewCustPhoneInput('');
-      setNewCustOpeningDueInput('0');
-    } catch (err) {
-      console.error('Failed to quick add customer:', err);
+      if (matched) {
+        setSelectedCustomerId(matched.id);
+        if (!customerName || customerName === 'Walk-in Customer' || customerName === 'Walk-in') {
+          setCustomerName(matched.name);
+        }
+        return;
+      }
+
+      // 2. Try finding in past sales records
+      const saleMatch = sales.find((s) => {
+        const sPhone = (s.customer_phone || '').replace(/\D/g, '');
+        return sPhone.length >= 10 && (sPhone.endsWith(clean.slice(-10)) || clean.endsWith(sPhone.slice(-10)));
+      });
+
+      if (saleMatch) {
+        if (saleMatch.customer_id) {
+          setSelectedCustomerId(saleMatch.customer_id);
+        }
+        if (saleMatch.customer_name && saleMatch.customer_name !== 'Walk-in Customer') {
+          if (!customerName || customerName === 'Walk-in Customer' || customerName === 'Walk-in') {
+            setCustomerName(saleMatch.customer_name);
+          }
+        }
+      }
+    } else {
+      if (selectedCustomerId) {
+        setSelectedCustomerId('');
+      }
+    }
+  };
+
+  // Helper date formatter for last purchase
+  const formatPurchaseDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
     }
   };
 
@@ -494,13 +516,14 @@ export const CalculatorPOSPage: React.FC = () => {
 
     let finalCustId = selectedCustomerId;
 
-    // Auto-create customer if typed manually and does not exist yet
-    if (!finalCustId && customerName.trim() && customerName !== 'Walk-in Customer') {
+    // Auto-create customer if phone or name provided and does not exist in customer list yet
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    if (!finalCustId && (cleanPhone.length >= 10 || (customerName.trim() && customerName !== 'Walk-in Customer'))) {
       try {
         const created = await addCustomer({
           organization_id: activeShop?.organization_id || 'org-footwear-101',
           shop_id: activeShop?.id || 'shop-mumbai-01',
-          name: customerName.trim(),
+          name: customerName.trim() || (cleanPhone ? `Customer ${cleanPhone.slice(-4)}` : 'Walk-in Customer'),
           phone: customerPhone.trim() || 'N/A',
           opening_balance: 0,
           total_purchases_count: 0,
@@ -678,118 +701,142 @@ export const CalculatorPOSPage: React.FC = () => {
 
         {/* Scrollable Center Content with Selected Items & Customer Profile */}
         <div className="flex-1 flex flex-col space-y-2.5 overflow-y-auto no-scrollbar py-1">
-          {/* CUSTOMER SELECTION & PURCHASE HISTORY PANEL */}
+          {/* CUSTOMER DETAILS (WALK-IN) & LAST PURCHASE PANEL */}
           <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2.5">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-orange-600" />
-                <span>Customer / Party</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsCustomerPickerOpen(true)}
-                className="text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <Search className="w-3 h-3" />
-                <span>{activeCustomer ? 'Change Customer' : 'Select Customer'}</span>
-              </button>
+                <span className="text-xs font-black text-slate-900 uppercase tracking-wider">Customer Details</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                  {lastPurchase || activeCustomer ? 'Existing Customer' : customerPhone.replace(/\D/g, '').length >= 10 ? 'New Customer' : 'Walk-in'}
+                </span>
+              </div>
+              {(customerPhone || customerName) && (
+                <button
+                  type="button"
+                  onClick={handleClearCustomer}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-0.5 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                  <span>Reset to Walk-in</span>
+                </button>
+              )}
             </div>
 
-            {/* If Customer is selected */}
-            {activeCustomer ? (
-              <div className="bg-gradient-to-br from-orange-50/60 to-amber-50/40 rounded-xl p-3 border border-orange-200/80 space-y-2">
+            {/* Inputs: Mobile Number & Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="relative">
+                <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Mobile Number (Optional)"
+                  value={customerPhone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  maxLength={15}
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all font-mono"
+                />
+              </div>
+              <div className="relative">
+                <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Customer Name (Walk-in)"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            {/* If Customer / Previous Purchase Found in Database */}
+            {lastPurchase ? (
+              <div className="bg-gradient-to-br from-emerald-50/90 to-teal-50/50 rounded-xl p-3 border border-emerald-200/90 space-y-2 animate-in fade-in duration-200">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-extrabold text-sm text-slate-900">{activeCustomer.name}</h4>
-                      {activeCustomer.current_balance !== undefined && activeCustomer.current_balance > 0 ? (
-                        <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
-                          ₹{activeCustomer.current_balance.toLocaleString('en-IN')} Due
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full">
-                          Settled
-                        </span>
-                      )}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-2xs flex-shrink-0">
+                      {(activeCustomer?.name || customerName || 'C').charAt(0).toUpperCase()}
                     </div>
-                    <p className="text-[11px] font-mono text-slate-600 flex items-center gap-1 mt-0.5">
-                      <Phone className="w-3 h-3 text-slate-400" />
-                      <span>{activeCustomer.phone || 'No phone'}</span>
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-extrabold text-xs text-slate-900">
+                          {activeCustomer?.name || customerName || 'Registered Customer'}
+                        </h4>
+                        <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded-md">
+                          Found in Database
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        {customerPastSales.length} Total Bill{customerPastSales.length === 1 ? '' : 's'}
+                        {preferredSize && (
+                          <span className="ml-2 font-bold text-orange-700 bg-orange-100/80 px-1.5 py-0.2 rounded">
+                            👟 Size UK {preferredSize}
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleClearCustomer}
-                    className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
-                    title="Remove Customer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {activeCustomer?.current_balance !== undefined && activeCustomer.current_balance > 0 ? (
+                    <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                      ₹{activeCustomer.current_balance.toLocaleString('en-IN')} Due
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                      All Settled
+                    </span>
+                  )}
                 </div>
 
-                {/* Customer Purchase Insights & History Quick Summary */}
-                <div className="pt-2 border-t border-orange-200/60 flex items-center justify-between text-[11px]">
-                  <div className="text-slate-700">
-                    <span className="font-bold text-slate-900">{customerPastSales.length}</span> Past Bills •{' '}
-                    <span className="font-bold text-emerald-700">₹{(activeCustomer.total_spent || 0).toLocaleString('en-IN')}</span> Total Spent
-                    {preferredSize && (
-                      <span className="block text-[10px] font-semibold text-orange-700">
-                        👟 Preferred Shoe Size: UK {preferredSize}
-                      </span>
-                    )}
+                {/* LAST PURCHASE DETAILS CARD */}
+                <div className="bg-white rounded-lg p-2.5 border border-emerald-200/70 text-[11px] space-y-1 shadow-2xs">
+                  <div className="flex items-center justify-between font-bold text-slate-800 pb-1 border-b border-slate-100">
+                    <span className="flex items-center gap-1 text-[10px] uppercase font-black text-emerald-800 tracking-wider">
+                      <ShoppingBag className="w-3 h-3 text-emerald-600" />
+                      <span>Last Purchase: {formatPurchaseDate(lastPurchase.created_at)}</span>
+                    </span>
+                    <span className="font-mono text-xs font-black text-slate-900">
+                      ₹{lastPurchase.total.toLocaleString('en-IN')}
+                    </span>
                   </div>
 
-                  {customerPastSales.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setIsHistoryModalOpen(true)}
-                      className="px-2.5 py-1 bg-white hover:bg-orange-100 text-orange-800 border border-orange-300 rounded-lg text-[10px] font-bold shadow-2xs flex items-center gap-1 cursor-pointer"
-                    >
-                      <History className="w-3 h-3" />
-                      <span>Past Items ({customerPastItems.length})</span>
-                    </button>
+                  {/* Items from last purchase */}
+                  <div className="text-[11px] text-slate-600 flex flex-wrap gap-1 items-center pt-0.5">
+                    <span className="font-bold text-slate-700 text-[10px]">Bought:</span>
+                    {(lastPurchase.items || []).map((it: any, i: number) => (
+                      <span
+                        key={i}
+                        className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-800 border border-slate-200/60"
+                      >
+                        {it.item_name || 'Footwear'} {it.size ? `(Size ${it.size})` : ''}
+                      </span>
+                    ))}
+                  </div>
+
+                  {customerPastSales.length > 1 && (
+                    <div className="pt-1 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setIsHistoryModalOpen(true)}
+                        className="text-[10px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer"
+                      >
+                        View All {customerPastSales.length} Past Purchases →
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
-            ) : (
-              /* If no customer selected yet */
-              <div className="space-y-2">
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Customer Name / Mobile (or type to add)"
-                    value={customerPhone ? `${customerName} (${customerPhone})` : customerName}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCustomerName(val);
-                      const digits = val.replace(/\D/g, '');
-                      setCustomerPhone(digits.length === 10 ? digits : '');
-                    }}
-                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsCustomerPickerOpen(true)}
-                    className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
-                  >
-                    <Search className="w-3.5 h-3.5 text-orange-400" />
-                    <span>Search</span>
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                  <span>New or Walk-in customer will be saved automatically</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsQuickAddCustomerOpen(true)}
-                    className="text-orange-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
-                  >
-                    <UserPlus className="w-3 h-3" />
-                    <span>+ New Party</span>
-                  </button>
-                </div>
+            ) : customerPhone.replace(/\D/g, '').length >= 10 ? (
+              <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>New customer • No previous purchase found. Will save automatically as Walk-in.</span>
+                </span>
               </div>
+            ) : (
+              <p className="text-[10px] text-slate-400 italic">
+                Walk-in sale. Enter mobile number to auto-detect customer & last purchase.
+              </p>
             )}
           </div>
 
@@ -955,191 +1002,15 @@ export const CalculatorPOSPage: React.FC = () => {
           </button>
         </div>
 
-        {/* MODAL: CUSTOMER SELECTOR PICKER */}
-        {isCustomerPickerOpen && (
-          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-sm w-full p-4 sm:p-5 space-y-4 shadow-2xl max-h-[90dvh] flex flex-col">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
-                  <User className="w-4 h-4 text-orange-600" />
-                  <span>Select Customer / Party</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsCustomerPickerOpen(false)}
-                  className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  placeholder="Search by name or phone..."
-                  value={customerSearchQuery}
-                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              {/* Customer List */}
-              <div className="flex-1 overflow-y-auto space-y-1.5 no-scrollbar divide-y divide-slate-100">
-                {filteredCustomers.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-xs">
-                    <p>No customer found matching "{customerSearchQuery}"</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewCustNameInput(customerSearchQuery);
-                        setIsQuickAddCustomerOpen(true);
-                      }}
-                      className="mt-2 text-orange-600 font-bold hover:underline"
-                    >
-                      + Create "{customerSearchQuery}" as New Customer
-                    </button>
-                  </div>
-                ) : (
-                  filteredCustomers.map((c) => (
-                    <div
-                      key={c.id}
-                      onClick={() => handleSelectCustomer(c)}
-                      className="p-2.5 flex items-center justify-between rounded-xl hover:bg-orange-50/70 transition-colors cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">{c.name}</p>
-                        <p className="text-[11px] font-mono text-slate-500">{c.phone || 'No phone'}</p>
-                      </div>
-                      <div className="text-right">
-                        {c.current_balance !== undefined && c.current_balance > 0 ? (
-                          <span className="text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full block">
-                            ₹{c.current_balance} Due
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-black text-emerald-700">Settled</span>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Bottom Quick Add Action */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleClearCustomer();
-                    setIsCustomerPickerOpen(false);
-                  }}
-                  className="text-xs font-bold text-slate-600 hover:text-slate-900"
-                >
-                  Walk-in (No Party)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsQuickAddCustomerOpen(true)}
-                  className="px-3 py-2 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>+ Quick Add Customer</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: QUICK ADD CUSTOMER */}
-        {isQuickAddCustomerOpen && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
-            <form
-              onSubmit={handleQuickAddCustomer}
-              className="bg-white rounded-3xl max-w-sm w-full p-4 sm:p-5 space-y-3.5 shadow-2xl max-h-[90dvh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
-                  <UserPlus className="w-4 h-4 text-[#ff6600]" />
-                  <span>Add New Customer Party</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsQuickAddCustomerOpen(false)}
-                  className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
-                  Customer Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Imran Khan"
-                  value={newCustNameInput}
-                  onChange={(e) => setNewCustNameInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
-                  10-Digit Mobile / WhatsApp
-                </label>
-                <input
-                  type="tel"
-                  placeholder="e.g. 9876543210"
-                  value={newCustPhoneInput}
-                  onChange={(e) => setNewCustPhoneInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
-                  Previous Due / Opening Balance (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={newCustOpeningDueInput}
-                  onChange={(e) => setNewCustOpeningDueInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div className="pt-2 flex space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsQuickAddCustomerOpen(false)}
-                  className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs"
-                >
-                  Save & Select
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
         {/* MODAL: CUSTOMER PAST PURCHASE HISTORY */}
-        {isHistoryModalOpen && activeCustomer && (
+        {isHistoryModalOpen && (customerPastSales.length > 0 || activeCustomer) && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
             <div className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-5 space-y-4 shadow-2xl max-h-[90dvh] flex flex-col">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="font-black text-base text-slate-900">{activeCustomer.name}'s Purchase History</h3>
+                  <h3 className="font-black text-base text-slate-900">
+                    {activeCustomer?.name || customerName || 'Customer'}'s Purchase History
+                  </h3>
                   <p className="text-[11px] text-slate-500">
                     {customerPastSales.length} Total Bills • {customerPastItems.length} Footwear Items
                   </p>
@@ -1913,183 +1784,6 @@ export const CalculatorPOSPage: React.FC = () => {
         </button>
       </div>
 
-      {/* MODAL: CUSTOMER SELECTOR PICKER (FROM STEP 1) */}
-      {isCustomerPickerOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-4 sm:p-5 space-y-4 shadow-2xl max-h-[90dvh] flex flex-col text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
-                <User className="w-4 h-4 text-orange-600" />
-                <span>Select Customer / Party</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsCustomerPickerOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input
-                type="text"
-                placeholder="Search by name or phone..."
-                value={customerSearchQuery}
-                onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            {/* Customer List */}
-            <div className="flex-1 overflow-y-auto space-y-1.5 no-scrollbar divide-y divide-slate-100">
-              {filteredCustomers.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-xs">
-                  <p>No customer found matching "{customerSearchQuery}"</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewCustNameInput(customerSearchQuery);
-                      setIsQuickAddCustomerOpen(true);
-                    }}
-                    className="mt-2 text-orange-600 font-bold hover:underline"
-                  >
-                    + Create "{customerSearchQuery}" as New Customer
-                  </button>
-                </div>
-              ) : (
-                filteredCustomers.map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => handleSelectCustomer(c)}
-                    className="p-2.5 flex items-center justify-between rounded-xl hover:bg-orange-50/70 transition-colors cursor-pointer"
-                  >
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">{c.name}</p>
-                      <p className="text-[11px] font-mono text-slate-500">{c.phone || 'No phone'}</p>
-                    </div>
-                    <div className="text-right">
-                      {c.current_balance !== undefined && c.current_balance > 0 ? (
-                        <span className="text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full block">
-                          ₹{c.current_balance} Due
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-black text-emerald-700">Settled</span>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Bottom Quick Add Action */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => {
-                  handleClearCustomer();
-                  setIsCustomerPickerOpen(false);
-                }}
-                className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
-              >
-                Walk-in (No Party)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsQuickAddCustomerOpen(true)}
-                className="px-3 py-2 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>+ Quick Add Customer</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: QUICK ADD CUSTOMER (FROM STEP 1) */}
-      {isQuickAddCustomerOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <form
-            onSubmit={handleQuickAddCustomer}
-            className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3.5 shadow-2xl text-slate-900"
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-1.5">
-                <UserPlus className="w-4 h-4 text-[#ff6600]" />
-                <span>Add New Customer Party</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsQuickAddCustomerOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
-                Customer Name *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Imran Khan"
-                value={newCustNameInput}
-                onChange={(e) => setNewCustNameInput(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
-                10-Digit Mobile / WhatsApp
-              </label>
-              <input
-                type="tel"
-                placeholder="e.g. 9876543210"
-                value={newCustPhoneInput}
-                onChange={(e) => setNewCustPhoneInput(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black text-slate-700 uppercase block mb-1">
-                Previous Due / Opening Balance (₹)
-              </label>
-              <input
-                type="number"
-                min="0"
-                placeholder="0"
-                value={newCustOpeningDueInput}
-                onChange={(e) => setNewCustOpeningDueInput(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div className="pt-2 flex space-x-2">
-              <button
-                type="button"
-                onClick={() => setIsQuickAddCustomerOpen(false)}
-                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
-              >
-                Save & Select
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
       {/* MODAL: QUICK OUT OF STOCK DEMAND LOG */}
       <DemandLogModal
         isOpen={isDemandModalOpen}
