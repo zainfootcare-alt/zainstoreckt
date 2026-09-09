@@ -166,10 +166,10 @@ export const PartyDetailPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/app/parties')}
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-2xs cursor-pointer"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>All Parties</span>
+          <span>Back</span>
         </button>
 
         {customer.phone && customer.phone !== 'N/A' && isReceivable && (
@@ -177,10 +177,10 @@ export const PartyDetailPage: React.FC = () => {
             href={getWhatsAppReminderUrl()}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl shadow-2xs"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl shadow-2xs hover:bg-emerald-100 transition-colors"
           >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>Send Udhaar Reminder</span>
+            <Share2 className="w-4 h-4" />
+            <span>Send Reminder</span>
           </a>
         )}
       </div>

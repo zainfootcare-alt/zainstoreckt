@@ -356,24 +356,24 @@ export const PartiesListPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5 font-sans">
       {/* 1. TOP HEADER & QUICK ACTIONS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl px-4 py-3.5 shadow-2xs">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Building2 className="w-6 h-6 text-[#ff6600] flex-shrink-0" />
-            <span className="truncate">Parties & Khatabook</span>
+          <h1 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-[#ff6600] flex-shrink-0" />
+            <span>Parties & Khatabook</span>
           </h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            Footwear Wholesale Suppliers & Retail Customer Udhaar
+          <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+            Suppliers & Customer Udhaar
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2">
           {activeTab === 'SUPPLIERS' && hasPermission('vendors:manage') ? (
             <>
               <button
                 type="button"
                 onClick={() => setIsStockInModalOpen(true)}
-                className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+                className="h-9 px-3.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
               >
                 <Package className="w-4 h-4 text-orange-400 flex-shrink-0" />
                 <span>Maal In</span>
@@ -381,7 +381,7 @@ export const PartiesListPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsAddVendorModalOpen(true)}
-                className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+                className="h-9 px-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
               >
                 <Plus className="w-4 h-4 flex-shrink-0" />
                 <span>Add Party</span>
@@ -391,7 +391,7 @@ export const PartiesListPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAddCustomerModalOpen(true)}
-              className="px-3.5 py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+              className="h-9 px-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4 flex-shrink-0" />
               <span>Add Customer</span>

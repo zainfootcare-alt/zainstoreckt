@@ -287,25 +287,25 @@ export const VendorDetail360Page: React.FC = () => {
 
   return (
     <PermissionGuard requiredPermission="vendors:view">
-      <div className="space-y-6 max-w-6xl mx-auto pb-12">
+      <div className="space-y-5 max-w-6xl mx-auto pb-12">
         {/* 1. TOP BAR */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3.5 rounded-2xl border border-slate-200 shadow-2xs">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => navigate('/app/parties')}
-              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-xl font-black text-slate-900">{party.name}</h1>
-                <span className="text-[10px] font-extrabold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">
+                <h1 className="text-lg font-black text-slate-900">{party.name}</h1>
+                <span className="text-[10px] font-extrabold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg">
                   {party.category || 'Supplier Party'}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                {party.city || 'Agra'} • Contact: {party.phone || 'No phone'}
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                {party.city || 'Agra'} • {party.phone || 'No phone'}
               </p>
             </div>
           </div>
@@ -313,33 +313,33 @@ export const VendorDetail360Page: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setIsNewPurchaseModalOpen(true)}
-              className="px-4 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white font-extrabold rounded-2xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition-all cursor-pointer"
+              className="h-9 px-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>+ New Stock In (Purchase Bill)</span>
+              <span>New Purchase</span>
             </button>
 
             {currentDue > 0 && (
               <button
                 onClick={() => handleOpenPayDue()}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
               >
                 <CreditCard className="w-4 h-4" />
-                <span>Pay Due (₹{currentDue.toLocaleString('en-IN')})</span>
+                <span>Pay ₹{currentDue.toLocaleString('en-IN')}</span>
               </button>
             )}
 
             <button
               onClick={handleShareWhatsApp}
-              className="p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-bold transition-colors cursor-pointer"
+              className="h-9 w-9 flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl transition-colors cursor-pointer"
               title="Share Statement on WhatsApp"
             >
-              <Send className="w-4 h-4 text-emerald-600" />
+              <Send className="w-4 h-4" />
             </button>
 
             <button
               onClick={() => window.print()}
-              className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-colors cursor-pointer"
+              className="h-9 w-9 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
               title="Print Statement"
             >
               <Printer className="w-4 h-4" />

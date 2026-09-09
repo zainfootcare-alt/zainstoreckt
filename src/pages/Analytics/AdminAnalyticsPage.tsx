@@ -325,41 +325,33 @@ export const AdminAnalyticsPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <Link
             to="/app/more"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200/90 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-orange-500" />
-            <span>Back to More Hub</span>
+            <ArrowLeft className="w-4 h-4 text-orange-500" />
+            <span>Back</span>
           </Link>
-          <span className="text-[11px] font-bold text-slate-400">Admin Intelligence Portal</span>
+          <span className="text-[11px] font-bold text-slate-400">Admin Analytics</span>
         </div>
 
         {/* TOP HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white px-4 py-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-orange-700 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
-                Admin Business Intelligence
-              </span>
-              <span className="text-[10px] font-bold text-slate-400">
-                {activeShop?.name || 'Zain Footwear'}
-              </span>
-            </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-[#ff6600]" /> Business Scaling Analytics
+            <h1 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-[#ff6600]" /> Business Analytics
             </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Shoe size demand, customer footfall timing curves, sweet-spot pricing, and data to scale store revenue.
+            <p className="text-[11px] text-slate-500 font-medium">
+              {activeShop?.name || 'Zain Footwear'} — size demand, pricing & staff performance
             </p>
           </div>
 
           {/* PERIOD FILTER PILLS & PRINT */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/90 text-xs font-bold">
+          <div className="flex items-center gap-2">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/90 text-xs font-bold gap-0.5">
               <button
                 type="button"
                 onClick={() => setDateFilter('today')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  dateFilter === 'today' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`h-7 px-2.5 rounded-lg transition-all cursor-pointer ${
+                  dateFilter === 'today' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 Today
@@ -367,8 +359,8 @@ export const AdminAnalyticsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDateFilter('this_week')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  dateFilter === 'this_week' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`h-7 px-2.5 rounded-lg transition-all cursor-pointer ${
+                  dateFilter === 'this_week' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 7 Days
@@ -376,27 +368,27 @@ export const AdminAnalyticsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDateFilter('this_month')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  dateFilter === 'this_month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`h-7 px-2.5 rounded-lg transition-all cursor-pointer ${
+                  dateFilter === 'this_month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                This Month
+                Month
               </button>
               <button
                 type="button"
                 onClick={() => setDateFilter('all_time')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  dateFilter === 'all_time' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`h-7 px-2.5 rounded-lg transition-all cursor-pointer ${
+                  dateFilter === 'all_time' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                All Time
+                All
               </button>
             </div>
 
             <button
               type="button"
               onClick={() => window.print()}
-              className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-2xl transition-colors cursor-pointer"
+              className="h-9 w-9 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
               title="Print Analytics Report"
             >
               <Printer className="w-4 h-4" />

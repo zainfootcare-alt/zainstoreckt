@@ -55,12 +55,12 @@ export const MyAttendancePage: React.FC = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-100 transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-xl shadow-2xs hover:bg-slate-100 transition-all cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 text-slate-600" />
+          <ArrowLeft className="w-4 h-4 text-slate-500" />
           <span>Back</span>
         </button>
-        <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+        <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200 h-9 flex items-center">
           Staff Attendance
         </span>
       </div>

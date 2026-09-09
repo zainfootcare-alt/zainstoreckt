@@ -159,49 +159,43 @@ export const SalesPage: React.FC = () => {
     <PermissionGuard requiredPermission="sales:view">
       <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
         {/* HEADER BAR */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white px-4 py-3.5 rounded-2xl border border-slate-200 shadow-2xs">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-              <ShoppingBag className="w-7 h-7 text-[#ff6600]" /> Footwear Sales & Customer CRM Directory
+            <h1 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-[#ff6600]" /> Sales & CRM
             </h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Complete register of POS counter sales receipts, customer database & WhatsApp contact directory
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+              Sales receipts, customer database & WhatsApp directory
             </p>
           </div>
 
           {/* TAB BUTTONS & CTA */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto gap-1">
+          <div className="flex items-center gap-2">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
               <button
                 onClick={() => setActiveTab('sales')}
-                className={`py-2 px-3 text-xs font-extrabold rounded-xl transition-all min-w-0 text-center cursor-pointer ${
-                  activeTab === 'sales' ? 'bg-white text-[#ff6600] shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`h-7 px-3 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  activeTab === 'sales' ? 'bg-white text-[#ff6600] shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                <span className="truncate">
-                  <span className="sm:hidden">Sales ({baseSales.length})</span>
-                  <span className="hidden sm:inline">Sales Receipts ({baseSales.length})</span>
-                </span>
+                Sales ({baseSales.length})
               </button>
               <button
                 onClick={() => setActiveTab('crm')}
-                className={`py-2 px-3 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 min-w-0 cursor-pointer ${
-                  activeTab === 'crm' ? 'bg-white text-[#ff6600] shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`h-7 px-3 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'crm' ? 'bg-white text-[#ff6600] shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <Users className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="truncate">
-                  <span className="sm:hidden">CRM ({customers.length})</span>
-                  <span className="hidden sm:inline">Customer CRM ({customers.length})</span>
-                </span>
+                CRM ({customers.length})
               </button>
             </div>
 
             <button
               onClick={() => navigate('/app/pos')}
-              className="px-4 py-2.5 bg-[#ff6600] hover:bg-orange-600 text-white font-extrabold rounded-2xl text-xs shadow-md transition-all flex items-center gap-1.5 min-h-[40px]"
+              className="h-9 px-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-95 text-white font-bold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Footprints className="w-4 h-4" /> Open Calculator POS
+              <Footprints className="w-4 h-4" /> Open POS
             </button>
           </div>
         </div>
