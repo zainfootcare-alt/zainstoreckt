@@ -7,7 +7,7 @@
  * All mutations (create/update/delete) call Supabase service and update React state.
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import {
   Organization,
   Shop,
