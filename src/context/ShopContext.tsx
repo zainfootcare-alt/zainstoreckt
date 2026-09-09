@@ -92,6 +92,21 @@ interface ShopContextType {
   loginUser: (identifier: string, pinOrPassword?: string) => Promise<{ success: boolean; message?: string }>;
   loginAsUserProfile: (user: UserProfile) => void;
   logoutUser: () => void;
+  lastAccount: Partial<UserProfile> | null;
+  isScreenLocked: boolean;
+  lockScreen: () => void;
+  unlockScreen: (pin: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithPin: (pin: string, identifier?: string) => Promise<{ success: boolean; message?: string }>;
+  clearRememberedAccount: () => void;
+  checkSalesTimeAllowed: () => {
+    allowed: boolean;
+    isRestricted: boolean;
+    startTime: string;
+    endTime: string;
+    currentTime: string;
+    isWithinWindow: boolean;
+    reason?: string;
+  };
   addUser: (userData: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>) => Promise<UserProfile>;
   updateUser: (userId: string, userData: Partial<UserProfile>) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
@@ -227,6 +242,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [activeRole, setActiveRole] = useState<ActiveRole>('ADMIN');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [lastAccount, setLastAccount] = useState<Partial<UserProfile> | null>(() => authService.getLastAccount());
+  const [isScreenLocked, setIsScreenLocked] = useState<boolean>(false);
 
   // App data state
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -501,13 +518,102 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUserProfile(updatedUser);
     setActiveRole((user.role as ActiveRole) || 'ADMIN');
     authService.saveSession(updatedUser);
+    setLastAccount({
+      id: updatedUser.id,
+      full_name: updatedUser.full_name,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      default_shop_id: updatedUser.default_shop_id,
+    });
   };
 
   const logoutUser = () => {
     setUserProfile(null);
     setActiveRole('ADMIN');
     authService.clearSession();
+    setLastAccount(authService.getLastAccount());
   };
+
+  const lockScreen = () => {
+    setIsScreenLocked(true);
+  };
+
+  const unlockScreen = async (pin: string): Promise<{ success: boolean; message?: string }> => {
+    const targetIdent = userProfile?.id || lastAccount?.id || lastAccount?.username || lastAccount?.email;
+    const res = await authService.unlockWithPin(pin, targetIdent);
+    if (res.user) {
+      setIsScreenLocked(false);
+      loginAsUserProfile(res.user);
+      return { success: true };
+    }
+    return { success: false, message: res.error || 'Incorrect PIN.' };
+  };
+
+  const loginWithPin = async (pin: string, identifier?: string): Promise<{ success: boolean; message?: string }> => {
+    const targetIdent = identifier || lastAccount?.id || lastAccount?.username || lastAccount?.email;
+    const res = await authService.unlockWithPin(pin, targetIdent);
+    if (res.user) {
+      setIsScreenLocked(false);
+      loginAsUserProfile(res.user);
+      return { success: true };
+    }
+    return { success: false, message: res.error || 'Incorrect PIN.' };
+  };
+
+  const clearRememberedAccount = () => {
+    authService.clearLastAccount();
+    setLastAccount(null);
+  };
+
+  /**
+   * Check if counter sales creation is currently permitted based on Store Sales Operating Hours set by Admin.
+   * Admin role always has override access.
+   */
+  const checkSalesTimeAllowed = useCallback(() => {
+    const isRestricted = !!activeShop?.sales_time_restriction_enabled;
+    const startTime = activeShop?.sales_start_time || '09:00';
+    const endTime = activeShop?.sales_end_time || '22:30';
+
+    const now = new Date();
+    const currentHours = String(now.getHours()).padStart(2, '0');
+    const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${currentHours}:${currentMinutes}`;
+
+    if (!isRestricted) {
+      return {
+        allowed: true,
+        isRestricted: false,
+        startTime,
+        endTime,
+        currentTime,
+        isWithinWindow: true,
+      };
+    }
+
+    // Check if within window (supports same-day window e.g. 09:00 - 22:30 or overnight e.g. 20:00 - 04:00)
+    let isWithinWindow = false;
+    if (startTime <= endTime) {
+      isWithinWindow = currentTime >= startTime && currentTime <= endTime;
+    } else {
+      isWithinWindow = currentTime >= startTime || currentTime <= endTime;
+    }
+
+    // Admin has full override capability
+    const allowed = isWithinWindow || activeRole === 'ADMIN';
+
+    return {
+      allowed,
+      isRestricted,
+      startTime,
+      endTime,
+      currentTime,
+      isWithinWindow,
+      reason: !isWithinWindow
+        ? `Store sales are currently closed. Sales hours configured by Admin: ${startTime} to ${endTime}.`
+        : undefined,
+    };
+  }, [activeShop, activeRole]);
 
   // ============================================================================
   // User Management
@@ -1422,6 +1528,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loginUser,
         loginAsUserProfile,
         logoutUser,
+        lastAccount,
+        isScreenLocked,
+        lockScreen,
+        unlockScreen,
+        loginWithPin,
+        clearRememberedAccount,
+        checkSalesTimeAllowed,
         addUser,
         updateUser,
         deleteUser,

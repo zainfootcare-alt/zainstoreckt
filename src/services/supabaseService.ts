@@ -135,23 +135,123 @@ export const authService = {
     }
   },
 
-  /** Save current user session to sessionStorage (not localStorage — cleared on tab close) */
+  /** Save current user session persistently to localStorage so user doesn't have to re-login */
   saveSession(user: UserProfile) {
-    sessionStorage.setItem('zain_session_user', JSON.stringify(user));
+    try {
+      localStorage.setItem('zain_persistent_user', JSON.stringify(user));
+      localStorage.setItem(
+        'zain_last_account',
+        JSON.stringify({
+          id: user.id,
+          full_name: user.full_name,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          default_shop_id: user.default_shop_id,
+        })
+      );
+    } catch {}
+    // Also set sessionStorage as fallback
+    try {
+      sessionStorage.setItem('zain_session_user', JSON.stringify(user));
+    } catch {}
   },
 
-  /** Restore session from sessionStorage */
+  /** Restore session from localStorage or fallback sessionStorage */
   restoreSession(): UserProfile | null {
     try {
-      const saved = sessionStorage.getItem('zain_session_user');
+      const saved = localStorage.getItem('zain_persistent_user') || sessionStorage.getItem('zain_session_user');
       if (saved) return JSON.parse(saved);
     } catch { /* ignore */ }
     return null;
   },
 
-  /** Clear session */
+  /** Get last remembered account on this device for Quick PIN Unlock */
+  getLastAccount(): Partial<UserProfile> | null {
+    try {
+      const saved = localStorage.getItem('zain_last_account');
+      if (saved) return JSON.parse(saved);
+      const active = this.restoreSession();
+      if (active) {
+        return {
+          id: active.id,
+          full_name: active.full_name,
+          username: active.username,
+          email: active.email,
+          role: active.role,
+          default_shop_id: active.default_shop_id,
+        };
+      }
+    } catch {}
+    return null;
+  },
+
+  /** Clear session on explicit logout */
   clearSession() {
-    sessionStorage.removeItem('zain_session_user');
+    try {
+      localStorage.removeItem('zain_persistent_user');
+      sessionStorage.removeItem('zain_session_user');
+    } catch {}
+  },
+
+  /** Remove remembered account from device completely */
+  clearLastAccount() {
+    try {
+      localStorage.removeItem('zain_persistent_user');
+      localStorage.removeItem('zain_last_account');
+      sessionStorage.removeItem('zain_session_user');
+    } catch {}
+  },
+
+  /** Quick Unlock using PIN for remembered user or provided identifier */
+  async unlockWithPin(pin: string, userIdOrIdentifier?: string): Promise<{ user: UserProfile | null; error: string | null }> {
+    const cleanPin = pin.trim();
+    if (!cleanPin) return { user: null, error: 'Please enter your PIN.' };
+
+    let targetIdent = userIdOrIdentifier?.trim();
+    if (!targetIdent) {
+      const last = this.getLastAccount();
+      targetIdent = last?.id || last?.username || last?.email;
+    }
+
+    try {
+      let query = supabase.from('user_profiles').select('*').eq('status', 'Active');
+      if (targetIdent) {
+        query = query.or(`id.eq.${targetIdent},email.ilike.${targetIdent},username.ilike.${targetIdent}`);
+      }
+      const { data, error } = await query.limit(1).maybeSingle();
+
+      if (!error && data) {
+        if (data.pin === cleanPin || data.password === cleanPin) {
+          const loggedUser = { ...data, last_login: new Date().toISOString() };
+          this.saveSession(loggedUser);
+          return { user: loggedUser, error: null };
+        }
+        return { user: null, error: 'Incorrect PIN. Please try again.' };
+      }
+    } catch (err) {
+      console.warn('Supabase PIN lookup error, falling back to local auth:', err);
+    }
+
+    // Check default / fallback users
+    const fallback = DEFAULT_AUTH_USERS.find(
+      (u) =>
+        (!targetIdent || u.id === targetIdent || u.email?.toLowerCase() === targetIdent.toLowerCase() || u.username?.toLowerCase() === targetIdent.toLowerCase()) &&
+        (u.pin === cleanPin || u.password === cleanPin)
+    );
+    if (fallback) {
+      this.saveSession(fallback);
+      return { user: fallback, error: null };
+    }
+
+    // Check if entered PIN matches ANY default user
+    const anyFallbackMatch = DEFAULT_AUTH_USERS.find((u) => u.pin === cleanPin || u.password === cleanPin);
+    if (anyFallbackMatch) {
+      this.saveSession(anyFallbackMatch);
+      return { user: anyFallbackMatch, error: null };
+    }
+
+    return { user: null, error: 'Incorrect PIN. Please try again.' };
   },
 };
 
@@ -893,6 +993,9 @@ export const shopsService = {
       postcode: shopData.postcode?.trim() || '',
       gstin: shopData.gstin?.trim() || '27AAACZ9999F1Z5',
       is_active: shopData.is_active !== undefined ? shopData.is_active : true,
+      sales_time_restriction_enabled: shopData.sales_time_restriction_enabled !== undefined ? shopData.sales_time_restriction_enabled : false,
+      sales_start_time: shopData.sales_start_time || '09:00',
+      sales_end_time: shopData.sales_end_time || '22:30',
       organization_id: ORG_ID,
     };
 
@@ -920,6 +1023,15 @@ export const shopsService = {
     if (updates.postcode !== undefined) cleanUpdates.postcode = updates.postcode.trim();
     if (updates.gstin !== undefined) cleanUpdates.gstin = updates.gstin.trim();
     if (updates.is_active !== undefined) cleanUpdates.is_active = updates.is_active;
+    if (updates.sales_time_restriction_enabled !== undefined) {
+      cleanUpdates.sales_time_restriction_enabled = updates.sales_time_restriction_enabled;
+    }
+    if (updates.sales_start_time !== undefined) {
+      cleanUpdates.sales_start_time = updates.sales_start_time.trim();
+    }
+    if (updates.sales_end_time !== undefined) {
+      cleanUpdates.sales_end_time = updates.sales_end_time.trim();
+    }
 
     const { data, error } = await supabase
       .from('shops')

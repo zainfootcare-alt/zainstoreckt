@@ -54,8 +54,11 @@ export const CalculatorPOSPage: React.FC = () => {
     locationError,
     verifyStoreLocation,
     bypassLocationVerification,
+    checkSalesTimeAllowed,
   } = useShop();
   const isAdmin = activeRole === 'ADMIN';
+  const salesTimeCheck = checkSalesTimeAllowed();
+  const isSalesCreationBlocked = !salesTimeCheck.allowed;
   const [searchParams] = useSearchParams();
   const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
   const [isProcessingSale, setIsProcessingSale] = useState(false);
@@ -492,6 +495,14 @@ export const CalculatorPOSPage: React.FC = () => {
   const handleCompleteSale = async (bypassDuplicateCheck = false) => {
     if (isProcessingSale) return;
     if (activeSubtotal <= 0) return;
+
+    // Check store sales operating hours
+    if (isSalesCreationBlocked) {
+      alert(
+        `⚠️ Counter Sales Locked: Store sales hours set by Admin are ${salesTimeCheck.startTime} to ${salesTimeCheck.endTime}. Sales creation is locked.`
+      );
+      return;
+    }
 
     // Duplicate Order Protection: Check if an identical sale with exact same amount was created within last 45s
     if (!bypassDuplicateCheck) {
@@ -1480,16 +1491,20 @@ export const CalculatorPOSPage: React.FC = () => {
           <button
             type="button"
             onClick={() => handleCompleteSale(false)}
-            disabled={isDueCustomerMissing || isProcessingSale}
+            disabled={isDueCustomerMissing || isProcessingSale || isSalesCreationBlocked}
             className={`w-full py-4 rounded-full font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-              isDueCustomerMissing || isProcessingSale
+              isSalesCreationBlocked
+                ? 'bg-rose-500 text-white opacity-75 cursor-not-allowed'
+                : isDueCustomerMissing || isProcessingSale
                 ? 'bg-amber-400 text-amber-950 opacity-60 cursor-not-allowed'
                 : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-emerald-600/30'
             }`}
           >
             <Check className="w-6 h-6 stroke-[3]" />
             <span>
-              {isProcessingSale
+              {isSalesCreationBlocked
+                ? `🔒 Sales Locked (${salesTimeCheck.startTime} - ${salesTimeCheck.endTime})`
+                : isProcessingSale
                 ? 'Processing Sale...'
                 : isDueCustomerMissing
                 ? '⚠️ Enter Customer Name & Phone for Udhaar'
@@ -1603,6 +1618,29 @@ export const CalculatorPOSPage: React.FC = () => {
           <span>Sales</span>
         </Link>
       </div>
+
+      {/* Store Sales Hours Alert Banner if restricted */}
+      {salesTimeCheck.isRestricted && !salesTimeCheck.isWithinWindow && (
+        <div
+          className={`mx-1 my-1 p-2 rounded-2xl flex items-center justify-between text-xs font-bold border ${
+            isAdmin
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+              : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+          }`}
+        >
+          <div className="flex items-center space-x-2 min-w-0">
+            <Clock className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">
+              {isAdmin
+                ? `Sales Window: ${salesTimeCheck.startTime} - ${salesTimeCheck.endTime} (Admin Override Active)`
+                : `Store Sales Closed (${salesTimeCheck.startTime} - ${salesTimeCheck.endTime})`}
+            </span>
+          </div>
+          <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-white/10 flex-shrink-0 ml-2">
+            {isAdmin ? 'Admin OK' : 'Locked'}
+          </span>
+        </div>
+      )}
 
       {/* Android Big Display Screen */}
       <div className="flex-1 flex flex-col justify-end text-right px-3 py-1 space-y-1 relative overflow-hidden flex-shrink-0">
@@ -1769,16 +1807,16 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={handleProceedToDetails}
-          disabled={activeSubtotal <= 0 && currentCalcValue <= 0}
+          disabled={(activeSubtotal <= 0 && currentCalcValue <= 0) || isSalesCreationBlocked}
           className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
         >
           <span>
-            Continue ({lineItems.length + (currentCalcValue > 0 ? 1 : 0)} Items • ₹
-            {(
-              lineItems.reduce((sum, it) => sum + it.unit_price, 0) +
-              (currentCalcValue > 0 ? Math.round(currentCalcValue) : 0)
-            ).toLocaleString('en-IN')}
-            )
+            {isSalesCreationBlocked
+              ? `🔒 Sales Locked (${salesTimeCheck.startTime} - ${salesTimeCheck.endTime})`
+              : `Continue (${lineItems.length + (currentCalcValue > 0 ? 1 : 0)} Items • ₹${(
+                  lineItems.reduce((sum, it) => sum + it.unit_price, 0) +
+                  (currentCalcValue > 0 ? Math.round(currentCalcValue) : 0)
+                ).toLocaleString('en-IN')})`}
           </span>
           <ArrowRight className="w-5 h-5" />
         </button>

@@ -28,7 +28,18 @@ import {
 } from 'lucide-react';
 
 export const UserManagementPage: React.FC = () => {
-  const { users, addUser, updateUser, deleteUser, activeRole, shops, addShop, updateShop } = useShop();
+  const {
+    users,
+    addUser,
+    updateUser,
+    deleteUser,
+    activeRole,
+    shops,
+    addShop,
+    updateShop,
+    activeShop,
+    checkSalesTimeAllowed,
+  } = useShop();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -69,6 +80,14 @@ export const UserManagementPage: React.FC = () => {
   const [editShopPhone, setEditShopPhone] = useState<string>('');
   const [editShopAddress, setEditShopAddress] = useState<string>('');
   const [editShopGstin, setEditShopGstin] = useState<string>('');
+  const [editShopSalesRestriction, setEditShopSalesRestriction] = useState<boolean>(false);
+  const [editShopSalesStartTime, setEditShopSalesStartTime] = useState<string>('09:00');
+  const [editShopSalesEndTime, setEditShopSalesEndTime] = useState<string>('22:30');
+
+  // Quick Sales Hours State for current store
+  const targetShop = activeShop || shops[0];
+  const [quickStartTime, setQuickStartTime] = useState<string>(targetShop?.sales_start_time || '09:00');
+  const [quickEndTime, setQuickEndTime] = useState<string>(targetShop?.sales_end_time || '22:30');
 
   // Filtered Users List
   const filteredUsers = users.filter((u) => {
@@ -215,6 +234,9 @@ export const UserManagementPage: React.FC = () => {
     setEditShopPhone(shop.phone || '');
     setEditShopAddress(shop.address_line_1 || '');
     setEditShopGstin(shop.gstin || '27AAACZ9999F1Z5');
+    setEditShopSalesRestriction(shop.sales_time_restriction_enabled ?? false);
+    setEditShopSalesStartTime(shop.sales_start_time || '09:00');
+    setEditShopSalesEndTime(shop.sales_end_time || '22:30');
   };
 
   const handleSaveShopEdits = async () => {
@@ -228,12 +250,46 @@ export const UserManagementPage: React.FC = () => {
         phone: editShopPhone.trim(),
         address_line_1: editShopAddress.trim(),
         gstin: editShopGstin.trim(),
+        sales_time_restriction_enabled: editShopSalesRestriction,
+        sales_start_time: editShopSalesStartTime,
+        sales_end_time: editShopSalesEndTime,
       });
       setEditingShop(null);
-      showToast('success', `Store details for "${editShopName.trim()}" updated successfully!`);
+      showToast('success', `Store details & sales hours for "${editShopName.trim()}" updated successfully!`);
     } catch (err: any) {
       console.error('Failed to update shop:', err);
       showToast('error', `Failed to update store: ${err?.message || 'Database error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleSalesRestriction = async (shop: Shop) => {
+    try {
+      const nextVal = !shop.sales_time_restriction_enabled;
+      await updateShop(shop.id, {
+        sales_time_restriction_enabled: nextVal,
+      });
+      showToast(
+        'success',
+        `Sales hours lock ${nextVal ? 'ENABLED' : 'DISABLED'} for ${shop.name}!`
+      );
+    } catch (err: any) {
+      showToast('error', `Update failed: ${err?.message || 'Database error'}`);
+    }
+  };
+
+  const handleQuickSaveSalesHours = async () => {
+    if (!targetShop) return;
+    try {
+      setIsSubmitting(true);
+      await updateShop(targetShop.id, {
+        sales_start_time: quickStartTime,
+        sales_end_time: quickEndTime,
+      });
+      showToast('success', `Store sales hours updated: ${quickStartTime} to ${quickEndTime}!`);
+    } catch (err: any) {
+      showToast('error', `Failed to save hours: ${err?.message || 'Error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -302,6 +358,103 @@ export const UserManagementPage: React.FC = () => {
             <span>Create New System User</span>
           </button>
         </div>
+
+        {/* STORE COUNTER SALES OPERATING HOURS (ADMIN SCHEDULING & LOCK) */}
+        {targetShop && (
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-orange-950 text-white p-6 rounded-3xl border border-orange-500/30 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#ff6600] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-white text-base">Store Counter Sales Hours</h3>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-white/10 text-orange-300">
+                      Admin Lock Control
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-medium">
+                    Set allowed sales window. Cashier/Sales staff can only create POS sales during these hours.
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Badge & Toggle Button */}
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                    targetShop.sales_time_restriction_enabled
+                      ? checkSalesTimeAllowed().isWithinWindow
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                      : 'bg-slate-700/50 text-slate-300 border-slate-600'
+                  }`}
+                >
+                  {targetShop.sales_time_restriction_enabled
+                    ? checkSalesTimeAllowed().isWithinWindow
+                      ? '● Active (Store Open)'
+                      : '● Counter Sales Locked'
+                    : '○ Restriction OFF (24/7)'}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleSalesRestriction(targetShop)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    targetShop.sales_time_restriction_enabled
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  }`}
+                >
+                  {targetShop.sales_time_restriction_enabled ? 'Turn OFF Lock' : 'Enable Sales Lock'}
+                </button>
+              </div>
+            </div>
+
+            {/* Timings Configuration Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-1">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                  Sales Opening Time
+                </label>
+                <input
+                  type="time"
+                  value={quickStartTime}
+                  onChange={(e) => setQuickStartTime(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                  Sales Closing Time
+                </label>
+                <input
+                  type="time"
+                  value={quickEndTime}
+                  onChange={(e) => setQuickEndTime(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleQuickSaveSalesHours}
+                  className="w-full py-2.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white font-black rounded-xl text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50 min-h-[42px]"
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Sales Hours'}
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 italic">
+              ℹ️ Admin Override: Store Admin can bill anytime 24/7. Cashier and sales staff will see a locked screen if they attempt to create sales outside these hours.
+            </p>
+          </div>
+        )}
 
         {/* STORE OUTLETS & SHOP INFORMATION SECTION */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
@@ -965,6 +1118,44 @@ export const UserManagementPage: React.FC = () => {
                     placeholder="27AAACZ9999F1Z5"
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900"
                   />
+                </div>
+
+                {/* Sales Operating Hours Settings */}
+                <div className="pt-2 border-t border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editShopSalesRestriction}
+                        onChange={(e) => setEditShopSalesRestriction(e.target.checked)}
+                        className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4"
+                      />
+                      <span>Enforce Sales Hours Lock for Cashiers</span>
+                    </label>
+                  </div>
+
+                  {editShopSalesRestriction && (
+                    <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Start Time</label>
+                        <input
+                          type="time"
+                          value={editShopSalesStartTime}
+                          onChange={(e) => setEditShopSalesStartTime(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">End Time</label>
+                        <input
+                          type="time"
+                          value={editShopSalesEndTime}
+                          onChange={(e) => setEditShopSalesEndTime(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

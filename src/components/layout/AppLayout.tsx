@@ -12,11 +12,13 @@ import {
   Bell,
   CheckSquare,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../common/ZainLogo';
 import { SalesNotificationToast } from '../common/SalesNotificationToast';
 import { InvoiceDetailModal } from '../common/InvoiceDetailModal';
+import { PinLockOverlay } from '../auth/PinLockOverlay';
 import { SaleRecord } from '../../types/database.types';
 
 export const AppLayout: React.FC = () => {
@@ -26,6 +28,7 @@ export const AppLayout: React.FC = () => {
     activeRole,
     hasPermission,
     logoutUser,
+    lockScreen,
     latestNotificationSale,
     clearNotificationSale,
   } = useShop();
@@ -172,13 +175,22 @@ export const AppLayout: React.FC = () => {
                   <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{activeRole}</p>
                 </div>
               </div>
-              <button
-                onClick={handleLogout}
-                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                title="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={lockScreen}
+                  className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                  title="Lock Screen with PIN"
+                >
+                  <Lock className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -205,6 +217,15 @@ export const AppLayout: React.FC = () => {
 
             {/* Right Header Utilities */}
             <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <button
+                type="button"
+                onClick={lockScreen}
+                className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors cursor-pointer"
+                title="Lock Screen with PIN"
+              >
+                <Lock className="w-4 h-4" />
+              </button>
+
               <button
                 type="button"
                 onClick={() => navigate('/app/notifications')}
@@ -258,6 +279,18 @@ export const AppLayout: React.FC = () => {
                         <span>My Attendance Punch</span>
                       </button>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        lockScreen();
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 flex items-center space-x-2 cursor-pointer transition-colors"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Lock Screen (PIN)</span>
+                    </button>
                     <button
                       type="button"
                       onClick={handleLogout}
@@ -330,6 +363,9 @@ export const AppLayout: React.FC = () => {
         isOpen={!!toastSelectedSale}
         onClose={() => setToastSelectedSale(null)}
       />
+
+      {/* QUICK SCREEN PIN LOCK OVERLAY */}
+      <PinLockOverlay />
     </div>
   );
 };

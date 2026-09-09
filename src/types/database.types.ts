@@ -72,6 +72,9 @@ export interface Shop {
   longitude?: number; // Store GPS Longitude e.g. 72.8193
   geofence_radius_meters?: number; // Allowed distance in meters e.g. 500m
   require_location_for_sales?: boolean;
+  sales_time_restriction_enabled?: boolean; // When true, only sales within allowed hours are permitted
+  sales_start_time?: string; // e.g. "09:00" (24-hour format)
+  sales_end_time?: string; // e.g. "22:30" (24-hour format)
   is_active: boolean;
   created_at: string;
   updated_at: string;
