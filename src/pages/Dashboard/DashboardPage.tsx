@@ -13,6 +13,7 @@ import {
   Eye,
   Sparkles,
   ShoppingBag,
+  Clock,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { SaleRecord } from '../../types/database.types';
@@ -25,7 +26,7 @@ import {
 import { InvoiceDetailModal } from '../../components/common/InvoiceDetailModal';
 
 export const DashboardPage: React.FC = () => {
-  const { sales, customerDemands, activeRole, userProfile } = useShop();
+  const { sales, customerDemands, activeRole, userProfile, checkSalesTimeAllowed, logoutUser, activeShop } = useShop();
   const navigate = useNavigate();
   const isAdmin = activeRole === 'ADMIN';
 
@@ -107,6 +108,63 @@ export const DashboardPage: React.FC = () => {
   };
 
   const currentLabel = formatDateLabel(dateFilter);
+
+  // Store Hours Restriction Check for Assigned Users / Roles
+  const salesTimeCheck = checkSalesTimeAllowed();
+  if (salesTimeCheck.isRestricted && salesTimeCheck.isAppliedToUser && !salesTimeCheck.allowed) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xl text-center space-y-5">
+          <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-sm border border-amber-200/80">
+            <Clock className="w-8 h-8" />
+          </div>
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100/70 px-3 py-1 rounded-full border border-amber-300/60">
+              Store Sales Closed
+            </span>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Operating Hours Active
+            </h2>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              Hello <strong className="text-slate-800">{userProfile?.full_name || 'Staff'}</strong>, the store counter is currently closed. Your account is assigned to store operating hours set by Admin.
+            </p>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
+            <div className="flex justify-between items-center font-bold">
+              <span className="text-slate-500">Store Hours:</span>
+              <span className="text-slate-900 font-mono">{salesTimeCheck.startTime} - {salesTimeCheck.endTime}</span>
+            </div>
+            <div className="flex justify-between items-center font-bold">
+              <span className="text-slate-500">Current Time:</span>
+              <span className="text-orange-600 font-mono">{salesTimeCheck.currentTime}</span>
+            </div>
+            <div className="flex justify-between items-center font-bold border-t border-slate-200/80 pt-2 text-[11px]">
+              <span className="text-slate-500">Store Outlet:</span>
+              <span className="text-slate-800 font-bold">{activeShop?.name || 'Zain Footwear'}</span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-400">
+            Dashboard and Counter POS will automatically become active once store operating hours begin.
+          </p>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                logoutUser();
+                navigate('/login');
+              }}
+              className="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl text-xs transition-colors cursor-pointer"
+            >
+              Sign Out / Switch to Admin Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-3.5 sm:px-6 py-3.5 sm:py-6 space-y-3.5 sm:space-y-5 font-sans">

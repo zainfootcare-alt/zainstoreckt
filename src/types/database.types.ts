@@ -65,7 +65,9 @@ export interface Shop {
   phone?: string;
   email?: string;
   address_line_1?: string;
+  address_line_2?: string;
   city?: string; // 'Mumbai', 'Delhi', 'Agra', 'Kanpur', 'Bengaluru'
+  state?: string;
   postcode?: string;
   gstin?: string;
   latitude?: number; // Store GPS Latitude e.g. 18.9696
@@ -75,6 +77,8 @@ export interface Shop {
   sales_time_restriction_enabled?: boolean; // When true, only sales within allowed hours are permitted
   sales_start_time?: string; // e.g. "09:00" (24-hour format)
   sales_end_time?: string; // e.g. "22:30" (24-hour format)
+  restricted_sales_roles?: string[]; // e.g. ['CASHIER', 'SALES', 'cashier']
+  restricted_user_ids?: string[]; // specific user IDs restricted to store hours
   is_active: boolean;
   created_at: string;
   updated_at: string;

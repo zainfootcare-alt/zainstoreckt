@@ -116,6 +116,13 @@ export const MoreHubPage: React.FC = () => {
       title: 'Settings',
       items: [
         {
+          label: 'Store Profile, Address & GST',
+          path: '/app/settings?tab=store',
+          icon: Building2,
+          color: 'text-orange-600 bg-orange-50',
+          permission: 'settings:manage',
+        },
+        {
           label: 'User Management & Roles',
           path: '/app/settings',
           icon: Settings,

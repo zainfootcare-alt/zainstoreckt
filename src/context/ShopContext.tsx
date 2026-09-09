@@ -93,24 +93,15 @@ interface ShopContextType {
   loginAsUserProfile: (user: UserProfile) => void;
   logoutUser: () => void;
   lastAccount: Partial<UserProfile> | null;
-  isScreenLocked: boolean;
-  hasConfiguredPin: boolean;
-  lockScreen: () => void;
-  unlockScreen: (pin: string) => Promise<{ success: boolean; message?: string }>;
-  loginWithPin: (pin: string, identifier?: string) => Promise<{ success: boolean; message?: string }>;
-  updateUserPin: (newPin: string) => Promise<{ success: boolean; error: string | null }>;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error: string | null }>;
-  isSetPinModalOpen: boolean;
-  openSetPinModal: (action?: 'LOCK' | 'JUST_SAVE') => void;
-  closeSetPinModal: () => void;
-  pinPromptAction: 'LOCK' | 'JUST_SAVE';
   isProfileModalOpen: boolean;
   openProfileModal: () => void;
   closeProfileModal: () => void;
   clearRememberedAccount: () => void;
-  checkSalesTimeAllowed: () => {
+  checkSalesTimeAllowed: (forUser?: UserProfile | null) => {
     allowed: boolean;
     isRestricted: boolean;
+    isAppliedToUser: boolean;
     startTime: string;
     endTime: string;
     currentTime: string;
@@ -254,27 +245,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return (saved?.role as ActiveRole) || 'ADMIN';
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [dbError, setDbError] = useState<string | null>(null);
   const [lastAccount, setLastAccount] = useState<Partial<UserProfile> | null>(() => authService.getLastAccount());
-  const [isScreenLocked, setIsScreenLocked] = useState<boolean>(false);
-  const [isSetPinModalOpen, setIsSetPinModalOpen] = useState<boolean>(false);
-  const [pinPromptAction, setPinPromptAction] = useState<'LOCK' | 'JUST_SAVE'>('LOCK');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
-
-  const hasConfiguredPin = useMemo(() => {
-    const pin = userProfile?.pin;
-    if (!pin) return false;
-    return /^\d{4}$/.test(String(pin).trim());
-  }, [userProfile?.pin]);
-
-  const openSetPinModal = useCallback((action: 'LOCK' | 'JUST_SAVE' = 'JUST_SAVE') => {
-    setPinPromptAction(action);
-    setIsSetPinModalOpen(true);
-  }, []);
-
-  const closeSetPinModal = useCallback(() => {
-    setIsSetPinModalOpen(false);
-  }, []);
 
   const openProfileModal = useCallback(() => {
     setIsProfileModalOpen(true);
@@ -432,24 +404,41 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (orgData) setOrganization(orgData);
       if (demandsData) setCustomerDemands(demandsData);
+      let initialShop: Shop;
       if (shopData && shopData.length > 0) {
-        setShops(shopData);
-        setActiveShop(shopData[0]);
+        initialShop = { ...shopData[0] };
       } else {
-        const fallbackShop: Shop = {
+        initialShop = {
           id: SHOP_ID,
           organization_id: ORG_ID,
           name: 'Zain Footwear (Main Store)',
           code: 'ZAIN-01',
           city: 'Mumbai',
+          address_line_1: 'Shop #12, Fashion Plaza, Linking Road, Bandra West',
+          gstin: '27AAACZ9999F1Z5',
           phone: '+91 98200 12345',
+          sales_time_restriction_enabled: false,
+          sales_start_time: '10:00',
+          sales_end_time: '22:00',
+          restricted_sales_roles: ['CASHIER', 'SALES'],
           is_active: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        setShops([fallbackShop]);
-        setActiveShop(fallbackShop);
       }
+      try {
+        const cached = localStorage.getItem('zain_active_shop_custom');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            initialShop = { ...initialShop, ...parsed };
+          }
+        }
+      } catch (e) {
+        console.warn('Cached shop read error:', e);
+      }
+      setShops([initialShop, ...(shopData?.slice(1) || [])]);
+      setActiveShop(initialShop);
 
       // Always ensure users are loaded and Saif fallback is present if needed
       const allUsers = usersData.length > 0 ? usersData : DEFAULT_USERS;
@@ -574,30 +563,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLastAccount(authService.getLastAccount());
   };
 
-  const lockScreen = useCallback(() => {
-    if (hasConfiguredPin) {
-      setIsScreenLocked(true);
-    } else {
-      setPinPromptAction('LOCK');
-      setIsSetPinModalOpen(true);
-    }
-  }, [hasConfiguredPin]);
-
-  const updateUserPin = async (newPin: string): Promise<{ success: boolean; error: string | null }> => {
-    const targetUserId = userProfile?.id || lastAccount?.id;
-    if (!targetUserId) {
-      return { success: false, error: 'No active user found.' };
-    }
-    const res = await authService.updatePin(targetUserId, newPin);
-    if (res.success) {
-      if (userProfile) {
-        setUserProfile((prev) => (prev ? { ...prev, pin: newPin } : null));
-      }
-      setLastAccount((prev) => (prev ? { ...prev, pin: newPin } : null));
-    }
-    return res;
-  };
-
   const updateUserProfile = async (updates: Partial<UserProfile>): Promise<{ success: boolean; error: string | null }> => {
     const targetUserId = userProfile?.id || lastAccount?.id;
     if (!targetUserId) {
@@ -622,51 +587,35 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { success: res.success, error: res.error };
   };
 
-  const unlockScreen = async (pin: string): Promise<{ success: boolean; message?: string }> => {
-    const targetIdent = userProfile?.id || lastAccount?.id || lastAccount?.username || lastAccount?.email;
-    const res = await authService.unlockWithPin(pin, targetIdent);
-    if (res.user) {
-      setIsScreenLocked(false);
-      loginAsUserProfile(res.user);
-      return { success: true };
-    }
-    return { success: false, message: res.error || 'Incorrect PIN.' };
-  };
-
-  const loginWithPin = async (pin: string, identifier?: string): Promise<{ success: boolean; message?: string }> => {
-    const targetIdent = identifier || lastAccount?.id || lastAccount?.username || lastAccount?.email;
-    const res = await authService.unlockWithPin(pin, targetIdent);
-    if (res.user) {
-      setIsScreenLocked(false);
-      loginAsUserProfile(res.user);
-      return { success: true };
-    }
-    return { success: false, message: res.error || 'Incorrect PIN.' };
-  };
-
   const clearRememberedAccount = () => {
     authService.clearLastAccount();
     setLastAccount(null);
   };
 
   /**
-   * Check if counter sales creation is currently permitted based on Store Sales Operating Hours set by Admin.
+   * Check if counter sales & dashboard creation is currently permitted based on Store Operating Hours.
    * Admin role always has override access.
+   * Restriction applies only to assigned roles (e.g. Sales Users) and assigned user IDs configured by Admin.
    */
-  const checkSalesTimeAllowed = useCallback(() => {
-    const isRestricted = !!activeShop?.sales_time_restriction_enabled;
-    const startTime = activeShop?.sales_start_time || '09:00';
-    const endTime = activeShop?.sales_end_time || '22:30';
+  const checkSalesTimeAllowed = useCallback((forUser?: UserProfile | null) => {
+    const user = forUser !== undefined ? forUser : userProfile;
+    const role = (user?.role || activeRole || '').toUpperCase();
+    const userId = user?.id;
+
+    const startTime = activeShop?.sales_start_time || '10:00';
+    const endTime = activeShop?.sales_end_time || '22:00';
 
     const now = new Date();
     const currentHours = String(now.getHours()).padStart(2, '0');
     const currentMinutes = String(now.getMinutes()).padStart(2, '0');
     const currentTime = `${currentHours}:${currentMinutes}`;
 
-    if (!isRestricted) {
+    // Admin / Owner ALWAYS has 24/7 unrestricted access
+    if (role === 'ADMIN' || role === 'OWNER') {
       return {
         allowed: true,
         isRestricted: false,
+        isAppliedToUser: false,
         startTime,
         endTime,
         currentTime,
@@ -674,7 +623,44 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     }
 
-    // Check if within window (supports same-day window e.g. 09:00 - 22:30 or overnight e.g. 20:00 - 04:00)
+    const isRestricted = !!activeShop?.sales_time_restriction_enabled;
+    if (!isRestricted) {
+      return {
+        allowed: true,
+        isRestricted: false,
+        isAppliedToUser: false,
+        startTime,
+        endTime,
+        currentTime,
+        isWithinWindow: true,
+      };
+    }
+
+    // Check if restriction is assigned to this role or user
+    const restrictedRoles =
+      activeShop?.restricted_sales_roles && activeShop.restricted_sales_roles.length > 0
+        ? activeShop.restricted_sales_roles.map((r) => r.toUpperCase())
+        : ['CASHIER', 'SALES', 'STAFF', 'VIEWER'];
+
+    const restrictedUserIds = activeShop?.restricted_user_ids || [];
+
+    const isRoleRestricted = restrictedRoles.includes(role);
+    const isUserRestricted = userId ? restrictedUserIds.includes(userId) : false;
+    const isAppliedToUser = isRoleRestricted || isUserRestricted;
+
+    if (!isAppliedToUser) {
+      return {
+        allowed: true,
+        isRestricted: true,
+        isAppliedToUser: false,
+        startTime,
+        endTime,
+        currentTime,
+        isWithinWindow: true,
+      };
+    }
+
+    // Check if within window (supports same-day window e.g. 10:00 - 22:00 or overnight window)
     let isWithinWindow = false;
     if (startTime <= endTime) {
       isWithinWindow = currentTime >= startTime && currentTime <= endTime;
@@ -682,21 +668,19 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isWithinWindow = currentTime >= startTime || currentTime <= endTime;
     }
 
-    // Admin has full override capability
-    const allowed = isWithinWindow || activeRole === 'ADMIN';
-
     return {
-      allowed,
-      isRestricted,
+      allowed: isWithinWindow,
+      isRestricted: true,
+      isAppliedToUser: true,
       startTime,
       endTime,
       currentTime,
       isWithinWindow,
       reason: !isWithinWindow
-        ? `Store sales are currently closed. Sales hours configured by Admin: ${startTime} to ${endTime}.`
+        ? `Store is currently closed for sales. Configured store hours: ${startTime} to ${endTime}.`
         : undefined,
     };
-  }, [activeShop, activeRole]);
+  }, [activeShop, activeRole, userProfile]);
 
   // ============================================================================
   // User Management
@@ -721,7 +705,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUsers((prev) => prev.filter((u) => u.id !== userId));
   };
 
-  // Shop management persisted to Supabase
+  // Shop management persisted to Supabase and cached in localStorage
   const addShop = async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop> => {
     const newShop = await shopsService.create(shopData);
     setShops((prev) => [...prev.filter((s) => s.id !== newShop.id), newShop]);
@@ -729,9 +713,29 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateShop = async (shopId: string, shopData: Partial<Shop>): Promise<void> => {
-    const updated = await shopsService.update(shopId, shopData);
-    setShops((prev) => prev.map((s) => (s.id === shopId ? updated : s)));
-    if (activeShop?.id === shopId) setActiveShop(updated);
+    const updatedTimestamp = new Date().toISOString();
+    // 1. Update local activeShop & shops state immediately
+    setActiveShop((prev) => {
+      if (!prev || prev.id !== shopId) return prev;
+      const merged = { ...prev, ...shopData, updated_at: updatedTimestamp };
+      try {
+        localStorage.setItem('zain_active_shop_custom', JSON.stringify(merged));
+      } catch (e) {
+        console.warn('LocalStorage save error:', e);
+      }
+      return merged;
+    });
+
+    setShops((prev) =>
+      prev.map((s) => (s.id === shopId ? { ...s, ...shopData, updated_at: updatedTimestamp } : s))
+    );
+
+    // 2. Persist to backend service gracefully
+    try {
+      await shopsService.update(shopId, shopData);
+    } catch (err) {
+      console.warn('Database shop sync notice (locally saved):', err);
+    }
   };
 
   // Role-Based Permissions Matrix
@@ -1612,17 +1616,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loginAsUserProfile,
         logoutUser,
         lastAccount,
-        isScreenLocked,
-        hasConfiguredPin,
-        lockScreen,
-        unlockScreen,
-        loginWithPin,
-        updateUserPin,
         updateUserProfile,
-        isSetPinModalOpen,
-        openSetPinModal,
-        closeSetPinModal,
-        pinPromptAction,
         isProfileModalOpen,
         openProfileModal,
         closeProfileModal,

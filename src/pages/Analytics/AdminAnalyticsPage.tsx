@@ -19,6 +19,8 @@ import {
   Info,
   Award,
   ArrowLeft,
+  CreditCard,
+  UserCheck,
 } from 'lucide-react';
 
 export const AdminAnalyticsPage: React.FC = () => {
@@ -91,7 +93,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   }, [filteredSales, sales, totalOrdersCount]);
 
   // =========================================================================
-  // 1. SHOE SIZE DEMAND & SIZING INTELLIGENCE (किस साइज का सेल हो रहा है)
+  // 1. SHOE SIZE DEMAND & SIZING INTELLIGENCE
   // =========================================================================
   const sizeAnalytics = useMemo(() => {
     const sizeMap: Record<string, { size: string; pairsSold: number; revenue: number }> = {};
@@ -110,14 +112,16 @@ export const AdminAnalyticsPage: React.FC = () => {
     });
 
     const list = Object.values(sizeMap);
+    if (list.length === 0) return [];
+
     const totalPairs = list.reduce((sum, it) => sum + it.pairsSold, 0) || 1;
     const sorted = list.sort((a, b) => b.pairsSold - a.pairsSold);
 
     return sorted.map((s) => {
       const sharePct = Math.round((s.pairsSold / totalPairs) * 100);
       let classification: 'HOT' | 'STEADY' | 'SLOW' = 'STEADY';
-      if (sharePct >= 18) classification = 'HOT';
-      else if (sharePct < 8) classification = 'SLOW';
+      if (sharePct >= 20) classification = 'HOT';
+      else if (sharePct <= 8) classification = 'SLOW';
 
       return {
         ...s,
@@ -131,7 +135,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   const slowSizes = sizeAnalytics.filter((s) => s.classification === 'SLOW').map((s) => s.size);
 
   // =========================================================================
-  // 2. CUSTOMER FOOTFALL & PEAK TIMING INTELLIGENCE (कौन सा टाइम कस्टमर आ रहा है)
+  // 2. CUSTOMER FOOTFALL & PEAK TIMING INTELLIGENCE
   // =========================================================================
   const hourlyFootfall = useMemo(() => {
     const hours = [
@@ -159,13 +163,13 @@ export const AdminAnalyticsPage: React.FC = () => {
       }
     });
 
-    const maxCount = Math.max(...hours.map((h) => h.count), 1);
-    const peakHourItem = [...hours].sort((a, b) => b.count - a.count)[0];
+    const maxCount = Math.max(...hours.map((h) => h.count), 0);
+    const peakHourItem = maxCount > 0 ? [...hours].sort((a, b) => b.count - a.count)[0] : null;
 
     return {
       hours,
       maxCount,
-      peakHourItem: peakHourItem?.count > 0 ? peakHourItem : null,
+      peakHourItem: peakHourItem && peakHourItem.count > 0 ? peakHourItem : null,
     };
   }, [filteredSales]);
 
@@ -191,23 +195,20 @@ export const AdminAnalyticsPage: React.FC = () => {
       }
     });
 
-    const maxDayCount = Math.max(...days.map((d) => d.count), 1);
+    const maxDayCount = Math.max(...days.map((d) => d.count), 0);
     const weekendRevenue = days.filter((d) => d.isWeekend).reduce((sum, d) => sum + d.revenue, 0);
     const weekdayRevenue = days.filter((d) => !d.isWeekend).reduce((sum, d) => sum + d.revenue, 0);
-    const weekendSurgePct =
-      weekdayRevenue > 0 ? Math.round(((weekendRevenue / 2) / (weekdayRevenue / 5) - 1) * 100) : 0;
 
     return {
       days,
       maxDayCount,
       weekendRevenue,
       weekdayRevenue,
-      weekendSurgePct,
     };
   }, [filteredSales]);
 
   // =========================================================================
-  // 3. CATEGORY & PRICE SWEET-SPOT ANALYTICS
+  // 3. CATEGORY PERFORMANCE
   // =========================================================================
   const categoryStats = useMemo(() => {
     const catMap: Record<string, { category: string; count: number; revenue: number }> = {};
@@ -216,12 +217,12 @@ export const AdminAnalyticsPage: React.FC = () => {
       (s.items || []).forEach((it: any) => {
         const rawName = (it.item_name || '').toLowerCase();
         let cat = 'Sneakers';
-        if (rawName.includes('formal')) cat = 'Formal';
-        else if (rawName.includes('slipper') || rawName.includes('chappal')) cat = 'Slippers';
+        if (rawName.includes('formal')) cat = 'Formal Shoes';
+        else if (rawName.includes('slipper') || rawName.includes('chappal') || rawName.includes('hawai')) cat = 'Slippers / Chappals';
         else if (rawName.includes('sandal')) cat = 'Sandals';
-        else if (rawName.includes('casual')) cat = 'Casual';
+        else if (rawName.includes('casual')) cat = 'Casual Shoes';
         else if (rawName.includes('boot')) cat = 'Boots';
-        else if (rawName.includes('kid')) cat = 'Kids';
+        else if (rawName.includes('kid')) cat = 'Kids Footwear';
 
         if (!catMap[cat]) catMap[cat] = { category: cat, count: 0, revenue: 0 };
         const qty = Number(it.quantity) || 1;
@@ -233,30 +234,79 @@ export const AdminAnalyticsPage: React.FC = () => {
     return Object.values(catMap).sort((a, b) => b.revenue - a.revenue);
   }, [filteredSales]);
 
-  // Sweet Spot Price Band Analysis
+  // =========================================================================
+  // 4. SWEET SPOT PRICE BANDS
+  // =========================================================================
   const priceBandStats = useMemo(() => {
     const bands = [
-      { label: 'Budget (< ₹500)', min: 0, max: 500, count: 0 },
-      { label: 'Popular (₹500 - ₹999)', min: 500, max: 1000, count: 0 },
-      { label: 'Premium (₹1,000 - ₹1,999)', min: 1000, max: 2000, count: 0 },
-      { label: 'Luxury (₹2,000+)', min: 2000, max: 999999, count: 0 },
+      { label: 'Budget (< ₹500)', min: 0, max: 500, count: 0, revenue: 0 },
+      { label: 'Popular (₹500 - ₹999)', min: 500, max: 1000, count: 0, revenue: 0 },
+      { label: 'Premium (₹1,000 - ₹1,999)', min: 1000, max: 2000, count: 0, revenue: 0 },
+      { label: 'Luxury (₹2,000+)', min: 2000, max: 999999, count: 0, revenue: 0 },
     ];
 
     filteredSales.forEach((s) => {
       const match = bands.find((b) => s.total >= b.min && s.total < b.max);
-      if (match) match.count += 1;
+      if (match) {
+        match.count += 1;
+        match.revenue += s.total;
+      }
     });
 
     const total = filteredSales.length || 1;
     return bands.map((b) => ({
       ...b,
-      sharePct: Math.round((b.count / total) * 100),
+      sharePct: filteredSales.length > 0 ? Math.round((b.count / total) * 100) : 0,
     }));
   }, [filteredSales]);
 
+  // =========================================================================
+  // 5. PAYMENT BREAKDOWN (Cash vs UPI vs Udhar)
+  // =========================================================================
+  const paymentBreakdown = useMemo(() => {
+    const total = totalRevenue || 1;
+    const cash = filteredSales.reduce((sum, s) => sum + (s.cash_amount || 0), 0);
+    const online = filteredSales.reduce((sum, s) => sum + (s.online_amount || 0), 0);
+    const due = filteredSales.reduce((sum, s) => sum + (s.due_amount || 0), 0);
+
+    return {
+      cash,
+      cashPct: totalRevenue > 0 ? Math.round((cash / total) * 100) : 0,
+      online,
+      onlinePct: totalRevenue > 0 ? Math.round((online / total) * 100) : 0,
+      due,
+      duePct: totalRevenue > 0 ? Math.round((due / total) * 100) : 0,
+    };
+  }, [filteredSales, totalRevenue]);
+
+  // =========================================================================
+  // 6. STAFF / SALESPERSON PERFORMANCE BREAKDOWN
+  // =========================================================================
+  const staffPerformance = useMemo(() => {
+    const map: Record<string, { name: string; billsCount: number; totalSales: number }> = {};
+
+    filteredSales.forEach((s) => {
+      const name = s.created_by_name?.trim() || 'Counter Staff';
+      if (!map[name]) {
+        map[name] = { name, billsCount: 0, totalSales: 0 };
+      }
+      map[name].billsCount += 1;
+      map[name].totalSales += s.total;
+    });
+
+    return Object.values(map).sort((a, b) => b.totalSales - a.totalSales);
+  }, [filteredSales]);
+
+  const dateFilterLabels: Record<string, string> = {
+    today: 'Today',
+    this_week: 'Past 7 Days',
+    this_month: 'This Month',
+    all_time: 'All Time',
+  };
+
   if (!isAdmin) {
     return (
-      <div className="p-8 max-w-md mx-auto text-center space-y-3 bg-white border border-slate-200 rounded-3xl shadow-sm my-12">
+      <div className="p-8 max-w-md mx-auto text-center space-y-3 bg-white border border-slate-200 rounded-3xl shadow-sm my-12 font-sans">
         <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
           <Sparkles className="w-6 h-6" />
         </div>
@@ -354,6 +404,24 @@ export const AdminAnalyticsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* EMPTY STATE BANNER IF NO SALES IN SELECTED PERIOD */}
+        {totalOrdersCount === 0 && (
+          <div className="p-4 sm:p-5 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-center justify-between text-xs text-amber-900">
+            <div className="flex items-center space-x-2.5">
+              <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <span>
+                No sales records found for <strong>{dateFilterLabels[dateFilter]}</strong>. Metrics below reflect 0 transactions until POS bills are created.
+              </span>
+            </div>
+            <Link
+              to="/app/pos"
+              className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors cursor-pointer text-[11px]"
+            >
+              Open POS
+            </Link>
+          </div>
+        )}
+
         {/* 4 HEADLINE SCALING METRICS */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Metric 1: Total Revenue */}
@@ -404,7 +472,7 @@ export const AdminAnalyticsPage: React.FC = () => {
         </div>
 
         {/* ========================================================================= */}
-        {/* SECTION 1: SHOE SIZE DEMAND & SIZING INTELLIGENCE (किस साइज का सेल हो रहा है) */}
+        {/* SECTION 1: SHOE SIZE DEMAND & SIZING INTELLIGENCE */}
         {/* ========================================================================= */}
         <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -413,47 +481,55 @@ export const AdminAnalyticsPage: React.FC = () => {
                 <span>👟 Shoe Size Demand & Sizing Intelligence</span>
               </h2>
               <p className="text-xs text-slate-500">
-                Identifies which shoe sizes sell fast so you order the exact right ratio from manufacturers.
+                Calculates which footwear sizes sell fast based on actual customer receipts.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-orange-700 bg-orange-50 px-2 py-1 rounded-full border border-orange-200">
-                <Flame className="w-3 h-3 text-orange-600" /> Hot Movers: {hotSizes.join(', ') || 'Sizes 7, 8, 9'}
-              </span>
+              {hotSizes.length > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+                  <Flame className="w-3 h-3 text-orange-600" /> Hot Movers: UK {hotSizes.join(', ')}
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-slate-400">
+                  {totalOrdersCount > 0 ? 'Sizes evenly distributed' : 'Awaiting counter sales'}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* AI / Smart Recommendation Banner */}
-          <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-yellow-50/40 rounded-2xl p-4 border border-orange-200/70 flex items-start gap-3 text-xs">
-            <div className="w-8 h-8 rounded-xl bg-[#ff6600] text-white flex items-center justify-center flex-shrink-0 font-bold shadow-xs">
-              <Zap className="w-4 h-4" />
+          {/* Smart Recommendation Banner based on real data */}
+          {sizeAnalytics.length > 0 ? (
+            <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-yellow-50/40 rounded-2xl p-4 border border-orange-200/70 flex items-start gap-3 text-xs">
+              <div className="w-8 h-8 rounded-xl bg-[#ff6600] text-white flex items-center justify-center flex-shrink-0 font-bold shadow-xs">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-extrabold text-slate-900 text-xs">Factory Order Ratio Recommendation</h4>
+                <p className="text-slate-600 leading-relaxed text-[11px]">
+                  {hotSizes.length > 0
+                    ? `Sizes ${hotSizes.join(', ')} drive the highest retail volume (${sizeAnalytics
+                        .filter((s) => s.classification === 'HOT')
+                        .reduce((sum, s) => sum + s.sharePct, 0)}% of total demand). In your next purchase order, allocate priority budget to these sizes.`
+                    : 'Sales are distributed across multiple sizes. Monitor trends over 30 days to establish factory purchase ratios.'}
+                  {slowSizes.length > 0 && (
+                    <span className="block mt-1 text-slate-500">
+                      ❄️ Slower moving sizes to maintain lean inventory on: <strong>{slowSizes.join(', ')}</strong>.
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <h4 className="font-extrabold text-slate-900 text-xs">Smart Factory Demand Recommendation</h4>
-              <p className="text-slate-600 leading-relaxed text-[11px]">
-                {hotSizes.length > 0
-                  ? `Sizes ${hotSizes.join(', ')} drive the highest retail volume (${sizeAnalytics
-                      .filter((s) => s.classification === 'HOT')
-                      .reduce((sum, s) => sum + s.sharePct, 0)}% of total demand). In your next manufacturing purchase, allocate 65-70% of budget to these sizes.`
-                  : 'Maintain a 65% purchase focus on UK Sizes 7, 8, and 9. Keep UK Size 11 & 12 orders minimal (under 10%) to prevent dead stock accumulation.'}
-                {slowSizes.length > 0 && (
-                  <span className="block mt-1 text-slate-500">
-                    ❄️ Slow moving sizes to keep low inventory on: <strong>{slowSizes.join(', ')}</strong>.
-                  </span>
-                )}
-              </p>
+          ) : (
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+              No shoe sizes recorded in this period. Create invoices in POS to see live size demand curves.
             </div>
-          </div>
+          )}
 
           {/* Size Visual Bars Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {sizeAnalytics.length === 0 ? (
-              <div className="col-span-full py-8 text-center text-xs text-slate-400">
-                No size breakdown recorded yet. Line items from POS bills will populate this sizing chart.
-              </div>
-            ) : (
-              sizeAnalytics.map((item) => (
+          {sizeAnalytics.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sizeAnalytics.map((item) => (
                 <div
                   key={item.size}
                   className={`p-4 rounded-2xl border transition-all ${
@@ -504,13 +580,13 @@ export const AdminAnalyticsPage: React.FC = () => {
                     />
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ========================================================================= */}
-        {/* SECTION 2: CUSTOMER FOOTFALL TIMING & PEAK HOURS (कौन सा टाइम कस्टमर आ रहा है) */}
+        {/* SECTION 2: CUSTOMER FOOTFALL TIMING & PEAK HOURS */}
         {/* ========================================================================= */}
         <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -519,21 +595,21 @@ export const AdminAnalyticsPage: React.FC = () => {
                 <Clock className="w-5 h-5 text-indigo-600" /> Customer Footfall & Peak Shopping Hours
               </h2>
               <p className="text-xs text-slate-500">
-                Reveals the exact hours customers enter and buy, so you deploy staff during rush hours.
+                Reveals the exact hours customers buy, so you deploy staff during rush hours.
               </p>
             </div>
 
             {hourlyFootfall.peakHourItem && (
               <span className="inline-flex items-center gap-1.5 text-xs font-black text-indigo-800 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full">
                 <Flame className="w-3.5 h-3.5 text-orange-600" /> Peak Hour:{' '}
-                {hourlyFootfall.peakHourItem.timeWindow}
+                {hourlyFootfall.peakHourItem.timeWindow} ({hourlyFootfall.peakHourItem.count} Bills)
               </span>
             )}
           </div>
 
           {/* 12-Hour Vertical Bar Histogram (10 AM to 10 PM) */}
           <div className="space-y-2">
-            <div className="flex items-end justify-between gap-1 sm:gap-2 h-44 sm:h-52 pt-6 px-1">
+            <div className="flex items-end justify-between gap-1 sm:gap-2 h-40 sm:h-48 pt-6 px-1">
               {hourlyFootfall.hours.map((item) => {
                 const heightPercent =
                   hourlyFootfall.maxCount > 0 ? Math.round((item.count / hourlyFootfall.maxCount) * 100) : 0;
@@ -561,13 +637,15 @@ export const AdminAnalyticsPage: React.FC = () => {
                     {/* Bar Pill */}
                     <div
                       className={`w-full max-w-[28px] rounded-t-xl transition-all duration-300 ${
-                        isPeakSingle
+                        item.count === 0
+                          ? 'bg-slate-100'
+                          : isPeakSingle
                           ? 'bg-gradient-to-t from-orange-600 to-amber-500 shadow-md shadow-orange-500/30'
                           : isRushHour
                           ? 'bg-gradient-to-t from-indigo-600 to-indigo-400'
-                          : 'bg-slate-200 group-hover:bg-slate-300'
+                          : 'bg-slate-300 group-hover:bg-slate-400'
                       }`}
-                      style={{ height: `${Math.max(6, heightPercent)}%` }}
+                      style={{ height: `${Math.max(item.count > 0 ? 12 : 4, heightPercent)}%` }}
                     />
 
                     {/* Hour Label */}
@@ -583,22 +661,22 @@ export const AdminAnalyticsPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between text-[11px] pt-3 border-t border-slate-100 text-slate-600 font-medium">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-md bg-[#ff6600]" /> Peak Rush (5:00 PM - 9:00 PM)
+                  <span className="w-3 h-3 rounded-md bg-[#ff6600]" /> Peak Rush
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-md bg-slate-300" /> Normal Traffic (10:00 AM - 4:00 PM)
+                  <span className="w-3 h-3 rounded-md bg-slate-300" /> Normal Traffic
                 </span>
               </div>
-              <span className="font-bold text-indigo-700">
-                💡 Advice: Never close counter or take lunch breaks between 5:30 PM & 8:30 PM
+              <span className="text-slate-500 font-semibold">
+                Store Operating Window: 10:00 AM – 10:00 PM
               </span>
             </div>
           </div>
 
-          {/* DAY-OF-WEEK SURGE (Weekday vs Weekend) */}
+          {/* DAY-OF-WEEK SURGE */}
           <div className="pt-2">
             <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider mb-3">
-              📅 Day of Week Footfall & Weekend Surge
+              📅 Day of Week Footfall Breakdown
             </h3>
             <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
               {dayOfWeekStats.days.map((day) => {
@@ -606,7 +684,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                   <div
                     key={day.name}
                     className={`p-3 rounded-2xl border text-center transition-all ${
-                      day.isWeekend
+                      day.count > 0 && day.isWeekend
                         ? 'bg-gradient-to-b from-orange-50 to-amber-50/50 border-orange-200/80 shadow-2xs'
                         : 'bg-slate-50 border-slate-200/70'
                     }`}
@@ -643,7 +721,7 @@ export const AdminAnalyticsPage: React.FC = () => {
 
             <div className="space-y-3">
               {categoryStats.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center">No category sales recorded yet.</p>
+                <p className="text-xs text-slate-400 py-6 text-center">No category sales recorded in this period.</p>
               ) : (
                 categoryStats.map((cat) => {
                   const sharePct = totalRevenue > 0 ? Math.round((cat.revenue / totalRevenue) * 100) : 0;
@@ -673,7 +751,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           {/* Sweet Spot Price Bands */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-4">
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-orange-500" /> Price-Band Sweet Spot
+              <ShoppingBag className="w-5 h-5 text-orange-500" /> Price-Band Distribution
             </h3>
 
             <div className="space-y-3">
@@ -688,7 +766,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                   <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
                     <div
                       className="h-full bg-[#ff6600] rounded-full"
-                      style={{ width: `${Math.max(4, band.sharePct)}%` }}
+                      style={{ width: `${Math.max(band.count > 0 ? 6 : 0, band.sharePct)}%` }}
                     />
                   </div>
                 </div>
@@ -696,7 +774,67 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
 
             <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-[11px] text-indigo-900 font-medium">
-              💡 <strong>Scaling Tip:</strong> Footwear priced in the ₹500 - ₹1,499 sweet spot converts 3x faster than high-ticket items.
+              💡 <strong>Counter Insight:</strong> Footwear priced between ₹500 – ₹1,499 generates the fastest counter turnover.
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* SECTION 4: PAYMENT SPLIT & STAFF COUNTER PERFORMANCE */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Payment Modes */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-4">
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-blue-600" /> Payment Settlement Breakdown
+            </h3>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+                <span className="text-[10px] font-black uppercase text-emerald-800 block">Cash</span>
+                <p className="text-base font-black font-mono text-emerald-950 mt-1">₹{paymentBreakdown.cash.toLocaleString('en-IN')}</p>
+                <span className="text-[10px] font-bold text-emerald-600">{paymentBreakdown.cashPct}%</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200">
+                <span className="text-[10px] font-black uppercase text-blue-800 block">UPI / Online</span>
+                <p className="text-base font-black font-mono text-blue-950 mt-1">₹{paymentBreakdown.online.toLocaleString('en-IN')}</p>
+                <span className="text-[10px] font-bold text-blue-600">{paymentBreakdown.onlinePct}%</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200">
+                <span className="text-[10px] font-black uppercase text-amber-800 block">Customer Due</span>
+                <p className="text-base font-black font-mono text-amber-950 mt-1">₹{paymentBreakdown.due.toLocaleString('en-IN')}</p>
+                <span className="text-[10px] font-bold text-amber-600">{paymentBreakdown.duePct}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sales Staff Performance */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-4">
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-purple-600" /> Sales Staff Performance
+            </h3>
+
+            <div className="space-y-2.5">
+              {staffPerformance.length === 0 ? (
+                <p className="text-xs text-slate-400 py-6 text-center">No sales attributed to staff in this period.</p>
+              ) : (
+                staffPerformance.map((staff) => (
+                  <div key={staff.name} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-800 font-black flex items-center justify-center text-xs">
+                        {staff.name.charAt(0)}
+                      </div>
+                      <div>
+                        <span className="font-black text-slate-900 block">{staff.name}</span>
+                        <span className="text-[10px] text-slate-500 font-medium">{staff.billsCount} bills processed</span>
+                      </div>
+                    </div>
+                    <span className="font-mono font-black text-slate-900 text-sm">
+                      ₹{staff.totalSales.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
