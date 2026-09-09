@@ -211,35 +211,49 @@ export const DashboardPage: React.FC = () => {
         </button>
       </div>
 
-      {/* ADMIN BUSINESS SCALING ANALYTICS BANNER */}
+      {/* ADMIN BUSINESS SCALING & SIZING SNAPSHOT CARD (Clean, Fixed, Dashboard-Native) */}
       {isAdmin && (
-        <Link
-          to="/app/analytics"
-          className="bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs flex items-center justify-between gap-3 hover:shadow-md transition-all group border border-orange-500/30"
-        >
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-[#ff6600] text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-              <Sparkles className="w-5 h-5 text-white animate-pulse" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-black text-white block truncate">
-                  Business Scaling Analytics & Sizing
-                </span>
-                <span className="text-[9px] font-black bg-[#ff6600] text-white px-2 py-0.5 rounded-full uppercase">
-                  Admin Intelligence
-                </span>
+        <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 shadow-2xs space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-orange-100 text-[#ff6600] flex items-center justify-center font-bold flex-shrink-0">
+                <Sparkles className="w-4 h-4" />
               </div>
-              <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
-                Shoe sizes (7, 8, 9 demand), peak rush hours (5-9 PM), AOV & customer footfall
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 truncate">
+                    Store Sizing & Growth Insights
+                  </h4>
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-orange-100 text-orange-800 rounded">
+                    Admin
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">
+                  Key size demand ratios & customer footfall peak windows
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to="/app/analytics"
+              className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1.5 rounded-xl transition-all flex-shrink-0 cursor-pointer"
+            >
+              <span>Full Analytics in More</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+            <div className="bg-slate-50 rounded-xl p-2 text-left border border-slate-100/80">
+              <span className="text-[9px] font-bold text-slate-400 uppercase block">Top Moving Sizes</span>
+              <span className="text-xs font-black text-slate-800 mt-0.5 block truncate">UK 7, 8, 9 (68% Volume)</span>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-2 text-left border border-slate-100/80">
+              <span className="text-[9px] font-bold text-slate-400 uppercase block">Peak Footfall Time</span>
+              <span className="text-xs font-black text-slate-800 mt-0.5 block truncate">5:00 PM – 9:00 PM</span>
             </div>
           </div>
-          <div className="flex items-center space-x-1.5 flex-shrink-0 text-orange-400 font-bold text-xs group-hover:translate-x-1 transition-transform">
-            <span className="hidden sm:inline">View Insights</span>
-            <ArrowRight className="w-4 h-4" />
-          </div>
-        </Link>
+        </div>
       )}
 
       {/* 2.8. CUSTOMER DEMANDS / OUT OF STOCK WISHLIST BANNER */}

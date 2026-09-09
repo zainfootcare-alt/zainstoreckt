@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useShop } from '../../context/ShopContext';
-import { Lock, Check, X, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Lock, Check, X, AlertCircle } from 'lucide-react';
 
 export const SetPinModal: React.FC = () => {
   const {
@@ -15,7 +15,6 @@ export const SetPinModal: React.FC = () => {
 
   const [newPin, setNewPin] = useState<string>('');
   const [confirmPin, setConfirmPin] = useState<string>('');
-  const [focusedField, setFocusedField] = useState<'new' | 'confirm'>('new');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -24,43 +23,18 @@ export const SetPinModal: React.FC = () => {
 
   const activeUser = userProfile || lastAccount;
 
-  const handleKeypad = (val: string) => {
-    setErrorMsg('');
-    if (val === 'CLEAR') {
-      if (focusedField === 'new') setNewPin('');
-      else setConfirmPin('');
-    } else if (val === 'BACK') {
-      if (focusedField === 'new') setNewPin((prev) => prev.slice(0, -1));
-      else setConfirmPin((prev) => prev.slice(0, -1));
-    } else {
-      if (focusedField === 'new') {
-        if (newPin.length < 4) {
-          const next = newPin + val;
-          setNewPin(next);
-          if (next.length === 4) {
-            setFocusedField('confirm');
-          }
-        }
-      } else {
-        if (confirmPin.length < 4) {
-          setConfirmPin((prev) => prev + val);
-        }
-      }
-    }
-  };
-
-  const handleSavePin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSavePin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
     if (!/^\d{4}$/.test(newPin.trim())) {
-      setErrorMsg('PIN exactly 4-digits ka hona chahiye (0-9).');
+      setErrorMsg('Please enter a 4-digit numeric PIN (0-9).');
       return;
     }
 
     if (newPin.trim() !== confirmPin.trim()) {
-      setErrorMsg('Dono PIN match nahi ho rahe. Kripya dobara check karein.');
+      setErrorMsg('PINs do not match. Please re-enter.');
       return;
     }
 
@@ -68,7 +42,7 @@ export const SetPinModal: React.FC = () => {
     try {
       const res = await updateUserPin(newPin.trim());
       if (res.success) {
-        setSuccessMsg('✅ 4-Digit Security PIN successfully set!');
+        setSuccessMsg('✅ Security PIN saved successfully!');
         setTimeout(() => {
           closeSetPinModal();
           setNewPin('');
@@ -77,12 +51,12 @@ export const SetPinModal: React.FC = () => {
           if (pinPromptAction === 'LOCK') {
             lockScreen();
           }
-        }, 600);
+        }, 500);
       } else {
-        setErrorMsg(res.error || 'PIN save karne me samasya aayi. Kripya dobara try karein.');
+        setErrorMsg(res.error || 'Failed to save PIN. Please try again.');
       }
     } catch {
-      setErrorMsg('PIN save nahi ho paya.');
+      setErrorMsg('Failed to save PIN.');
     } finally {
       setIsSaving(false);
     }
@@ -97,20 +71,20 @@ export const SetPinModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-3.5 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150 font-sans">
+      <div className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-black text-base text-slate-900 leading-tight">
-                {pinPromptAction === 'LOCK' ? 'Set PIN to Lock Screen' : 'Set 4-Digit Security PIN'}
+              <h3 className="font-black text-sm sm:text-base text-slate-900 leading-tight">
+                {pinPromptAction === 'LOCK' ? 'Set PIN to Lock' : 'Set 4-Digit Quick PIN'}
               </h3>
               <p className="text-[11px] text-slate-500 font-medium">
-                {activeUser?.full_name || activeUser?.username || 'Staff Member'} ({activeUser?.role || 'Staff'})
+                {activeUser?.full_name || activeUser?.username || 'Staff Member'}
               </p>
             </div>
           </div>
@@ -123,18 +97,7 @@ export const SetPinModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Explain Banner */}
-        <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-2.5 text-xs text-amber-900 space-y-1">
-          <p className="font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider text-amber-800">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-            <span>Kyu chahiye 4-Digit PIN?</span>
-          </p>
-          <p className="text-[11px] text-amber-900 leading-relaxed">
-            Aapne abhi tak koi Quick PIN set nahi kiya hai. Fast screen lock aur counter safe rakhne ke liye 4-digit PIN zaroori hai.
-          </p>
-        </div>
-
-        {/* Error / Success Feedback */}
+        {/* Feedback Alert */}
         {errorMsg && (
           <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold flex items-center space-x-1.5">
             <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
@@ -148,88 +111,51 @@ export const SetPinModal: React.FC = () => {
           </div>
         )}
 
-        {/* Form Inputs */}
-        <form onSubmit={handleSavePin} className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
+        {/* Clean Single Form */}
+        <form onSubmit={handleSavePin} className="space-y-3.5">
+          <div className="space-y-2.5">
             <div>
-              <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider block mb-1">
-                Enter 4-Digit PIN *
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                New 4-Digit PIN
               </label>
               <input
                 type="password"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={4}
                 value={newPin}
-                onFocus={() => setFocusedField('new')}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, '').slice(0, 4);
-                  setNewPin(v);
-                  if (v.length === 4) setFocusedField('confirm');
-                }}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 placeholder="••••"
-                className={`w-full text-center tracking-[0.3em] py-2 px-3 bg-slate-50 border rounded-xl text-base font-black font-mono text-slate-900 placeholder:tracking-normal placeholder:text-xs placeholder:text-slate-400 focus:outline-none transition-colors ${
-                  focusedField === 'new' ? 'border-orange-500 ring-1 ring-orange-400 bg-white' : 'border-slate-200'
-                }`}
+                autoFocus
+                className="w-full text-center tracking-[0.4em] py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-black font-mono text-slate-900 placeholder:tracking-normal placeholder:text-xs placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-colors"
               />
             </div>
+
             <div>
-              <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider block mb-1">
-                Confirm PIN *
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                Confirm 4-Digit PIN
               </label>
               <input
                 type="password"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={4}
                 value={confirmPin}
-                onFocus={() => setFocusedField('confirm')}
                 onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 placeholder="••••"
-                className={`w-full text-center tracking-[0.3em] py-2 px-3 bg-slate-50 border rounded-xl text-base font-black font-mono text-slate-900 placeholder:tracking-normal placeholder:text-xs placeholder:text-slate-400 focus:outline-none transition-colors ${
-                  focusedField === 'confirm' ? 'border-orange-500 ring-1 ring-orange-400 bg-white' : 'border-slate-200'
-                }`}
+                className="w-full text-center tracking-[0.4em] py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-black font-mono text-slate-900 placeholder:tracking-normal placeholder:text-xs placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-colors"
               />
             </div>
           </div>
 
-          {/* Quick Touch Numpad */}
-          <div className="grid grid-cols-3 gap-1 pt-0.5">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => {
-                  if (k === 'C') handleKeypad('CLEAR');
-                  else if (k === '⌫') handleKeypad('BACK');
-                  else handleKeypad(k);
-                }}
-                className={`h-9 rounded-xl font-mono text-xs font-black transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
-                  k === 'C'
-                    ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                    : k === '⌫'
-                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    : 'bg-slate-50 text-slate-900 hover:bg-orange-50 hover:text-orange-600 border border-slate-100'
-                }`}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="pt-2 space-y-1.5">
+          <div className="pt-2 space-y-2">
             <button
               type="submit"
               disabled={isSaving || newPin.length !== 4 || confirmPin.length !== 4}
               className="w-full py-3 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white font-black rounded-xl text-xs shadow-sm flex items-center justify-center space-x-1.5 transition-all disabled:opacity-40 cursor-pointer"
             >
-              <Check className="w-4 h-4" />
-              <span>
-                {isSaving
-                  ? 'Saving PIN...'
-                  : pinPromptAction === 'LOCK'
-                  ? 'Save PIN & Lock Counter'
-                  : 'Save 4-Digit Security PIN'}
-              </span>
+              <Check className="w-4 h-4 stroke-[3]" />
+              <span>{isSaving ? 'Saving PIN...' : 'Save 4-Digit PIN'}</span>
             </button>
 
             <button
@@ -237,15 +163,13 @@ export const SetPinModal: React.FC = () => {
               onClick={handleCancel}
               className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer text-center"
             >
-              Cancel / Abhi Nahi Karna
+              Cancel
             </button>
           </div>
         </form>
-
-        <p className="text-[10px] text-slate-400 text-center italic">
-          💡 Aap baad me kabhi bhi &quot;My Profile&quot; se apna PIN set ya change kar sakte hain.
-        </p>
       </div>
     </div>
   );
 };
+
+export default SetPinModal;

@@ -73,6 +73,8 @@ export const CalculatorPOSPage: React.FC = () => {
   // STEP 1: CALCULATOR STATE
   const [calcDisplay, setCalcDisplay] = useState<string>('0');
   const [lineItems, setLineItems] = useState<PosLineItem[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>('Sneakers');
+  const [activeSize, setActiveSize] = useState<string>('8');
 
   // STEP 2: SHOE SIZE & CUSTOMER STATE
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
@@ -343,7 +345,7 @@ export const CalculatorPOSPage: React.FC = () => {
       return;
     }
 
-    // AUTOMATIC PLUS (+) BEHAVIOR: Adds item to cart immediately and increments count
+    // AUTOMATIC PLUS (+) BEHAVIOR: Adds item to cart immediately with selected category & size
     if (key === '+') {
       const val = Math.round(evaluateCalc(calcDisplay));
       if (val > 0) {
@@ -351,8 +353,8 @@ export const CalculatorPOSPage: React.FC = () => {
         const newItem: PosLineItem = {
           id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
           name: `Item #${itemIndex}`,
-          category: 'Sneakers',
-          size: preferredSize || '8',
+          category: activeCategory,
+          size: activeSize || preferredSize || '8',
           unit_price: val,
         };
         setLineItems((prev) => [...prev, newItem]);
@@ -456,8 +458,8 @@ export const CalculatorPOSPage: React.FC = () => {
       const newItem: PosLineItem = {
         id: `item_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         name: `Item #${itemIndex}`,
-        category: 'Sneakers',
-        size: preferredSize || '8',
+        category: activeCategory,
+        size: activeSize || preferredSize || '8',
         unit_price: currentVal,
       };
       items.push(newItem);
@@ -643,6 +645,8 @@ export const CalculatorPOSPage: React.FC = () => {
     setCashTendered('');
     setCompletedSale(null);
     setExpandedItemId(null);
+    setActiveCategory('Sneakers');
+    setActiveSize('8');
   };
 
   // WhatsApp formatted receipt link
@@ -661,11 +665,13 @@ export const CalculatorPOSPage: React.FC = () => {
   };
 
   // =========================================================================
-  // STEP 2: SHOE SIZE, ITEMS & CUSTOMER STATE (Collapsible Dropdown for Multi-Item)
+  // STEP 2: SHOE SIZE, ITEMS & CUSTOMER DETAILS (Clean, Simple, Professional)
   // =========================================================================
   if (step === 'DETAILS') {
+    const activeItem = lineItems.find((it) => it.id === expandedItemId) || lineItems[0];
+
     return (
-      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
+      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans">
         {/* Top Header */}
         <div className="flex items-center justify-between pb-1 flex-shrink-0">
           <button
@@ -696,15 +702,15 @@ export const CalculatorPOSPage: React.FC = () => {
               </button>
             )}
             <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-              Step 2 • {lineItems.length} Item{lineItems.length === 1 ? '' : 's'}
+              Step 2 • Sizing & Customer
             </span>
           </div>
         </div>
 
-        {/* Big Amount Summary Bar */}
+        {/* Bill Summary Bar */}
         <div className="bg-slate-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0 my-1">
           <div>
-            <p className="text-[11px] font-semibold text-slate-400">Total Bill Amount</p>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Bill Amount</p>
             <p className="text-2xl sm:text-3xl font-black text-orange-400 font-mono">
               ₹{activeSubtotal.toLocaleString('en-IN')}
             </p>
@@ -716,432 +722,291 @@ export const CalculatorPOSPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Scrollable Center Content with Upper Sizing/Categories & Lower Customer Details */}
+        {/* Scrollable Center: Section 1 (Footwear Sizing) & Section 2 (Customer) */}
         <div className="flex-1 flex flex-col space-y-2.5 overflow-y-auto no-scrollbar py-1">
           {/* ================================================================= */}
-          {/* 1. UPPER SECTION: FOOTWEAR SIZING & CATEGORIES DROPDOWN */}
+          {/* 1. UPPER SECTION: FOOTWEAR CATEGORY & SIZE */}
           {/* ================================================================= */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all">
-            {/* Upper Section Collapsible Header */}
-            <div
-              onClick={() => setIsItemsSectionOpen(!isItemsSectionOpen)}
-              className="p-3.5 bg-gradient-to-r from-orange-50/50 to-white flex items-center justify-between cursor-pointer hover:bg-orange-50/70 transition-colors select-none"
-            >
-              <div className="flex items-center space-x-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-[#ff6600] text-white flex items-center justify-center font-black flex-shrink-0 shadow-2xs">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3">
+            {/* Multi-Item Tab Selector (Only if more than 1 item) */}
+            {lineItems.length > 1 && (
+              <div className="space-y-1.5 pb-2 border-b border-slate-100">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                  Select Item to Set Sizing ({lineItems.length} items):
+                </span>
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                  {lineItems.map((it, idx) => (
+                    <button
+                      key={it.id}
+                      type="button"
+                      onClick={() => setExpandedItemId(it.id)}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0 transition-all cursor-pointer border ${
+                        activeItem?.id === it.id
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center font-black">
+                        {idx + 1}
+                      </span>
+                      <span>{it.category}</span>
+                      <span className="opacity-80 font-mono text-[10px]">(Sz {it.size})</span>
+                      <span className="font-mono text-orange-400 font-black">₹{it.unit_price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Current Selected Item Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-black text-xs">
                   <Layers className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                      Footwear Size & Category
-                    </span>
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-                      {lineItems.length} Item{lineItems.length === 1 ? '' : 's'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                    {lineItems.map((it, i) => `#${i + 1} ${it.category} (Size ${it.size})`).join(', ')}
+                <div>
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                    {lineItems.length > 1
+                      ? `Item #${lineItems.findIndex((it) => it.id === activeItem?.id) + 1} • ${activeItem?.category}`
+                      : 'Footwear Category & Size'}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Item Price: ₹{activeItem?.unit_price.toLocaleString('en-IN')}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 flex-shrink-0">
+              <div className="flex items-center space-x-1.5">
+                {lineItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => activeItem && handleRemoveLineItem(activeItem.id)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    title="Remove this item"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <span className="text-xs font-black font-mono text-orange-600">
-                  ₹{calculatedItemsTotal.toLocaleString('en-IN')}
+                  ₹{activeItem?.unit_price.toLocaleString('en-IN')}
                 </span>
-                <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs">
-                  {isItemsSectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </div>
               </div>
             </div>
 
-            {/* Upper Section Body: Footwear Category & Size Selection for Each Item */}
-            {isItemsSectionOpen && (
-              <div className="p-3 space-y-2.5 border-t border-slate-100 bg-slate-50/30 animate-in fade-in duration-150">
-                {lineItems.map((item, idx) => {
-                  const isExpanded = lineItems.length === 1 || expandedItemId === item.id;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all"
-                    >
-                      {/* Sub-Header for Item */}
-                      <div
-                        onClick={() => {
-                          if (lineItems.length > 1) {
-                            setExpandedItemId(expandedItemId === item.id ? null : item.id);
-                          }
-                        }}
-                        className={`p-3 flex items-center justify-between transition-colors ${
-                          lineItems.length > 1 ? 'cursor-pointer hover:bg-slate-50' : ''
-                        } ${isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : ''}`}
-                      >
-                        <div className="flex items-center space-x-2.5 min-w-0">
-                          <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 text-[11px] font-black flex items-center justify-center flex-shrink-0">
-                            {idx + 1}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-900 truncate">
-                              {item.category} • Size {item.size}
-                            </p>
-                            <p className="text-[10px] text-slate-500 font-medium">
-                              Footwear Item #{idx + 1}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-black text-slate-900 font-mono">
-                            ₹{item.unit_price.toLocaleString('en-IN')}
-                          </span>
-
-                          {/* Duplicate & Delete Buttons */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDuplicateLineItem(item);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            title="Duplicate Item"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-
-                          {lineItems.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveLineItem(item.id);
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Remove Item"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-
-                          {lineItems.length > 1 && (
-                            <div className="text-slate-400">
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Expanded Categories & Sizes Selection */}
-                      {isExpanded && (
-                        <div className="p-3 space-y-3 bg-white animate-in fade-in duration-100">
-                          {/* 1. Category Chips */}
-                          <div>
-                            <div className="flex justify-between items-center mb-1.5">
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                                Select Category
-                              </span>
-                              <span className="text-xs font-black text-orange-600">{item.category}</span>
-                            </div>
-                            <div className="grid grid-cols-4 gap-1.5">
-                              {FOOTWEAR_CATEGORIES.map((cat) => (
-                                <button
-                                  key={cat.id}
-                                  type="button"
-                                  onClick={() => updateItemCategory(item.id, cat.id)}
-                                  className={`py-2 px-1 rounded-xl text-[11px] font-bold text-center truncate transition-all cursor-pointer ${
-                                    item.category === cat.id
-                                      ? 'bg-[#ff6600] text-white shadow-xs font-black scale-102'
-                                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                  }`}
-                                >
-                                  {cat.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* 2. Shoe Size Chips */}
-                          <div>
-                            <div className="flex justify-between items-center mb-1.5">
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                                Select Shoe Size (UK/IND)
-                              </span>
-                              <span className="text-xs font-black text-orange-600">Selected: UK {item.size}</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {ALL_SHOE_SIZES.map((sz) => (
-                                <button
-                                  key={sz}
-                                  type="button"
-                                  onClick={() => updateItemSize(item.id, sz)}
-                                  className={`h-9 ${
-                                    sz === 'Free Size' ? 'px-2.5 text-[11px]' : 'w-9 text-xs'
-                                  } rounded-xl font-black flex items-center justify-center transition-all cursor-pointer ${
-                                    item.size === sz
-                                      ? 'bg-slate-900 text-white shadow-xs border-2 border-slate-900 scale-105'
-                                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                                  }`}
-                                >
-                                  {sz}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Category Chips with Icons */}
+            <div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+                Select Footwear Category
+              </span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {FOOTWEAR_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => activeItem && updateItemCategory(activeItem.id, cat.id)}
+                    className={`py-2 px-1 rounded-xl text-[11px] font-bold text-center truncate transition-all cursor-pointer ${
+                      activeItem?.category === cat.id
+                        ? 'bg-[#ff6600] text-white shadow-xs font-black scale-102 ring-2 ring-orange-400/40'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+
+            {/* UK Shoe Size Chips */}
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  Select Shoe Size (UK / IND)
+                </span>
+                <span className="text-xs font-black text-orange-600">Selected: UK {activeItem?.size}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_SHOE_SIZES.map((sz) => (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => activeItem && updateItemSize(activeItem.id, sz)}
+                    className={`h-9 ${
+                      sz === 'Free Size' ? 'px-2.5 text-[11px]' : 'w-9 text-xs'
+                    } rounded-xl font-black flex items-center justify-center transition-all cursor-pointer ${
+                      activeItem?.size === sz
+                        ? 'bg-slate-900 text-white shadow-xs border-2 border-slate-900 scale-105 ring-2 ring-slate-400/30'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                    }`}
+                  >
+                    {sz}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* ================================================================= */}
-          {/* 2. LOWER SECTION: CUSTOMER NAME & NUMBER DROPDOWN */}
+          {/* 2. LOWER SECTION: CUSTOMER DETAILS (NAME & NUMBER) */}
           {/* ================================================================= */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition-all">
-            {/* Lower Section Collapsible Header */}
-            <div
-              onClick={() => setIsCustomerSectionOpen(!isCustomerSectionOpen)}
-              className="p-3.5 bg-gradient-to-r from-emerald-50/40 to-white flex items-center justify-between cursor-pointer hover:bg-emerald-50/60 transition-colors select-none"
-            >
-              <div className="flex items-center space-x-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black flex-shrink-0 shadow-2xs">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 space-y-2.5">
+            {/* Customer Section Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-xs">
                   <User className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                      Customer Name & Number
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                      {lastPurchase || activeCustomer ? 'Existing Customer' : customerPhone.replace(/\D/g, '').length >= 10 ? 'New Customer' : 'Walk-in'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                    {customerName || 'Walk-in Customer'} {customerPhone ? `• ${customerPhone}` : ''}
+                <div>
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                    Customer Information
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    {lastPurchase || activeCustomer
+                      ? 'Existing Customer in DB'
+                      : customerPhone.replace(/\D/g, '').length >= 10
+                      ? 'New Customer (will auto-save)'
+                      : 'Walk-in Customer (Optional)'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 flex-shrink-0">
+              <div className="flex items-center space-x-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCustPickerOpen(!isCustPickerOpen)}
+                  className="text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  {isCustPickerOpen ? 'Close List ▴' : 'Saved List ▾'}
+                </button>
                 {(customerPhone || customerName) && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleClearCustomer();
-                    }}
-                    className="text-[11px] font-bold text-rose-600 hover:text-rose-700 px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 cursor-pointer"
+                    onClick={handleClearCustomer}
+                    className="text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded-lg transition-colors cursor-pointer"
                   >
                     Reset
                   </button>
                 )}
-                <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs">
-                  {isCustomerSectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </div>
               </div>
             </div>
 
-            {/* Lower Section Body: Customer Input & History */}
-            {isCustomerSectionOpen && (
-              <div className="p-3.5 space-y-3 border-t border-slate-100 bg-white animate-in fade-in duration-150">
-                {/* Quick Dropdown: Select From Existing Customers */}
-                <div className="relative">
-                  <div className="flex items-center justify-between pb-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                      Quick Pick or Enter Details
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsCustPickerOpen(!isCustPickerOpen)}
-                      className="text-[11px] font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>{isCustPickerOpen ? 'Close Customer List ▴' : 'Select From Saved Customers ▾'}</span>
-                    </button>
-                  </div>
-
-                  {/* Customer Dropdown Popover */}
-                  {isCustPickerOpen && (
-                    <div className="mb-2 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 shadow-xs animate-in fade-in duration-100">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={custPickerSearch}
-                          onChange={(e) => setCustPickerSearch(e.target.value)}
-                          placeholder="Search saved customer by name or phone..."
-                          className="w-full pl-3 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
-                        />
-                      </div>
-                      <div className="max-h-36 overflow-y-auto space-y-1 divide-y divide-slate-100 no-scrollbar">
-                        {customers
-                          .filter((c) => {
-                            if (!custPickerSearch.trim()) return true;
-                            const q = custPickerSearch.toLowerCase();
-                            return c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
-                          })
-                          .slice(0, 8)
-                          .map((c) => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedCustomerId(c.id);
-                                setCustomerName(c.name);
-                                setCustomerPhone(c.phone || '');
-                                setIsCustPickerOpen(false);
-                                setCustPickerSearch('');
-                              }}
-                              className="w-full text-left p-2 hover:bg-orange-50/80 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer"
-                            >
-                              <div>
-                                <p className="font-bold text-slate-900">{c.name}</p>
-                                <p className="text-[10px] text-slate-500 font-mono">{c.phone || 'No phone'}</p>
-                              </div>
-                              {c.current_balance !== undefined && c.current_balance > 0 ? (
-                                <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                                  ₹{c.current_balance} Due
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-slate-400">Select →</span>
-                              )}
-                            </button>
-                          ))}
-                        {customers.length === 0 && (
-                          <p className="text-[11px] text-slate-400 italic p-2 text-center">No saved customers yet.</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Direct Number & Name Inputs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="relative">
-                    <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="Mobile Number (Optional)"
-                      value={customerPhone}
-                      onChange={(e) => handlePhoneChange(e.target.value)}
-                      maxLength={15}
-                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all font-mono"
-                    />
-                  </div>
-                  <div className="relative">
-                    <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Customer Name (Walk-in)"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Auto-detected Last Purchase Details if Found */}
-                {lastPurchase ? (
-                  <div className="bg-gradient-to-br from-emerald-50/90 to-teal-50/50 rounded-xl p-3 border border-emerald-200/90 space-y-2 animate-in fade-in duration-200">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-2xs flex-shrink-0">
-                          {(activeCustomer?.name || customerName || 'C').charAt(0).toUpperCase()}
-                        </div>
+            {/* Saved Customers Popover */}
+            {isCustPickerOpen && (
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 shadow-xs animate-in fade-in duration-100">
+                <input
+                  type="text"
+                  value={custPickerSearch}
+                  onChange={(e) => setCustPickerSearch(e.target.value)}
+                  placeholder="Search customer by name or phone..."
+                  className="w-full pl-3 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
+                />
+                <div className="max-h-36 overflow-y-auto space-y-1 divide-y divide-slate-100 no-scrollbar">
+                  {customers
+                    .filter((c) => {
+                      if (!custPickerSearch.trim()) return true;
+                      const q = custPickerSearch.toLowerCase();
+                      return c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
+                    })
+                    .slice(0, 8)
+                    .map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCustomerId(c.id);
+                          setCustomerName(c.name);
+                          setCustomerPhone(c.phone || '');
+                          setIsCustPickerOpen(false);
+                          setCustPickerSearch('');
+                        }}
+                        className="w-full text-left p-2 hover:bg-orange-50/80 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer"
+                      >
                         <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="font-extrabold text-xs text-slate-900">
-                              {activeCustomer?.name || customerName || 'Registered Customer'}
-                            </h4>
-                            <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded-md">
-                              Found in Database
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 font-mono">
-                            {customerPastSales.length} Total Bill{customerPastSales.length === 1 ? '' : 's'}
-                            {preferredSize && (
-                              <span className="ml-2 font-bold text-orange-700 bg-orange-100/80 px-1.5 py-0.2 rounded">
-                                👟 Size UK {preferredSize}
-                              </span>
-                            )}
-                          </p>
+                          <p className="font-bold text-slate-900">{c.name}</p>
+                          <p className="text-[10px] text-slate-500 font-mono">{c.phone || 'No phone'}</p>
                         </div>
-                      </div>
-
-                      {activeCustomer?.current_balance !== undefined && activeCustomer.current_balance > 0 ? (
-                        <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full flex-shrink-0">
-                          ₹{activeCustomer.current_balance.toLocaleString('en-IN')} Due
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full flex-shrink-0">
-                          All Settled
-                        </span>
-                      )}
-                    </div>
-
-                    {/* LAST PURCHASE DETAILS CARD */}
-                    <div className="bg-white rounded-lg p-2.5 border border-emerald-200/70 text-[11px] space-y-1 shadow-2xs">
-                      <div className="flex items-center justify-between font-bold text-slate-800 pb-1 border-b border-slate-100">
-                        <span className="flex items-center gap-1 text-[10px] uppercase font-black text-emerald-800 tracking-wider">
-                          <ShoppingBag className="w-3 h-3 text-emerald-600" />
-                          <span>Last Purchase: {formatPurchaseDate(lastPurchase.created_at)}</span>
-                        </span>
-                        <span className="font-mono text-xs font-black text-slate-900">
-                          ₹{lastPurchase.total.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-
-                      {/* Items from last purchase */}
-                      <div className="text-[11px] text-slate-600 flex flex-wrap gap-1 items-center pt-0.5">
-                        <span className="font-bold text-slate-700 text-[10px]">Bought:</span>
-                        {(lastPurchase.items || []).map((it: any, i: number) => (
-                          <span
-                            key={i}
-                            className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-800 border border-slate-200/60"
-                          >
-                            {it.item_name || 'Footwear'} {it.size ? `(Size ${it.size})` : ''}
+                        {c.current_balance !== undefined && c.current_balance > 0 ? (
+                          <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                            ₹{c.current_balance} Due
                           </span>
-                        ))}
-                      </div>
-
-                      {customerPastSales.length > 1 && (
-                        <div className="pt-1 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setIsHistoryModalOpen(true)}
-                            className="text-[10px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer"
-                          >
-                            View All {customerPastSales.length} Past Purchases →
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : customerPhone.replace(/\D/g, '').length >= 10 ? (
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-200/60">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>New customer • No previous purchase found. Will save automatically.</span>
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-400 italic">
-                    Walk-in sale. Enter mobile number or choose from dropdown to auto-detect customer & last purchase.
-                  </p>
-                )}
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-400">Select →</span>
+                        )}
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
+
+            {/* Direct Phone & Name Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="relative">
+                <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Mobile Number (Optional)"
+                  value={customerPhone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  maxLength={15}
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all font-mono"
+                />
+              </div>
+              <div className="relative">
+                <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Customer Name (Walk-in)"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Detected Past Purchase Compact Card */}
+            {lastPurchase ? (
+              <div className="bg-gradient-to-br from-emerald-50/90 to-teal-50/50 rounded-xl p-2.5 border border-emerald-200/90 space-y-1.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-slate-900 font-extrabold">{activeCustomer?.name || customerName}</span>
+                    <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">
+                      Existing
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryModalOpen(true)}
+                    className="text-[10px] text-orange-600 hover:underline font-bold cursor-pointer"
+                  >
+                    History ({customerPastSales.length}) →
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-slate-600">
+                  Last purchase: <b className="text-slate-800">{formatPurchaseDate(lastPurchase.created_at)}</b> (₹{lastPurchase.total})
+                  {preferredSize && (
+                    <span className="ml-2 font-bold text-orange-700 bg-orange-100 px-1.5 py-0.2 rounded">
+                      Preferred Sz {preferredSize}
+                    </span>
+                  )}
+                </p>
+              </div>
+            ) : customerPhone.replace(/\D/g, '').length >= 10 ? (
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200/70">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                <span>New customer • Will be auto-added to your store database.</span>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        {/* Bottom Action */}
+        {/* Bottom Action Button */}
         <div className="pt-2 flex-shrink-0">
           <button
             type="button"
             onClick={handleProceedToPayment}
-            className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer"
+            className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl font-black text-base shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all cursor-pointer"
           >
             <span>Proceed to Payment (₹{activeSubtotal.toLocaleString('en-IN')})</span>
             <ArrowRight className="w-5 h-5" />
@@ -1190,7 +1055,6 @@ export const CalculatorPOSPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Individual Items */}
                     <div className="space-y-1">
                       {(sale.items || []).map((it, itIdx) => (
                         <div key={itIdx} className="flex justify-between items-center text-xs font-semibold text-slate-700">
@@ -1208,7 +1072,7 @@ export const CalculatorPOSPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800"
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 cursor-pointer"
               >
                 Close History
               </button>
@@ -1772,22 +1636,33 @@ export const CalculatorPOSPage: React.FC = () => {
   // STEP 1: ANDROID MATERIAL YOU FULLSCREEN CALCULATOR
   // =========================================================================
   return (
-    <div className="h-[100dvh] max-h-[100dvh] bg-[#131417] text-white flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
-      {/* Top Header Bar with Exit, Lock, and Sales */}
-      <div className="flex items-center justify-between pt-1 pb-1 flex-shrink-0">
+    <div className="h-[100dvh] max-h-[100dvh] bg-slate-950 text-white flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans">
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between pt-0.5 pb-1 flex-shrink-0">
         <Link
           to="/app/dashboard"
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
+          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 active:scale-95 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer shadow-xs"
         >
           <ArrowLeft className="w-4 h-4 text-orange-400" />
           <span>Exit</span>
         </Link>
 
+        {/* Quick Action Tools */}
         <div className="flex items-center space-x-1.5">
           <button
             type="button"
+            onClick={() => setIsDemandModalOpen(true)}
+            className="flex items-center space-x-1 text-xs font-bold text-orange-300 bg-orange-950/40 hover:bg-orange-900/50 active:scale-95 px-2.5 py-1.5 rounded-full border border-orange-500/30 transition-all cursor-pointer shadow-xs"
+            title="Log Out-of-Stock Shoe Demand"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+            <span>Demand</span>
+          </button>
+
+          <button
+            type="button"
             onClick={lockScreen}
-            className="flex items-center space-x-1 text-xs font-bold text-amber-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-amber-500/20 transition-all cursor-pointer shadow-xs"
+            className="flex items-center space-x-1 text-xs font-bold text-amber-300 bg-slate-800 hover:bg-slate-700 active:scale-95 px-2.5 py-1.5 rounded-full border border-amber-500/30 transition-all cursor-pointer shadow-xs"
             title="Lock Counter Screen (PIN)"
           >
             <Lock className="w-3.5 h-3.5 text-amber-400" />
@@ -1796,7 +1671,7 @@ export const CalculatorPOSPage: React.FC = () => {
 
           <Link
             to="/app/sales"
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3.5 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 active:scale-95 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer shadow-xs"
           >
             <ShoppingBag className="w-4 h-4 text-orange-400" />
             <span>Sales</span>
@@ -1827,33 +1702,57 @@ export const CalculatorPOSPage: React.FC = () => {
         </div>
       )}
 
-      {/* Android Big Display Screen */}
-      <div className="flex-1 flex flex-col justify-end text-right px-3 py-1 space-y-1 relative overflow-hidden flex-shrink-0">
-        <div className="flex items-center justify-between text-xs sm:text-sm font-mono text-slate-400">
-          <span className="text-[11px] font-bold text-slate-500">
-            {activeCustomer ? `Customer: ${activeCustomer.name}` : 'Walk-in'}
+      {/* FOOTWEAR CATEGORY SELECTOR CHIPS WITH ICONS */}
+      <div className="my-1 flex-shrink-0">
+        <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 px-1">
+          <span>Select Category</span>
+          <span className="text-orange-400 font-bold">Active: {activeCategory}</span>
+        </div>
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          {FOOTWEAR_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setActiveCategory(cat.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0 transition-all cursor-pointer border ${
+                activeCategory === cat.id
+                  ? 'bg-[#ff6600] text-white border-orange-500 shadow-md shadow-orange-500/30 scale-102 ring-2 ring-orange-400/40'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
+              }`}
+            >
+              <span>{cat.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* POS Big Display Screen */}
+      <div className="flex-1 flex flex-col justify-end text-right px-3 py-2 bg-slate-900/90 rounded-2xl border border-slate-800/80 shadow-inner my-1 flex-shrink-0">
+        <div className="flex items-center justify-between text-xs font-mono text-slate-400">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-400 bg-orange-950/60 border border-orange-500/20 px-2 py-0.5 rounded-md">
+            <span>🏷️ {activeCategory}</span>
           </span>
           <p className="tracking-wider truncate">
-            {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} item(s) selected` : '0'}
+            {calcDisplay !== '0' ? calcDisplay : lineItems.length > 0 ? `${lineItems.length} item(s) in bill` : 'Enter amount'}
           </p>
         </div>
 
-        <div className="flex items-baseline justify-end space-x-2">
+        <div className="flex items-baseline justify-end space-x-2 my-0.5">
           <span className="text-2xl sm:text-3xl font-bold text-[#ff7b00]">₹</span>
           <span className="text-4xl sm:text-5xl font-black tracking-tight font-sans text-white">
             {(lineItems.length > 0 ? activeSubtotal : currentCalcValue || 0).toLocaleString('en-IN')}
           </span>
         </div>
 
-        {/* Selected Items Mini Badges (Chips) */}
+        {/* Selected Items Badges (Chips) */}
         {lineItems.length > 0 && (
           <div className="flex items-center justify-end space-x-1.5 overflow-x-auto py-1 no-scrollbar">
             {lineItems.map((it, idx) => (
               <div
                 key={it.id}
-                className="flex items-center space-x-1 bg-[#282a2d] border border-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-200 flex-shrink-0"
+                className="flex items-center space-x-1 bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-200 flex-shrink-0"
               >
-                <span>#{idx + 1} {it.category} (Size {it.size}) ₹{it.unit_price}</span>
+                <span>#{idx + 1} {it.category} (Sz {it.size}) ₹{it.unit_price}</span>
                 <button
                   type="button"
                   onClick={() => handleRemoveLineItem(it.id)}
@@ -1867,34 +1766,34 @@ export const CalculatorPOSPage: React.FC = () => {
         )}
       </div>
 
-      {/* Android Material You 4x5 Circular Touch Keypad */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-2.5 my-2 flex-shrink-0">
-        {/* Row 1: AC, ⌫, %, ÷ */}
+      {/* Tactile 4x5 Retail Keypad */}
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2 my-1 flex-shrink-0">
+        {/* Row 1: C, ⌫, %, ÷ */}
         <button
           type="button"
           onClick={() => handleKeypadPress('C')}
-          className="h-13 sm:h-14 rounded-full font-black text-lg bg-[#383b40] text-[#ff7b00] hover:bg-[#44474d] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-xs"
+          className="h-12 sm:h-13 rounded-2xl font-black text-base bg-rose-950/40 text-rose-400 hover:bg-rose-900/50 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-rose-500/20"
         >
           C
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('BACKSPACE')}
-          className="h-13 sm:h-14 rounded-full font-black text-lg bg-[#383b40] text-slate-200 hover:bg-[#44474d] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-xs"
+          className="h-12 sm:h-13 rounded-2xl font-black text-base bg-slate-850 text-slate-300 hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5"
         >
           ⌫
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('%')}
-          className="h-13 sm:h-14 rounded-full font-black text-lg bg-[#383b40] text-slate-200 hover:bg-[#44474d] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-xs"
+          className="h-12 sm:h-13 rounded-2xl font-black text-base bg-slate-850 text-slate-300 hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5"
         >
           %
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('÷')}
-          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
+          className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
         >
           ÷
         </button>
@@ -1905,7 +1804,7 @@ export const CalculatorPOSPage: React.FC = () => {
             key={n}
             type="button"
             onClick={() => handleKeypadPress(n)}
-            className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
+            className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-slate-850 text-white hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
           >
             {n}
           </button>
@@ -1913,7 +1812,7 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('×')}
-          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
+          className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
         >
           ×
         </button>
@@ -1924,7 +1823,7 @@ export const CalculatorPOSPage: React.FC = () => {
             key={n}
             type="button"
             onClick={() => handleKeypadPress(n)}
-            className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
+            className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-slate-850 text-white hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
           >
             {n}
           </button>
@@ -1932,7 +1831,7 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('-')}
-          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
+          className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
         >
           -
         </button>
@@ -1943,7 +1842,7 @@ export const CalculatorPOSPage: React.FC = () => {
             key={n}
             type="button"
             onClick={() => handleKeypadPress(n)}
-            className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
+            className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-slate-850 text-white hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
           >
             {n}
           </button>
@@ -1951,7 +1850,8 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('+')}
-          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
+          className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-md shadow-orange-500/25"
+          title="Add Item (+)"
         >
           +
         </button>
@@ -1960,40 +1860,40 @@ export const CalculatorPOSPage: React.FC = () => {
         <button
           type="button"
           onClick={() => handleKeypadPress('0')}
-          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
+          className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-slate-850 text-white hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
         >
           0
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('00')}
-          className="h-13 sm:h-14 rounded-full font-black text-xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
+          className="h-12 sm:h-13 rounded-2xl font-black text-lg bg-slate-850 text-white hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
         >
           00
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('.')}
-          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#282a2d] text-white hover:bg-[#34373c] active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
+          className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-slate-850 text-white hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/5 shadow-xs"
         >
           .
         </button>
         <button
           type="button"
           onClick={() => handleKeypadPress('=')}
-          className="h-13 sm:h-14 rounded-full font-black text-2xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-92 transition-all duration-75 flex items-center justify-center cursor-pointer shadow-lg shadow-orange-500/30"
+          className="h-12 sm:h-13 rounded-2xl font-black text-xl bg-[#ff6600] text-white hover:bg-orange-600 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-lg shadow-orange-500/30"
         >
           =
         </button>
       </div>
 
-      {/* Action Footer Bar - Single Clean Continue Button */}
-      <div className="pt-2 pb-1 flex-shrink-0">
+      {/* Action Footer Bar */}
+      <div className="pt-1.5 pb-0.5 flex-shrink-0">
         <button
           type="button"
           onClick={handleProceedToDetails}
           disabled={(activeSubtotal <= 0 && currentCalcValue <= 0) || isSalesCreationBlocked}
-          className="w-full py-4 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-full font-black text-base shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+          className="w-full py-3.5 bg-[#ff6600] hover:bg-orange-600 active:scale-98 text-white rounded-2xl font-black text-base shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
         >
           <span>
             {isSalesCreationBlocked
