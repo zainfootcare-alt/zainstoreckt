@@ -29,6 +29,7 @@ import {
   Navigation,
   Copy,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 import { DemandLogModal } from '../../components/common/DemandLogModal';
 
@@ -55,6 +56,7 @@ export const CalculatorPOSPage: React.FC = () => {
     verifyStoreLocation,
     bypassLocationVerification,
     checkSalesTimeAllowed,
+    lockScreen,
   } = useShop();
   const isAdmin = activeRole === 'ADMIN';
   const salesTimeCheck = checkSalesTimeAllowed();
@@ -1771,7 +1773,7 @@ export const CalculatorPOSPage: React.FC = () => {
   // =========================================================================
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-[#131417] text-white flex flex-col justify-between max-w-md mx-auto p-3 sm:p-4 select-none overflow-hidden animate-in fade-in duration-150">
-      {/* Top Header Bar with only Exit and Sales */}
+      {/* Top Header Bar with Exit, Lock, and Sales */}
       <div className="flex items-center justify-between pt-1 pb-1 flex-shrink-0">
         <Link
           to="/app/dashboard"
@@ -1781,13 +1783,25 @@ export const CalculatorPOSPage: React.FC = () => {
           <span>Exit</span>
         </Link>
 
-        <Link
-          to="/app/sales"
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3.5 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
-        >
-          <ShoppingBag className="w-4 h-4 text-orange-400" />
-          <span>Sales</span>
-        </Link>
+        <div className="flex items-center space-x-1.5">
+          <button
+            type="button"
+            onClick={lockScreen}
+            className="flex items-center space-x-1 text-xs font-bold text-amber-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3 py-2 rounded-full border border-amber-500/20 transition-all cursor-pointer shadow-xs"
+            title="Lock Counter Screen (PIN)"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Lock</span>
+          </button>
+
+          <Link
+            to="/app/sales"
+            className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-[#282a2d] hover:bg-[#34373c] active:scale-95 px-3.5 py-2 rounded-full border border-white/5 transition-all cursor-pointer shadow-xs"
+          >
+            <ShoppingBag className="w-4 h-4 text-orange-400" />
+            <span>Sales</span>
+          </Link>
+        </div>
       </div>
 
       {/* Store Sales Hours Alert Banner if restricted */}

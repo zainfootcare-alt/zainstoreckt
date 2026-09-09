@@ -253,6 +253,84 @@ export const authService = {
 
     return { user: null, error: 'Incorrect PIN. Please try again.' };
   },
+
+  /** Update user security PIN across database and persistent local sessions */
+  async updatePin(userId: string, newPin: string): Promise<{ success: boolean; error: string | null }> {
+    const cleanPin = newPin.trim();
+    if (!/^\d{4}$/.test(cleanPin)) {
+      return { success: false, error: 'PIN must be exactly 4 digits (0-9).' };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ pin: cleanPin, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      
+      if (error) {
+        console.warn('Supabase user_profiles PIN update warning:', error);
+      }
+    } catch (err) {
+      console.warn('Network error updating PIN in Supabase:', err);
+    }
+
+    // Also update in-memory fallback list
+    const fallback = DEFAULT_AUTH_USERS.find((u) => u.id === userId);
+    if (fallback) {
+      fallback.pin = cleanPin;
+    }
+
+    // Update persistent local storage session
+    try {
+      const savedUserStr = localStorage.getItem('zain_persistent_user');
+      if (savedUserStr) {
+        const parsed = JSON.parse(savedUserStr);
+        if (parsed.id === userId) {
+          parsed.pin = cleanPin;
+          localStorage.setItem('zain_persistent_user', JSON.stringify(parsed));
+        }
+      }
+      const lastAccStr = localStorage.getItem('zain_last_account');
+      if (lastAccStr) {
+        const parsedAcc = JSON.parse(lastAccStr);
+        if (parsedAcc.id === userId) {
+          parsedAcc.pin = cleanPin;
+          localStorage.setItem('zain_last_account', JSON.stringify(parsedAcc));
+        }
+      }
+    } catch {}
+
+    return { success: true, error: null };
+  },
+
+  /** Update user profile fields (name, phone, password, etc.) */
+  async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<{ success: boolean; user: UserProfile | null; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .select()
+        .maybeSingle();
+
+      if (!error && data) {
+        this.saveSession(data);
+        return { success: true, user: data, error: null };
+      }
+    } catch (err) {
+      console.warn('Supabase updateProfile error, fallback to local:', err);
+    }
+
+    // Fallback local session update
+    const saved = this.restoreSession();
+    if (saved && saved.id === userId) {
+      const updated = { ...saved, ...updates, updated_at: new Date().toISOString() };
+      this.saveSession(updated);
+      return { success: true, user: updated, error: null };
+    }
+
+    return { success: true, user: null, error: null };
+  },
 };
 
 // ============================================================================

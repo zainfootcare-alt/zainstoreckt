@@ -19,6 +19,8 @@ import { ZainLogo } from '../common/ZainLogo';
 import { SalesNotificationToast } from '../common/SalesNotificationToast';
 import { InvoiceDetailModal } from '../common/InvoiceDetailModal';
 import { PinLockOverlay } from '../auth/PinLockOverlay';
+import { SetPinModal } from '../auth/SetPinModal';
+import { MyProfileModal } from '../auth/MyProfileModal';
 import { SaleRecord } from '../../types/database.types';
 
 export const AppLayout: React.FC = () => {
@@ -29,6 +31,7 @@ export const AppLayout: React.FC = () => {
     hasPermission,
     logoutUser,
     lockScreen,
+    openProfileModal,
     latestNotificationSale,
     clearNotificationSale,
   } = useShop();
@@ -166,15 +169,20 @@ export const AppLayout: React.FC = () => {
           {/* Sidebar Footer User Profile */}
           <div className="p-3 border-t border-slate-100">
             <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="flex items-center space-x-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-slate-900 text-white font-bold text-xs flex items-center justify-center border border-orange-500 flex-shrink-0">
+              <button
+                type="button"
+                onClick={openProfileModal}
+                className="flex items-center space-x-2.5 min-w-0 text-left hover:bg-orange-50/70 p-1 -m-1 rounded-lg transition-colors cursor-pointer group"
+                title="Manage My Profile & PIN"
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-900 text-white font-bold text-xs flex items-center justify-center border border-orange-500 flex-shrink-0 group-hover:scale-105 transition-transform">
                   {userProfile?.full_name?.charAt(0) || 'Z'}
                 </div>
                 <div className="min-w-0 truncate">
-                  <p className="text-xs font-bold text-slate-800 truncate leading-tight">{userProfile?.full_name || 'User'}</p>
+                  <p className="text-xs font-bold text-slate-800 truncate leading-tight group-hover:text-orange-600 transition-colors">{userProfile?.full_name || 'User'}</p>
                   <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{activeRole}</p>
                 </div>
-              </div>
+              </button>
               <div className="flex items-center space-x-1">
                 <button
                   onClick={lockScreen}
@@ -235,6 +243,22 @@ export const AppLayout: React.FC = () => {
                 <Bell className="w-4 h-4" />
               </button>
 
+              {/* Desktop Profile Button */}
+              <button
+                type="button"
+                onClick={openProfileModal}
+                className="hidden sm:flex items-center space-x-2 px-2.5 py-1.5 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer border border-slate-200/80"
+                title="My Profile & Security"
+              >
+                <div className="w-6 h-6 rounded-lg bg-slate-900 text-white font-black flex items-center justify-center text-[10px] border border-orange-500">
+                  {userProfile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <span className="text-xs font-bold text-slate-800 max-w-[110px] truncate">{userProfile?.full_name || 'My Profile'}</span>
+                <span className="text-[9px] font-black uppercase text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
+                  {activeRole}
+                </span>
+              </button>
+
               {/* Mobile User Profile Dropdown */}
               <div className="relative lg:hidden">
                 <button
@@ -254,6 +278,18 @@ export const AppLayout: React.FC = () => {
                       <p className="text-xs font-black text-slate-900 truncate">{userProfile?.full_name || 'Saif'}</p>
                       <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{activeRole}</p>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        openProfileModal();
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-orange-50 hover:text-orange-700 flex items-center space-x-2 cursor-pointer transition-colors"
+                    >
+                      <User className="w-3.5 h-3.5 text-orange-500" />
+                      <span>My Profile & Security</span>
+                    </button>
                     {hasPermission('settings:manage') ? (
                       <button
                         type="button"
@@ -366,6 +402,12 @@ export const AppLayout: React.FC = () => {
 
       {/* QUICK SCREEN PIN LOCK OVERLAY */}
       <PinLockOverlay />
+
+      {/* POPUP: SET 4-DIGIT PIN (WHEN LOCK CLICKED WITHOUT PIN) */}
+      <SetPinModal />
+
+      {/* MODAL: MY PROFILE & 4-DIGIT PIN MANAGEMENT */}
+      <MyProfileModal />
     </div>
   );
 };

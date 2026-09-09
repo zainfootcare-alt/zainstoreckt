@@ -94,9 +94,19 @@ interface ShopContextType {
   logoutUser: () => void;
   lastAccount: Partial<UserProfile> | null;
   isScreenLocked: boolean;
+  hasConfiguredPin: boolean;
   lockScreen: () => void;
   unlockScreen: (pin: string) => Promise<{ success: boolean; message?: string }>;
   loginWithPin: (pin: string, identifier?: string) => Promise<{ success: boolean; message?: string }>;
+  updateUserPin: (newPin: string) => Promise<{ success: boolean; error: string | null }>;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error: string | null }>;
+  isSetPinModalOpen: boolean;
+  openSetPinModal: (action?: 'LOCK' | 'JUST_SAVE') => void;
+  closeSetPinModal: () => void;
+  pinPromptAction: 'LOCK' | 'JUST_SAVE';
+  isProfileModalOpen: boolean;
+  openProfileModal: () => void;
+  closeProfileModal: () => void;
   clearRememberedAccount: () => void;
   checkSalesTimeAllowed: () => {
     allowed: boolean;
@@ -244,6 +254,31 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [dbError, setDbError] = useState<string | null>(null);
   const [lastAccount, setLastAccount] = useState<Partial<UserProfile> | null>(() => authService.getLastAccount());
   const [isScreenLocked, setIsScreenLocked] = useState<boolean>(false);
+  const [isSetPinModalOpen, setIsSetPinModalOpen] = useState<boolean>(false);
+  const [pinPromptAction, setPinPromptAction] = useState<'LOCK' | 'JUST_SAVE'>('LOCK');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+
+  const hasConfiguredPin = useMemo(() => {
+    const pin = userProfile?.pin;
+    return !!pin && /^\d{4}$/.test(pin.trim());
+  }, [userProfile?.pin]);
+
+  const openSetPinModal = useCallback((action: 'LOCK' | 'JUST_SAVE' = 'JUST_SAVE') => {
+    setPinPromptAction(action);
+    setIsSetPinModalOpen(true);
+  }, []);
+
+  const closeSetPinModal = useCallback(() => {
+    setIsSetPinModalOpen(false);
+  }, []);
+
+  const openProfileModal = useCallback(() => {
+    setIsProfileModalOpen(true);
+  }, []);
+
+  const closeProfileModal = useCallback(() => {
+    setIsProfileModalOpen(false);
+  }, []);
 
   // App data state
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -535,8 +570,52 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLastAccount(authService.getLastAccount());
   };
 
-  const lockScreen = () => {
-    setIsScreenLocked(true);
+  const lockScreen = useCallback(() => {
+    if (hasConfiguredPin) {
+      setIsScreenLocked(true);
+    } else {
+      setPinPromptAction('LOCK');
+      setIsSetPinModalOpen(true);
+    }
+  }, [hasConfiguredPin]);
+
+  const updateUserPin = async (newPin: string): Promise<{ success: boolean; error: string | null }> => {
+    const targetUserId = userProfile?.id || lastAccount?.id;
+    if (!targetUserId) {
+      return { success: false, error: 'No active user found.' };
+    }
+    const res = await authService.updatePin(targetUserId, newPin);
+    if (res.success) {
+      if (userProfile) {
+        setUserProfile((prev) => (prev ? { ...prev, pin: newPin } : null));
+      }
+      setLastAccount((prev) => (prev ? { ...prev, pin: newPin } : null));
+    }
+    return res;
+  };
+
+  const updateUserProfile = async (updates: Partial<UserProfile>): Promise<{ success: boolean; error: string | null }> => {
+    const targetUserId = userProfile?.id || lastAccount?.id;
+    if (!targetUserId) {
+      return { success: false, error: 'No active user found.' };
+    }
+    const res = await authService.updateProfile(targetUserId, updates);
+    if (res.success) {
+      if (res.user) {
+        setUserProfile(res.user);
+        setLastAccount({
+          id: res.user.id,
+          full_name: res.user.full_name,
+          username: res.user.username,
+          email: res.user.email,
+          role: res.user.role,
+          default_shop_id: res.user.default_shop_id,
+        });
+      } else if (userProfile) {
+        setUserProfile((prev) => (prev ? { ...prev, ...updates } : null));
+      }
+    }
+    return { success: res.success, error: res.error };
   };
 
   const unlockScreen = async (pin: string): Promise<{ success: boolean; message?: string }> => {
@@ -1530,9 +1609,19 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logoutUser,
         lastAccount,
         isScreenLocked,
+        hasConfiguredPin,
         lockScreen,
         unlockScreen,
         loginWithPin,
+        updateUserPin,
+        updateUserProfile,
+        isSetPinModalOpen,
+        openSetPinModal,
+        closeSetPinModal,
+        pinPromptAction,
+        isProfileModalOpen,
+        openProfileModal,
+        closeProfileModal,
         clearRememberedAccount,
         checkSalesTimeAllowed,
         addUser,
