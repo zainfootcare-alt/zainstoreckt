@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import { ZainLogo } from '../../components/common/ZainLogo';
-import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { loginUser, userProfile, users } = useShop();
+  const { loginUser, userProfile } = useShop();
   const navigate = useNavigate();
 
   // If session is already active, direct to dashboard
@@ -15,16 +15,16 @@ export const LoginPage: React.FC = () => {
     }
   }, [userProfile, navigate]);
 
-  // Login form state
-  const [identifierInput, setIdentifierInput] = useState<string>('saif@admin.com');
-  const [passwordInput, setPasswordInput] = useState<string>('admin123');
+  // Standard Login form state
+  const [identifierInput, setIdentifierInput] = useState<string>('');
+  const [passwordInput, setPasswordInput] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Handle Full Credentials Submit
-  const handleFullSubmit = async (e: React.FormEvent) => {
+  // Handle Credentials Submit
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -53,15 +53,9 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickFill = (email: string, pass: string) => {
-    setIdentifierInput(email);
-    setPasswordInput(pass);
-    setErrorMsg('');
-  };
-
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col justify-center items-center px-4 py-8 font-sans antialiased">
-      <div className="w-full max-w-sm bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+      <div className="w-full max-w-sm bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-1.5">
           <div className="flex justify-center mb-1">
@@ -79,8 +73,8 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Standard Full Login Form */}
-        <form onSubmit={handleFullSubmit} className="space-y-4">
+        {/* Standard Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
               Email / Username
@@ -91,9 +85,10 @@ export const LoginPage: React.FC = () => {
                 type="text"
                 value={identifierInput}
                 onChange={(e) => setIdentifierInput(e.target.value)}
-                placeholder="Enter email or username"
+                placeholder="Enter your email or username"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-colors"
                 autoComplete="username"
+                autoFocus
               />
             </div>
           </div>
@@ -108,7 +103,7 @@ export const LoginPage: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Enter password"
+                placeholder="Enter your password"
                 className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-colors"
                 autoComplete="current-password"
               />
@@ -116,6 +111,7 @@ export const LoginPage: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                title={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -132,35 +128,10 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Demo / Quick Select Accounts */}
-        <div className="pt-2 border-t border-slate-100 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-center">
-            Quick Switch Demo Login
-          </p>
-          <div className="grid grid-cols-2 gap-1.5 text-xs">
-            <button
-              type="button"
-              onClick={() => handleQuickFill('saif@admin.com', 'admin123')}
-              className="p-2 rounded-xl bg-orange-50/70 hover:bg-orange-100/70 border border-orange-200 text-left transition-colors cursor-pointer"
-            >
-              <span className="font-bold text-orange-950 block text-[11px]">Saif (Admin)</span>
-              <span className="text-[10px] text-orange-600 block">Full Store Access</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickFill('cashier@zain.com', 'cashier123')}
-              className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-colors cursor-pointer"
-            >
-              <span className="font-bold text-slate-800 block text-[11px]">Sales User</span>
-              <span className="text-[10px] text-slate-500 block">Counter POS Staff</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="text-center pt-1">
+        <div className="text-center pt-2 border-t border-slate-100">
           <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Secure Enterprise Authentication</span>
+            <span>Secure Enterprise POS Authentication</span>
           </p>
         </div>
       </div>
