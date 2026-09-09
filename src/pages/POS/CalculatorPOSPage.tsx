@@ -56,7 +56,6 @@ export const CalculatorPOSPage: React.FC = () => {
     verifyStoreLocation,
     bypassLocationVerification,
     checkSalesTimeAllowed,
-    lockScreen,
   } = useShop();
   const isAdmin = activeRole === 'ADMIN';
   const salesTimeCheck = checkSalesTimeAllowed();

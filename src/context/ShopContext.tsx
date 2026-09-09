@@ -245,6 +245,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return (saved?.role as ActiveRole) || 'ADMIN';
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [dbError, setDbError] = useState<string | null>(null);
   const [lastAccount, setLastAccount] = useState<Partial<UserProfile> | null>(() => authService.getLastAccount());
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
 
