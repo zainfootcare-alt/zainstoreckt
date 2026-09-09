@@ -671,21 +671,21 @@ export const CalculatorPOSPage: React.FC = () => {
 
     return (
       <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans">
-        {/* Top Header */}
-        <div className="flex items-center justify-between pb-1 flex-shrink-0">
+        {/* Top Header - Spacious & Balanced */}
+        <div className="flex items-center justify-between pt-2.5 sm:pt-3 pb-2 px-1 flex-shrink-0">
           <button
             type="button"
             onClick={() => setStep('CALCULATOR')}
-            className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-black text-slate-800 bg-white border border-slate-200/90 px-4 py-2 rounded-xl shadow-xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-600" />
+            <ArrowLeft className="w-4 h-4 text-slate-600 stroke-[2.5]" />
             <span>Back</span>
           </button>
 
-          {/* Location Status Pill */}
-          <div className="flex items-center space-x-1.5">
+          {/* Status Badge */}
+          <div className="flex items-center space-x-2">
             {isLocationVerified ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg">
                 <MapPin className="w-3 h-3 text-emerald-600" />
                 <span>Store OK</span>
               </span>
@@ -694,13 +694,13 @@ export const CalculatorPOSPage: React.FC = () => {
                 type="button"
                 onClick={handleVerifyGPS}
                 disabled={isVerifyingLocation}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full hover:bg-amber-100 cursor-pointer"
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg hover:bg-amber-100 cursor-pointer"
               >
                 <Navigation className={`w-3 h-3 ${isVerifyingLocation ? 'animate-spin' : ''}`} />
-                <span>{isVerifyingLocation ? 'Checking GPS...' : 'Verify GPS'}</span>
+                <span>{isVerifyingLocation ? 'Checking...' : 'GPS'}</span>
               </button>
             )}
-            <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+            <span className="text-xs font-black text-orange-600 bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-200">
               Step 2 • Sizing & Customer
             </span>
           </div>
@@ -727,55 +727,103 @@ export const CalculatorPOSPage: React.FC = () => {
           {/* 1. UPPER SECTION: FOOTWEAR CATEGORY & SIZE */}
           {/* ================================================================= */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3">
-            {/* Multi-Item Tab Selector (Only if more than 1 item) */}
+            {/* Multi-Item Selector & Overview (When more than 1 item) */}
             {lineItems.length > 1 && (
-              <div className="space-y-1.5 pb-2 border-b border-slate-100">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                  Select Item to Set Sizing ({lineItems.length} items):
-                </span>
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                  {lineItems.map((it, idx) => (
-                    <button
-                      key={it.id}
-                      type="button"
-                      onClick={() => setExpandedItemId(it.id)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0 transition-all cursor-pointer border ${
-                        activeItem?.id === it.id
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                      }`}
-                    >
-                      <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center font-black">
-                        {idx + 1}
-                      </span>
-                      <span>{it.category}</span>
-                      <span className="opacity-80 font-mono text-[10px]">(Sz {it.size})</span>
-                      <span className="font-mono text-orange-400 font-black">₹{it.unit_price}</span>
-                    </button>
-                  ))}
+              <div className="bg-slate-50/90 rounded-2xl p-2.5 border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Items in Bill ({lineItems.length}) - Tap to Select:</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!activeItem) return;
+                      setLineItems((prev) =>
+                        prev.map((it) => ({
+                          ...it,
+                          category: activeItem.category,
+                          size: activeItem.size,
+                        }))
+                      );
+                    }}
+                    className="text-[10px] font-bold text-orange-700 hover:text-orange-800 bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                    title="Apply selected category & size to all items"
+                  >
+                    ⚡ Set All Same
+                  </button>
+                </div>
+
+                {/* Grid of Item Cards for crystal-clear multi-item selection */}
+                <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto no-scrollbar py-0.5">
+                  {lineItems.map((it, idx) => {
+                    const isSelected = activeItem?.id === it.id;
+                    return (
+                      <button
+                        key={it.id}
+                        type="button"
+                        onClick={() => setExpandedItemId(it.id)}
+                        className={`text-left p-2 rounded-xl transition-all cursor-pointer relative border ${
+                          isSelected
+                            ? 'bg-orange-500 text-white border-orange-600 shadow-sm ring-2 ring-orange-400/40'
+                            : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                              isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            Item #{idx + 1}
+                          </span>
+                          <span className={`font-mono text-xs font-black ${isSelected ? 'text-white' : 'text-orange-600'}`}>
+                            ₹{it.unit_price}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between">
+                          <span className="font-bold text-xs truncate">
+                            {it.category}
+                          </span>
+                          <span
+                            className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                              isSelected ? 'bg-black/25 text-amber-200' : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            Sz {it.size}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <span className="absolute -top-1.5 -right-1 bg-slate-950 text-amber-300 text-[8px] font-black px-1.5 py-0.2 rounded-full border border-orange-300 shadow-xs">
+                            Active
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Current Selected Item Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-black text-xs">
-                  <Layers className="w-4 h-4" />
+            {/* Currently Active Item Header / Control Bar */}
+            <div className="flex items-center justify-between bg-orange-50/60 border border-orange-200/80 rounded-xl px-3 py-2">
+              <div className="flex items-center space-x-2 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center font-black text-xs flex-shrink-0">
+                  {lineItems.findIndex((it) => it.id === activeItem?.id) + 1}
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider truncate">
                     {lineItems.length > 1
-                      ? `Item #${lineItems.findIndex((it) => it.id === activeItem?.id) + 1} • ${activeItem?.category}`
-                      : 'Footwear Category & Size'}
+                      ? `Item #${lineItems.findIndex((it) => it.id === activeItem?.id) + 1} • ${activeItem?.category} (UK ${activeItem?.size})`
+                      : `${activeItem?.category || 'Footwear'} (UK ${activeItem?.size || '8'})`}
                   </h4>
                   <p className="text-[10px] text-slate-500 font-medium">
-                    Item Price: ₹{activeItem?.unit_price.toLocaleString('en-IN')}
+                    Price: ₹{activeItem?.unit_price.toLocaleString('en-IN')} • Tap category & size below
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-1.5 flex-shrink-0">
                 {lineItems.length > 1 && (
                   <button
                     type="button"
@@ -786,9 +834,20 @@ export const CalculatorPOSPage: React.FC = () => {
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <span className="text-xs font-black font-mono text-orange-600">
-                  ₹{activeItem?.unit_price.toLocaleString('en-IN')}
-                </span>
+                {lineItems.length > 1 && lineItems.findIndex((it) => it.id === activeItem?.id) < lineItems.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curIdx = lineItems.findIndex((it) => it.id === activeItem?.id);
+                      if (curIdx >= 0 && curIdx < lineItems.length - 1) {
+                        setExpandedItemId(lineItems[curIdx + 1].id);
+                      }
+                    }}
+                    className="text-xs font-black text-white bg-slate-900 hover:bg-slate-800 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Next Item →
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1271,17 +1330,18 @@ export const CalculatorPOSPage: React.FC = () => {
     const isDueCustomerMissing = isDuePending && (!customerName.trim() || !customerPhone.trim()) && !selectedCustomerId;
 
     return (
-      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-start max-w-md mx-auto p-2.5 sm:p-3 select-none overflow-hidden animate-in fade-in duration-150">
-        {/* Top Header */}
-        <div className="flex items-center justify-between pb-1 flex-shrink-0">
+      <div className="h-[100dvh] max-h-[100dvh] bg-[#f8fafc] text-slate-900 flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans">
+        {/* Top Header - Spacious & Balanced */}
+        <div className="flex items-center justify-between pt-2.5 sm:pt-3 pb-2 px-1 flex-shrink-0">
           <button
+            type="button"
             onClick={() => setStep('DETAILS')}
-            className="flex items-center space-x-1 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 px-2.5 py-1 rounded-full shadow-2xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-black text-slate-800 bg-white border border-slate-200/90 px-4 py-2 rounded-xl shadow-xs hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
+            <ArrowLeft className="w-4 h-4 text-slate-600 stroke-[2.5]" />
             <span>Back to Details</span>
           </button>
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+          <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
             Step 3 • Payment & Settlement
           </span>
         </div>
@@ -1343,118 +1403,147 @@ export const CalculatorPOSPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Scrollable Center Content - Tight Spacing without dead space */}
-        <div className="flex-1 flex flex-col justify-start space-y-2 overflow-y-auto no-scrollbar py-1">
-          {/* Quick 1-Tap Payment Mode Presets */}
-          <div className="grid grid-cols-3 gap-1.5 flex-shrink-0">
-            <button
-              type="button"
-              onClick={handleSelectFullCash}
-              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
-                cashPaid === activeSubtotal.toString() && onlinePaid === '0' && discountAmount === 0
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                  : 'bg-white text-emerald-800 border-slate-200 hover:bg-emerald-50'
-              }`}
-            >
-              💵 100% Cash
-            </button>
-            <button
-              type="button"
-              onClick={handleSelectFullOnline}
-              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
-                onlinePaid === activeSubtotal.toString() && cashPaid === '0' && discountAmount === 0
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                  : 'bg-white text-indigo-800 border-slate-200 hover:bg-indigo-50'
-              }`}
-            >
-              📱 100% Online
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectPaymentMode('SPLIT')}
-              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
-                parseFloat(cashPaid) > 0 && parseFloat(onlinePaid) > 0
-                  ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
-                  : 'bg-white text-orange-800 border-slate-200 hover:bg-orange-50'
-              }`}
-            >
-              ⚖️ Split (50/50)
-            </button>
-          </div>
-
-          {/* Cash & Online Direct Inputs - Compact & Clean */}
-          <div className="bg-white rounded-xl p-2.5 border border-slate-200/80 shadow-2xs space-y-2 flex-shrink-0">
-            {/* Cash Input Box */}
-            <div className="flex items-center justify-between space-x-2 bg-emerald-50/70 p-2 rounded-lg border border-emerald-200/80">
-              <div className="flex items-center space-x-2 min-w-0">
-                <Banknote className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-black text-emerald-950">Cash Received</p>
-                  <p className="text-[9px] text-emerald-700">Cash in drawer</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-1">
-                <span className="text-xs font-bold text-slate-500">₹</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={cashPaid}
-                  onChange={(e) => setCashPaid(e.target.value)}
-                  placeholder="0"
-                  className="w-24 text-right px-2 py-1 bg-white border border-emerald-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
+        {/* Scrollable Center Content - Compact, Cohesive & Zero Dead Space */}
+        <div className="flex-1 flex flex-col justify-start space-y-2.5 overflow-y-auto no-scrollbar py-1">
+          {/* Main Payment Settlement Container */}
+          <div className="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-2xs space-y-3 flex-shrink-0">
+            {/* Payment Mode Selector Tabs */}
+            <div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+                Select Payment Mode (1-Tap Settle)
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleSelectFullCash}
+                  className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                    cashPaid === activeSubtotal.toString() && onlinePaid === '0' && discountAmount === 0
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs scale-102 ring-2 ring-emerald-400/40'
+                      : 'bg-slate-50 text-emerald-800 border-slate-200 hover:bg-emerald-50'
+                  }`}
+                >
+                  💵 100% Cash
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectFullOnline}
+                  className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                    onlinePaid === activeSubtotal.toString() && cashPaid === '0' && discountAmount === 0
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs scale-102 ring-2 ring-indigo-400/40'
+                      : 'bg-slate-50 text-indigo-800 border-slate-200 hover:bg-indigo-50'
+                  }`}
+                >
+                  📱 100% Online
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPaymentMode('SPLIT')}
+                  className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                    parseFloat(cashPaid) > 0 && parseFloat(onlinePaid) > 0
+                      ? 'bg-orange-500 text-white border-orange-500 shadow-xs scale-102 ring-2 ring-orange-400/40'
+                      : 'bg-slate-50 text-orange-800 border-slate-200 hover:bg-orange-50'
+                  }`}
+                >
+                  ⚖️ Split (50/50)
+                </button>
               </div>
             </div>
 
-            {/* Online UPI Input Box */}
-            <div className="flex items-center justify-between space-x-2 bg-indigo-50/70 p-2 rounded-lg border border-indigo-200/80">
-              <div className="flex items-center space-x-2 min-w-0">
-                <Smartphone className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-black text-indigo-950">Online / UPI</p>
-                  <button
-                    type="button"
-                    onClick={() => setShowQrModal(true)}
-                    className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
-                  >
-                    <QrCode className="w-2.5 h-2.5" />
-                    <span>Show Store QR</span>
-                  </button>
+            {/* Direct Payment Inputs */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              {/* Cash Input Box */}
+              <div className="flex items-center justify-between space-x-2 bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-200/80">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                    <Banknote className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-emerald-950">Cash Received</p>
+                    <p className="text-[9px] text-emerald-700">Cash in register drawer</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-xs font-black text-emerald-800">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={cashPaid}
+                    onChange={(e) => setCashPaid(e.target.value)}
+                    placeholder="0"
+                    className="w-28 text-right px-2.5 py-1.5 bg-white border border-emerald-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                  />
                 </div>
               </div>
-              <div className="flex items-center space-x-1">
-                <span className="text-xs font-bold text-slate-500">₹</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={onlinePaid}
-                  onChange={(e) => setOnlinePaid(e.target.value)}
-                  placeholder="0"
-                  className="w-24 text-right px-2 py-1 bg-white border border-indigo-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
+
+              {/* Online UPI Input Box */}
+              <div className="flex items-center justify-between space-x-2 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-200/80">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center flex-shrink-0">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-indigo-950">Online / UPI</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowQrModal(true)}
+                      className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <QrCode className="w-3 h-3" />
+                      <span>Show Store QR</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-xs font-black text-indigo-800">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={onlinePaid}
+                    onChange={(e) => setOnlinePaid(e.target.value)}
+                    placeholder="0"
+                    className="w-28 text-right px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg text-sm font-black text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Live Settlement Status Indicator */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">Total Paid:</span>
+              <div className="flex items-center space-x-1.5">
+                <span className="font-mono font-black text-slate-900 text-sm">
+                  ₹{totalPaidSoFar.toLocaleString('en-IN')}
+                </span>
+                {unpaidDifference === 0 && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    ✅ Exact Match
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           {/* AUTO-DISCOUNT OR DUE PROMPT (When Customer Pays Less) */}
           {unpaidDifference > 0 && discountAmount === 0 && (
-            <div className="bg-amber-50 border border-amber-300 rounded-xl p-2.5 space-y-1.5 animate-in fade-in flex-shrink-0">
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3 space-y-2 animate-in fade-in flex-shrink-0">
               <div className="flex justify-between items-center text-xs font-black text-amber-900">
-                <span>⚠️ Remaining Amount: ₹{unpaidDifference}</span>
-                <span className="text-[9px] font-bold bg-amber-200 px-1.5 py-0.5 rounded-full text-amber-900">Action Required</span>
+                <span>⚠️ Remaining Unpaid: ₹{unpaidDifference}</span>
+                <span className="text-[9px] font-bold bg-amber-200 px-2 py-0.5 rounded-full text-amber-900">
+                  Select Action
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={handleApplyRemainingAsDiscount}
-                  className="py-2 px-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-black transition-all cursor-pointer shadow-xs text-center"
+                  className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs text-center"
                 >
                   🏷️ Give ₹{unpaidDifference} Discount
                 </button>
                 <button
                   type="button"
                   onClick={handleKeepRemainingAsDue}
-                  className="py-2 px-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-lg text-xs font-black transition-all cursor-pointer shadow-xs text-center"
+                  className="py-2.5 px-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs text-center"
                 >
                   ⏳ Keep ₹{unpaidDifference} as Due
                 </button>
@@ -1464,8 +1553,10 @@ export const CalculatorPOSPage: React.FC = () => {
 
           {/* Discount Applied Badge */}
           {discountAmount > 0 && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2 flex justify-between items-center text-xs flex-shrink-0">
-              <span className="font-bold text-emerald-900 text-xs">🏷️ Discount Applied: ₹{discountAmount} (Bill Settled)</span>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5 flex justify-between items-center text-xs flex-shrink-0">
+              <span className="font-bold text-emerald-900 text-xs">
+                🏷️ Discount Applied: ₹{discountAmount} (Bill Settled)
+              </span>
               <button
                 type="button"
                 onClick={() => setDiscountAmount(0)}
@@ -1478,9 +1569,9 @@ export const CalculatorPOSPage: React.FC = () => {
 
           {/* MANDATORY CUSTOMER DATA FOR DUE / UDHAAR */}
           {isDuePending && (
-            <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-2.5 space-y-2 animate-in fade-in flex-shrink-0">
+            <div className="bg-amber-50/95 border border-amber-300 rounded-2xl p-3 space-y-2 animate-in fade-in flex-shrink-0">
               <div className="flex items-center space-x-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+                <Clock className="w-4 h-4 text-amber-700 flex-shrink-0" />
                 <p className="text-xs font-black text-amber-950">
                   Customer Details Required for Udhaar (Due: ₹{dueAmount || unpaidDifference})
                 </p>
@@ -1488,7 +1579,7 @@ export const CalculatorPOSPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[9px] font-black text-amber-900 uppercase block mb-0.5">
+                  <label className="text-[10px] font-black text-amber-900 uppercase block mb-1">
                     Customer Name *
                   </label>
                   <input
@@ -1499,11 +1590,11 @@ export const CalculatorPOSPage: React.FC = () => {
                       setCustomerName(e.target.value);
                       setSelectedCustomerId('');
                     }}
-                    className="w-full px-2 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                    className="w-full px-2.5 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-2xs"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-black text-amber-900 uppercase block mb-0.5">
+                  <label className="text-[10px] font-black text-amber-900 uppercase block mb-1">
                     10-digit Phone *
                   </label>
                   <input
@@ -1514,7 +1605,7 @@ export const CalculatorPOSPage: React.FC = () => {
                       setCustomerPhone(e.target.value);
                       setSelectedCustomerId('');
                     }}
-                    className="w-full px-2 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                    className="w-full px-2.5 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-2xs"
                   />
                 </div>
               </div>
@@ -1522,13 +1613,13 @@ export const CalculatorPOSPage: React.FC = () => {
           )}
         </div>
 
-        {/* Big Complete Sale Button - Compact & Fixed Bottom */}
+        {/* Big Complete Sale Button - Compact, Balanced & Fixed Bottom */}
         <div className="pt-2 flex-shrink-0">
           <button
             type="button"
             onClick={() => handleCompleteSale(false)}
             disabled={isDueCustomerMissing || isProcessingSale || isSalesCreationBlocked}
-            className={`w-full py-3.5 rounded-xl font-black text-base shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+            className={`w-full py-4 rounded-2xl font-black text-base shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
               isSalesCreationBlocked
                 ? 'bg-rose-500 text-white opacity-75 cursor-not-allowed'
                 : isDueCustomerMissing || isProcessingSale
@@ -1636,16 +1727,21 @@ export const CalculatorPOSPage: React.FC = () => {
   // =========================================================================
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-slate-950 text-white flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans">
-      {/* Top Header Bar - Clean & Simple */}
-      <div className="flex items-center justify-between pt-0.5 pb-1 flex-shrink-0">
+      {/* Top Header Bar - Spacious, Prominent Exit Button */}
+      <div className="flex items-center justify-between pt-2 sm:pt-2.5 pb-2 px-1 flex-shrink-0">
         <Link
           to="/app/dashboard"
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 active:scale-95 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-2 text-sm font-black text-slate-100 bg-slate-800/95 hover:bg-slate-700 active:scale-95 px-4 py-2 rounded-xl border border-slate-700/80 transition-all cursor-pointer shadow-sm"
         >
-          <ArrowLeft className="w-4 h-4 text-orange-400" />
-          <span>Exit</span>
+          <ArrowLeft className="w-4 h-4 text-orange-400 stroke-[2.5]" />
+          <span>Exit POS</span>
         </Link>
-        <span className="text-xs font-bold text-slate-400 font-mono">Counter POS</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-300 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 font-sans">
+            {activeShop?.name || 'Counter POS'}
+          </span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 animate-pulse" title="Ready for Sales" />
+        </div>
       </div>
 
       {/* Store Sales Hours Alert Banner if restricted */}
