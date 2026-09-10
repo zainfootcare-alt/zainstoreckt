@@ -1726,7 +1726,7 @@ export const CalculatorPOSPage: React.FC = () => {
   // STEP 1: ANDROID MATERIAL YOU FULLSCREEN CALCULATOR
   // =========================================================================
   return (
-    <div className="h-[100dvh] max-h-[100dvh] bg-slate-950 text-white flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans">
+    <div className="h-[100dvh] max-h-[100dvh] bg-slate-950 text-white flex flex-col justify-between max-w-md mx-auto p-3 select-none overflow-hidden animate-in fade-in duration-150 font-sans" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
       {/* Top Header Bar - Spacious, Prominent Exit Button */}
       <div className="flex items-center justify-between pt-2 sm:pt-2.5 pb-2 px-1 flex-shrink-0">
         <Link

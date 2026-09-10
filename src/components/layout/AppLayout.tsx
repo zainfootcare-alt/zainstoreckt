@@ -71,7 +71,7 @@ export const AppLayout: React.FC = () => {
   const isPosPage = location.pathname === '/app/pos';
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col lg:flex-row font-sans antialiased">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col lg:flex-row font-sans antialiased" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* DESKTOP COMPACT SIDEBAR (Hidden on full-screen POS) */}
       {!isPosPage && (
         <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 min-h-screen sticky top-0 h-screen z-30 justify-between">
